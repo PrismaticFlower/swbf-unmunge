@@ -99,6 +99,18 @@ void process_chunk(const chunks::Unknown& chunk,
                                    ".combo",
                                    "combos"); });
    }
+   else if (chunk.mn == "sanm"_mn) {
+      tasks.run([&] {handle_config(view_type_as<chunks::Config>(chunk),
+                                   file_saver,
+                                   ".sanm",
+                                   "config"); });
+   }
+   else if (chunk.mn == "hud_"_mn) {
+      tasks.run([&] {handle_config(view_type_as<chunks::Config>(chunk),
+                                   file_saver,
+                                   ".hud",
+                                   "config"); });
+   }
    //Texture chunks
    else if (chunk.mn == "tex_"_mn) {
       tasks.run([&] {handle_texture(view_type_as<chunks::Texture>(chunk),
