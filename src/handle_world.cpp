@@ -701,31 +701,24 @@ void handle_world(const chunks::World& world,
 
       if (chunk.mn == "regn"_mn) {
          region_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "inst"_mn) {
          instance_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "BARR"_mn) {
          barrier_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "Hint"_mn) {
          hint_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "anim"_mn) {
          animation_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "anmg"_mn) {
          animation_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "anmh"_mn) {
          animation_entries.emplace_back(&view_type_as<Entry>(chunk));
-         head += chunk.size + 8;
       }
       else if (chunk.mn == "NAME"_mn) {
          name = read_name_value(view_type_as<Name_value>(chunk));
