@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\file_saver.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mapped_file.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\chunk_processor.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\swbf_fnv_hashes.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_config.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_texture.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_world.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_planning.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_lvl_child.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_ucfb.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_path.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_unknown.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_localization.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_terrain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_model.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_skeleton.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vbuf_helpers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\msh_builder.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ucfb_builder.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_primitives.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_collision.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_object.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\chunk_headers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\byte.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\file_saver.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mapped_file.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chunk_processor.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chunk_handlers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\swbf_fnv_hashes.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\magic_number.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_helpers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\type_pun.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vbuf_helpers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\msh_builder.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bit_flags.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ucfb_builder.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
