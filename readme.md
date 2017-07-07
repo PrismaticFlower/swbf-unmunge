@@ -25,8 +25,7 @@ Textures | Recovered nearly perfectly.
 World Info | For SWBFII most world info is recovered in a good quality fashion, SWBF has issues I have yet to work through.
 Path Planning | For SWBFII all info is recovered except dynamic pathing groups and path weights.
 Terrain | Height, colour and various settings is recovered however due to my lack of understanding of the `*.ter` format used by the editor I currently can not do better. Maybe in the future.
-Models | Recovered mostly. The recovered collision mesh for models is rejected by the munger and
-other things like material information may be wrong. 
+Models | Recovered mostly. The recovered collision mesh for models is rejected by the munger and other things like material information may be wrong. 
 Localization | Barely recovered, it will save a dump of the hash keys and their values while also saving the munged chunk as well.
 
 For everything else it will be saved as a `chunk_*.munged` that can be passed back to levelpack.
