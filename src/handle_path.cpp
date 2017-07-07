@@ -6,9 +6,10 @@
 #include"type_pun.hpp"
 
 #define GLM_FORCE_CXX98
+#define GLM_FORCE_SWIZZLE
 
 #include"glm/vec3.hpp"
-#include"glm/gtc/quaternion.hpp"
+#include"glm/vec4.hpp"
 
 #include<atomic>
 #include<vector>
@@ -37,24 +38,18 @@ struct Path_info
 {
    Magic_number mn;
    std::uint32_t size;
-   std::uint32_t node_count;
-   std::uint32_t unknown;
+   std::uint16_t node_count;
+   std::uint16_t unknown_0;
+   std::uint16_t unknown_1;
 };
 
 static_assert(std::is_standard_layout_v<Path_info>);
-static_assert(sizeof(Path_info) == 16);
+static_assert(sizeof(Path_info) == 14);
 
 struct Path_node
 {
    glm::vec3 position;
-
-   static_assert(std::is_standard_layout_v<glm::vec3>);
-   static_assert(sizeof(glm::vec3) == 12);
-
-   glm::quat rotation;
-
-   static_assert(std::is_standard_layout_v<glm::quat>);
-   static_assert(sizeof(glm::quat) == 16);
+   glm::vec4 rotation;
 };
 
 static_assert(std::is_standard_layout_v<Path_node>);
@@ -83,45 +78,47 @@ Path_node flip_path_node(const Path_node& node)
 {
    Path_node flipped{node};
    flipped.position.z *= -1.0f;
-   flipped.rotation *= glm::quat{0.0f, 0.0f, 1.0f, 0.0f};
+   flipped.rotation = node.rotation.zwxy();
+   flipped.rotation.y *= -1.0f;
 
    return flipped;
 }
 
-Path process_path_entry(const Path_entry& entry, std::uint32_t& parent_head)
+Path read_path_entry(const Path_entry& entry)
 {
    Path path;
 
    std::uint32_t head = 0;
    const std::uint32_t end = entry.size - 8;
-   parent_head += sizeof(Path_entry);
 
    const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
 
    path.name = {reinterpret_cast<const char*>(&entry.bytes[head]), entry.name_size - 1};
 
    head += entry.name_size;
-
    align_head();
    
    const auto& path_info = view_type_as<Path_info>(entry.bytes[head]);
 
-   head += sizeof(Path_info);
+   head += path_info.size + 8;
+   align_head();
 
    path.nodes.reserve(path_info.node_count);
 
-   while (view_type_as<Magic_number>(entry.bytes[head]) != "PNTS"_mn) {
-      head += 4;
+   while (head < end) {
+      const auto& child = view_type_as<chunks::Unknown>(entry.bytes[head]);
+
+      if (child.mn == "PNTS"_mn) {
+         const auto& path_points = view_type_as<Path_points>(entry.bytes[head]);
+
+         for (std::size_t i = 0; i < path_info.node_count; ++i) {
+            path.nodes.emplace_back(flip_path_node(path_points.nodes[i]));
+         }
+      }
+
+      head += child.size + 8;
+      align_head();
    }
-
-   const auto& path_points = view_type_as<Path_points>(entry.bytes[head]);
-
-   for (std::size_t i = 0; i < path_info.node_count; ++i) {
-      path.nodes.emplace_back(flip_path_node(path_points.nodes[i]));
-   }
-
-   head += sizeof(Path_points) + path_points.size;
-   parent_head += head;
 
    return path; 
 }
@@ -139,10 +136,10 @@ void write_node(const Path_node& node, std::string& buffer)
    buffer += std::to_string(node.position.z); buffer += ");\n"_sv;
    buffer += indent;
    buffer += "Rotation("_sv;
-   buffer += std::to_string(node.rotation.w); buffer += ", "_sv;
    buffer += std::to_string(node.rotation.x); buffer += ", "_sv;
    buffer += std::to_string(node.rotation.y); buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.z); buffer += ");\n"_sv;
+   buffer += std::to_string(node.rotation.z); buffer += ", "_sv;
+   buffer += std::to_string(node.rotation.w); buffer += ");\n"_sv;
 
    buffer += R"(
 			Knot(0.000000);
@@ -223,13 +220,11 @@ void handle_path(const chunks::Path& path,
    while (head < end) {
       const auto& entry = view_type_as<Path_entry>(path.bytes[head]);
 
-      if (entry.mn != "path"_mn) {
-         head += entry.size;
-         continue;
+      if (entry.mn == "path"_mn) {
+         paths.emplace_back(read_path_entry(entry));
       }
 
-      paths.emplace_back(process_path_entry(entry, head));
-
+      head += entry.size + 8;
       if (head % 4 != 0) head += (4 - (head % 4));
    }
 
