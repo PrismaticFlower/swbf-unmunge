@@ -111,6 +111,12 @@ void process_chunk(const chunks::Unknown& chunk,
                                    ".hud",
                                    "config"); });
    }
+   else if (chunk.mn == "load"_mn) {
+      tasks.run([&] {handle_config(view_type_as<chunks::Config>(chunk),
+                                   file_saver,
+                                   ".cfg",
+                                   "load"); });
+   }
    //Texture chunks
    else if (chunk.mn == "tex_"_mn) {
       tasks.run([&] {handle_texture(view_type_as<chunks::Texture>(chunk),
