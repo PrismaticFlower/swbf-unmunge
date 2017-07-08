@@ -1,15 +1,14 @@
 
-#include"vbuf_helpers.hpp"
-#include"type_pun.hpp"
-#include"magic_number.hpp"
+#include "vbuf_helpers.hpp"
+#include "magic_number.hpp"
+#include "type_pun.hpp"
 
 #define GLM_FORCE_CXX98
-#include"glm/glm.hpp"
+#include "glm/glm.hpp"
 
-#include<array>
+#include <array>
 
-namespace
-{
+namespace {
 
 static_assert(std::is_standard_layout_v<glm::vec2>);
 static_assert(sizeof(glm::vec2) == 8);
@@ -24,8 +23,7 @@ static_assert(sizeof(std::array<std::uint8_t, 4>) == 4);
 #pragma warning(disable : 4200)
 
 template<typename Entry>
-struct Vbuf_template
-{
+struct Vbuf_template {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t entry_count;
@@ -35,8 +33,7 @@ struct Vbuf_template
    Entry entries[];
 };
 
-struct Vbuf_xyznuv_entry
-{
+struct Vbuf_xyznuv_entry {
    glm::vec3 position;
    glm::vec3 normal;
    glm::vec2 uv;
@@ -50,8 +47,7 @@ using Vbuf_xyznuv = Vbuf_template<Vbuf_xyznuv_entry>;
 static_assert(std::is_standard_layout_v<Vbuf_xyznuv>);
 static_assert(sizeof(Vbuf_xyznuv) == 20);
 
-struct Vbuf_xyzncuv_entry
-{
+struct Vbuf_xyzncuv_entry {
    glm::vec3 position;
    glm::vec3 normal;
    std::array<std::uint8_t, 4> rgba;
@@ -66,8 +62,7 @@ using Vbuf_xyzncuv = Vbuf_template<Vbuf_xyzncuv_entry>;
 static_assert(std::is_standard_layout_v<Vbuf_xyzncuv>);
 static_assert(sizeof(Vbuf_xyzncuv) == 20);
 
-struct Vbuf_xyzsknuv_entry
-{
+struct Vbuf_xyzsknuv_entry {
    glm::vec3 position;
    std::array<std::uint8_t, 4> skin;
    glm::vec3 normal;
@@ -89,7 +84,8 @@ glm::vec2 flip_texture_y(glm::vec2 tex_coord)
    return {tex_coord.x, 1.0f - tex_coord.y};
 }
 
-void process_vbuf_impl(const Vbuf_xyznuv& vbuf, msh::Model& model) {
+void process_vbuf_impl(const Vbuf_xyznuv& vbuf, msh::Model& model)
+{
    model.vertices.clear();
    model.vertices.reserve(vbuf.entry_count);
    model.normals.clear();
@@ -147,7 +143,6 @@ void process_vbuf_impl(const Vbuf_xyzsknuv& vbuf, msh::Model& model)
       model.texture_coords.push_back(flip_texture_y(entry.uv));
    }
 }
-
 }
 
 void process_vbuf(const Vbuf& vbuf, msh::Model& model)
@@ -155,8 +150,7 @@ void process_vbuf(const Vbuf& vbuf, msh::Model& model)
    if (vbuf.type == Vbuf_types::xyznuv) {
       process_vbuf_impl(view_type_as<Vbuf_xyznuv>(vbuf), model);
    }
-   else if (vbuf.type == Vbuf_types::xyzncuv ||
-            vbuf.type == Vbuf_types::xyzncuv_2) {
+   else if (vbuf.type == Vbuf_types::xyzncuv || vbuf.type == Vbuf_types::xyzncuv_2) {
       process_vbuf_impl(view_type_as<Vbuf_xyzncuv>(vbuf), model);
    }
    else if (vbuf.type == Vbuf_types::xyzsknuv) {

@@ -1,38 +1,36 @@
 
-#include"bit_flags.hpp"
-#include"chunk_headers.hpp"
-#include"magic_number.hpp"
-#include"msh_builder.hpp"
-#include"type_pun.hpp"
-#include"vbuf_helpers.hpp"
-#include"string_helpers.hpp"
+#include "bit_flags.hpp"
+#include "chunk_headers.hpp"
+#include "magic_number.hpp"
+#include "msh_builder.hpp"
+#include "string_helpers.hpp"
+#include "type_pun.hpp"
+#include "vbuf_helpers.hpp"
 
-#include"tbb/task_group.h"
+#include "tbb/task_group.h"
 
 #define GLM_FORCE_CXX98
-#include"glm/vec3.hpp"
+#include "glm/vec3.hpp"
 
-#include<array>
-#include<vector>
-#include<tuple>
+#include <array>
+#include <tuple>
+#include <vector>
 
-namespace
-{
+namespace {
 
-enum class Material_flags : std::uint32_t
-{
+enum class Material_flags : std::uint32_t {
    normal = 1,
    hardedged = 2,
    singlesided = 4,
-   unknown_0 = 8, //Seems to be set when Specular is set. 
+   unknown_0 = 8, // Seems to be set when Specular is set.
    glow = 16,
    bumpmap = 32,
    additive = 64,
    specular = 128,
    env_map = 256,
-   wireframe = 2048, //Name based off msh flags, may produce some other effect.
+   wireframe = 2048, // Name based off msh flags, may produce some other effect.
    doublesided = 65536,
-   
+
    scrolling = 16777216,
    energy = 33554432,
    animated = 67108864
@@ -40,8 +38,7 @@ enum class Material_flags : std::uint32_t
 
 #pragma pack(push, 1)
 
-struct Render_type
-{
+struct Render_type {
    Magic_number mn;
    std::uint32_t size;
 
@@ -51,8 +48,7 @@ struct Render_type
 static_assert(std::is_standard_layout_v<Render_type>);
 static_assert(sizeof(Render_type) == 8);
 
-struct Tex_name
-{
+struct Tex_name {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t index;
@@ -63,8 +59,7 @@ struct Tex_name
 static_assert(std::is_standard_layout_v<Tex_name>);
 static_assert(sizeof(Tex_name) == 12);
 
-struct Bone_name
-{
+struct Bone_name {
    Magic_number mn;
    std::uint32_t size;
 
@@ -74,8 +69,7 @@ struct Bone_name
 static_assert(std::is_standard_layout_v<Bone_name>);
 static_assert(sizeof(Bone_name) == 8);
 
-struct Ibuf
-{
+struct Ibuf {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t entry_count;
@@ -86,8 +80,7 @@ struct Ibuf
 static_assert(std::is_standard_layout_v<Ibuf>);
 static_assert(sizeof(Ibuf) == 12);
 
-struct Material
-{
+struct Material {
    Magic_number mn;
    std::uint32_t size;
 
@@ -106,8 +99,7 @@ struct Material
 static_assert(std::is_standard_layout_v<Material>);
 static_assert(sizeof(Material) == 33);
 
-struct Bonemap
-{
+struct Bonemap {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t count;
@@ -118,8 +110,7 @@ struct Bonemap
 static_assert(std::is_standard_layout_v<Bonemap>);
 static_assert(sizeof(Bonemap) == 12);
 
-struct Shadow_vertices
-{
+struct Shadow_vertices {
    Magic_number mn;
    std::uint32_t size;
 
@@ -132,8 +123,7 @@ struct Shadow_vertices
 static_assert(std::is_standard_layout_v<Shadow_vertices>);
 static_assert(sizeof(Shadow_vertices) == 8);
 
-struct Shadow_indices
-{
+struct Shadow_indices {
    Magic_number mn;
    std::uint32_t size;
 
@@ -146,15 +136,13 @@ struct Shadow_indices
 static_assert(std::is_standard_layout_v<Shadow_indices>);
 static_assert(sizeof(Shadow_indices) == 8);
 
-struct Shadow_skin
-{
+struct Shadow_skin {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t count;
    std::uint32_t unknown_1;
 
-   struct Skin_info
-   {
+   struct Skin_info {
       std::uint16_t marker;
       std::uint8_t bone;
       std::uint8_t unused[2];
@@ -169,8 +157,7 @@ struct Shadow_skin
 static_assert(std::is_standard_layout_v<Shadow_skin>);
 static_assert(sizeof(Shadow_skin) == 16);
 
-struct Cshadow
-{
+struct Cshadow {
    Magic_number mn;
    std::uint32_t size;
 
@@ -185,8 +172,7 @@ struct Cshadow
 static_assert(std::is_standard_layout_v<Cshadow>);
 static_assert(sizeof(Cshadow) == 28);
 
-struct Segment
-{
+struct Segment {
    Magic_number mn;
    std::uint32_t size;
 
@@ -196,8 +182,7 @@ struct Segment
 static_assert(std::is_standard_layout_v<Segment>);
 static_assert(sizeof(Segment) == 8);
 
-struct Shadow
-{
+struct Shadow {
    Magic_number mn;
    std::uint32_t size;
 
@@ -207,14 +192,14 @@ struct Shadow
 static_assert(std::is_standard_layout_v<Shadow>);
 static_assert(sizeof(Shadow) == 8);
 
-struct Model_info
-{
+struct Model_info {
    Magic_number mn;
    std::uint32_t size;
 
    std::uint32_t unknown_1[4];
 
-   glm::vec3 bbox_pos; //Maybe? I'm not entirely sure, but whatever it is we don't need it.
+   glm::vec3
+      bbox_pos; // Maybe? I'm not entirely sure, but whatever it is we don't need it.
    glm::vec3 bbox_extent;
    float unused[6];
 
@@ -231,7 +216,9 @@ const Model_info* find_model_info(const chunks::Model& model)
    std::uint32_t head = model.name_size;
    const std::uint32_t end = model.size - 8;
 
-   const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
+   const auto align_head = [&head] {
+      if (head % 4 != 0) head += (4 - (head % 4));
+   };
    align_head();
 
    std::vector<const Segment*> segments;
@@ -250,12 +237,14 @@ const Model_info* find_model_info(const chunks::Model& model)
    return nullptr;
 }
 
-std::vector<const Segment*> find_segments(const chunks::Model& model) 
+std::vector<const Segment*> find_segments(const chunks::Model& model)
 {
    std::uint32_t head = model.name_size;
    const std::uint32_t end = model.size - 8;
 
-   const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
+   const auto align_head = [&head] {
+      if (head % 4 != 0) head += (4 - (head % 4));
+   };
    align_head();
 
    std::vector<const Segment*> segments;
@@ -279,7 +268,9 @@ std::vector<const Shadow*> find_shadows(const chunks::Model& model)
    std::uint32_t head = model.name_size;
    const std::uint32_t end = model.size - 8;
 
-   const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
+   const auto align_head = [&head] {
+      if (head % 4 != 0) head += (4 - (head % 4));
+   };
    align_head();
 
    std::vector<const Shadow*> segments;
@@ -316,7 +307,7 @@ auto read_vertex_strip(const Ibuf& ibuf, std::size_t& pos) -> std::vector<std::u
    strip.reserve(32);
 
    std::uint16_t last_index = 0xFFFF;
-   
+
    for (; pos < ibuf.entry_count; ++pos) {
       if (ibuf.indices[pos] == last_index) {
          ++pos;
@@ -365,13 +356,13 @@ std::vector<glm::vec3> read_shadow_vertices(const Shadow_vertices& shdv)
 {
    std::vector<glm::vec3> vertices{shdv.size / sizeof(glm::vec3)};
 
-   std::memcpy(vertices.data(), &shdv.vertices[0],
-               vertices.size() * sizeof(glm::vec3));
+   std::memcpy(vertices.data(), &shdv.vertices[0], vertices.size() * sizeof(glm::vec3));
 
    return vertices;
 }
 
-auto read_shadow_indices(const Shadow_indices& shdi) -> std::vector<std::vector<std::uint16_t>>
+auto read_shadow_indices(const Shadow_indices& shdi)
+   -> std::vector<std::vector<std::uint16_t>>
 {
    const auto count = shdi.size / sizeof(shdi.indices[0]);
 
@@ -400,8 +391,8 @@ std::vector<std::uint8_t> read_shadow_skin(const Shadow_skin& skin)
 
 void read_material(const Material& mat, msh::Material& out)
 {
-   out.colour = { mat.colour[0] / 255.0f, mat.colour[1] / 255.0f,
-                     mat.colour[2] / 255.0f, mat.colour[3] / 255.0f};
+   out.colour = {mat.colour[0] / 255.0f, mat.colour[1] / 255.0f, mat.colour[2] / 255.0f,
+                 mat.colour[3] / 255.0f};
 
    out.specular_value = static_cast<float>(mat.specular_intensity);
 
@@ -467,7 +458,8 @@ void read_cshadow(const Cshadow& cshd, msh::Shadow& out)
       const auto& chunk = view_type_as<chunks::Unknown>(cshd.data[head]);
 
       if (chunk.mn == "SHDV"_mn) {
-         out.vertices = read_shadow_vertices(view_type_as<Shadow_vertices>(cshd.data[head]));
+         out.vertices =
+            read_shadow_vertices(view_type_as<Shadow_vertices>(cshd.data[head]));
       }
       else if (chunk.mn == "SHDI"_mn) {
          out.strips = read_shadow_indices(view_type_as<Shadow_indices>(cshd.data[head]));
@@ -491,7 +483,7 @@ void process_segment(const Segment& segm, msh::Builder& builder)
 
    while (head < end) {
       const auto& chunk = view_type_as<chunks::Unknown>(segm.bytes[head]);
-      
+
       if (chunk.mn == "MTRL"_mn) {
          read_material(view_type_as<Material>(segm.bytes[head]), model.material);
       }
@@ -499,7 +491,7 @@ void process_segment(const Segment& segm, msh::Builder& builder)
          read_render_type(view_type_as<Render_type>(segm.bytes[head]), model.material);
       }
       else if (chunk.mn == "TNAM"_mn) {
-         const auto name = read_texture_name(view_type_as<Tex_name>(segm.bytes[head]));       
+         const auto name = read_texture_name(view_type_as<Tex_name>(segm.bytes[head]));
          model.material.textures.emplace_back(name);
       }
       else if (chunk.mn == "IBUF"_mn) {
@@ -526,7 +518,7 @@ void process_segment(const Segment& segm, msh::Builder& builder)
 void process_segments(const chunks::Model& model, msh::Builder& builder)
 {
    const auto segments = find_segments(model);
-   
+
    for (const auto segment : segments) {
       process_segment(*segment, builder);
    }
@@ -568,16 +560,14 @@ void process_shadows(const chunks::Model& model, msh::Builder& builder)
       process_shadow(*shadow, builder);
    }
 }
-
 }
 
-void handle_model(const chunks::Model& model, 
-                  msh::Builders_map& builders, 
+void handle_model(const chunks::Model& model, msh::Builders_map& builders,
                   tbb::task_group& tasks)
 {
    const std::string name{reinterpret_cast<const char*>(&model.bytes[0]),
                           model.name_size - 1};
-   
+
    auto& builder = builders[name];
 
    tasks.run([&builder, &model] { process_segments(model, builder); });

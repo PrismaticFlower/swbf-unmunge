@@ -1,28 +1,26 @@
 
-#include"byte.hpp"
-#include"bit_flags.hpp"
-#include"msh_builder.hpp"
-#include"string_helpers.hpp"
-#include"ucfb_builder.hpp"
-#include"magic_number.hpp"
+#include "msh_builder.hpp"
+#include "bit_flags.hpp"
+#include "byte.hpp"
+#include "magic_number.hpp"
+#include "string_helpers.hpp"
+#include "ucfb_builder.hpp"
 
-#include"tbb/parallel_for_each.h"
+#include "tbb/parallel_for_each.h"
 
-#include<algorithm>
-#include<optional>
-#include<utility>
-#include<stdexcept>
-#include<mutex>
+#include <algorithm>
+#include <mutex>
+#include <optional>
+#include <stdexcept>
+#include <utility>
 
 using namespace std::literals;
 
-namespace
-{
+namespace {
 
 using namespace msh;
 
-enum class Model_type : std::uint32_t
-{
+enum class Model_type : std::uint32_t {
    null = 0,
    skin = 1,
    fixed = 4,
@@ -30,14 +28,12 @@ enum class Model_type : std::uint32_t
    shadow = 6
 };
 
-struct Modl_collision
-{
+struct Modl_collision {
    Primitive_type type;
    glm::vec3 size;
 };
 
-struct Modl_section
-{
+struct Modl_section {
    Model_type type;
    std::uint32_t index;
    std::uint32_t mat_index = 0;
@@ -83,7 +79,8 @@ std::size_t count_strips_indices(const std::vector<std::vector<std::uint16_t>>& 
    return count;
 }
 
-std::vector<std::uint16_t> strips_to_msh_fmt(const std::vector<std::vector<std::uint16_t>>& strips)
+std::vector<std::uint16_t>
+strips_to_msh_fmt(const std::vector<std::vector<std::uint16_t>>& strips)
 {
    const auto size = count_strips_indices(strips);
 
@@ -91,14 +88,12 @@ std::vector<std::uint16_t> strips_to_msh_fmt(const std::vector<std::vector<std::
    msh_strips.reserve(size);
 
    for (const auto& strip : strips) {
-      if (strip.size() < 3) 
-         throw std::runtime_error{"strip in model was too short"};
+      if (strip.size() < 3) throw std::runtime_error{"strip in model was too short"};
 
       msh_strips.push_back(strip[0] | 0x8000);
       msh_strips.push_back(strip[1] | 0x8000);
 
-      msh_strips.insert(std::end(msh_strips),
-                        std::begin(strip) + 2, std::end(strip));
+      msh_strips.insert(std::end(msh_strips), std::begin(strip) + 2, std::end(strip));
    }
 
    return msh_strips;
@@ -120,8 +115,7 @@ void fixup_texture_names(Material& material)
 {
    auto& textures = material.textures;
 
-   textures.erase(std::remove_if(std::begin(textures),
-                                 std::end(textures),
+   textures.erase(std::remove_if(std::begin(textures), std::end(textures),
                                  [](std::string_view str) { return str.empty(); }),
                   std::end(textures));
 
@@ -232,7 +226,8 @@ Modl_section create_section_from(const Collsion_mesh& collision, std::uint32_t i
    return section;
 }
 
-Modl_section create_section_from(const Collision_primitive& primitive, std::uint32_t index)
+Modl_section
+create_section_from(const Collision_primitive& primitive, std::uint32_t index)
 {
    Modl_section section;
 
@@ -247,18 +242,18 @@ Modl_section create_section_from(const Collision_primitive& primitive, std::uint
    return section;
 }
 
-std::vector<Modl_section> create_modl_sections(std::vector<Bone> bones,
-                                               std::vector<Model> models,
-                                               std::vector<Shadow> shadows,
-                                               std::vector<Collsion_mesh> collision_meshes,
-                                               std::vector<Collision_primitive> collision_primitives)
+std::vector<Modl_section>
+create_modl_sections(std::vector<Bone> bones, std::vector<Model> models,
+                     std::vector<Shadow> shadows,
+                     std::vector<Collsion_mesh> collision_meshes,
+                     std::vector<Collision_primitive> collision_primitives)
 {
    std::vector<Modl_section> sections;
    sections.reserve(bones.size() + models.size() + shadows.size());
 
    std::uint32_t i = 1;
 
-   const auto create_section = [&sections, &i] (auto& item) {
+   const auto create_section = [&sections, &i](auto& item) {
       sections.emplace_back(create_section_from(item, i));
 
       i += 1;
@@ -267,9 +262,9 @@ std::vector<Modl_section> create_modl_sections(std::vector<Bone> bones,
    std::for_each(std::begin(bones), std::end(bones), create_section);
    std::for_each(std::begin(models), std::end(models), create_section);
    std::for_each(std::begin(shadows), std::end(shadows), create_section);
-   std::for_each(std::begin(collision_meshes), std::end(collision_meshes), 
+   std::for_each(std::begin(collision_meshes), std::end(collision_meshes),
                  create_section);
-   std::for_each(std::begin(collision_primitives), std::end(collision_primitives), 
+   std::for_each(std::begin(collision_primitives), std::end(collision_primitives),
                  create_section);
 
    return sections;
@@ -293,10 +288,8 @@ Ucfb_builder create_wght_chunk(const std::vector<std::uint8_t>& skin)
    wght.write(static_cast<std::uint32_t>(skin.size()));
 
    for (const auto& weight : skin) {
-      wght.write_multiple(static_cast<std::uint32_t>(weight), 1.0f,
-                          0ui32, 0.0f,
-                          0ui32, 0.0f, 
-                          0ui32, 0.0f);
+      wght.write_multiple(static_cast<std::uint32_t>(weight), 1.0f, 0ui32, 0.0f, 0ui32,
+                          0.0f, 0ui32, 0.0f);
    }
 
    return wght;
@@ -385,10 +378,7 @@ Ucfb_builder create_geom_chunk(const Modl_section& section)
    Ucfb_builder geom{"GEOM"_mn};
 
    auto& bbox = geom.emplace_child("BBOX"_mn);
-   bbox.write_multiple(0.0f, 0.0f, 0.0f, 1.0f,
-                       0.0f, 0.0f, 0.0f,
-                       0.0f, 0.0f, 0.0f,
-                       0.0f);
+   bbox.write_multiple(0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
    geom.add_child(create_segm_chunk(section));
    if (section.bone_map) geom.add_child(create_envl_chunk(*section.bone_map));
@@ -420,13 +410,12 @@ Ucfb_builder create_modl_chunk(const Modl_section& section)
 
    auto& tran = modl.emplace_child("TRAN"_mn);
    tran.write_multiple(1.0f, 1.0f, 1.0f);
-   tran.write_multiple(section.rotation.x, section.rotation.y, 
-                       section.rotation.z, section.rotation.w);
+   tran.write_multiple(section.rotation.x, section.rotation.y, section.rotation.z,
+                       section.rotation.w);
    tran.write_multiple(section.translation.x, section.translation.y,
                        section.translation.z);
 
-   if (section.type != Model_type::null &&
-       section.type != Model_type::bone) {
+   if (section.type != Model_type::null && section.type != Model_type::bone) {
       modl.add_child(create_geom_chunk(section));
    }
 
@@ -446,7 +435,8 @@ Ucfb_builder create_matd_chunk(const Material& material, std::size_t index)
 
    auto& data = matd.emplace_child("DATA"_mn);
    data.write_multiple(1.0f, 1.0f, 1.0f, 1.0f);
-   data.write_multiple(material.colour.r, material.colour.g, material.colour.b, material.colour.a);
+   data.write_multiple(material.colour.r, material.colour.g, material.colour.b,
+                       material.colour.a);
    data.write_multiple(1.0f, 1.0f, 1.0f, 1.0f);
    data.write(material.specular_value);
 
@@ -458,9 +448,8 @@ Ucfb_builder create_matd_chunk(const Material& material, std::size_t index)
    for (std::size_t i = 0; i < material.textures.size(); ++i) {
       if (i > 9) break;
 
-      auto& tex = matd.emplace_child(create_magic_number('T', 'X', 
-                                                         '0' + static_cast<char>(i), 
-                                                         'D'));
+      auto& tex = matd.emplace_child(
+         create_magic_number('T', 'X', '0' + static_cast<char>(i), 'D'));
 
       tex.write(material.textures[i]);
    }
@@ -508,7 +497,7 @@ Ucfb_builder create_sinf_chunk(glm::vec3 bbox_extent, std::string_view model_nam
 }
 
 std::string create_msh_file(std::vector<Modl_section> sections, glm::vec3 bbox_extent,
-                            std::string_view name) 
+                            std::string_view name)
 {
    Ucfb_builder hedr{"HEDR"_mn};
 
@@ -525,11 +514,9 @@ std::string create_msh_file(std::vector<Modl_section> sections, glm::vec3 bbox_e
 
    return hedr.create_buffer();
 }
-
 }
 
-namespace msh
-{
+namespace msh {
 
 void Builder::add_bone(Bone bone)
 {
@@ -563,26 +550,23 @@ void Builder::set_bbox_extent(glm::vec3 extent)
 
 void Builder::save(const std::string& name, File_saver& file_saver) const
 {
-   auto msh_file = create_msh_file(create_modl_sections(downgrade_concurrent_vector(_bones),
-                                                        downgrade_concurrent_vector(_models),
-                                                        downgrade_concurrent_vector(_shadows),
-                                                        downgrade_concurrent_vector(_collision_meshes),
-                                                        downgrade_concurrent_vector(_collision_primitives)),
-                                   _bbox_extent,
-                                   name);
+   auto msh_file = create_msh_file(
+      create_modl_sections(downgrade_concurrent_vector(_bones),
+                           downgrade_concurrent_vector(_models),
+                           downgrade_concurrent_vector(_shadows),
+                           downgrade_concurrent_vector(_collision_meshes),
+                           downgrade_concurrent_vector(_collision_primitives)),
+      _bbox_extent, name);
 
-   
    file_saver.save_file(std::move(msh_file), name + ".msh"s, "msh"s);
 }
 
 void save_all(File_saver& file_saver, const Builders_map& builders)
 {
-   const auto  functor = [&file_saver]
-   (const std::pair<std::string, Builder>& builder) {
+   const auto functor = [&file_saver](const std::pair<std::string, Builder>& builder) {
       builder.second.save(builder.first, file_saver);
    };
 
    tbb::parallel_for_each(builders, functor);
 }
-
 }

@@ -1,17 +1,13 @@
 
-#include"mapped_file.hpp"
+#include "mapped_file.hpp"
 
 #define WIN32_LEAN_AND_MEAN
-#include<windows.h>
+#include <windows.h>
 
-namespace
-{
+namespace {
 
-struct Raii_handle
-{
-   Raii_handle(HANDLE handle) noexcept : handle(handle)
-   {
-   };
+struct Raii_handle {
+   Raii_handle(HANDLE handle) noexcept : handle(handle){};
 
    ~Raii_handle() noexcept
    {
@@ -25,27 +21,16 @@ struct Raii_handle
 
    HANDLE handle;
 };
-
 }
 
 Mapped_file::Mapped_file(fs::path path)
 {
-   Raii_handle file = CreateFileW(path.wstring().c_str(), 
-                                  GENERIC_READ,
-                                  FILE_SHARE_READ,
-                                  NULL, 
-                                  OPEN_EXISTING,
-                                  FILE_ATTRIBUTE_NORMAL,
-                                  NULL);
+   Raii_handle file = CreateFileW(path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ,
+                                  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
    if (file == INVALID_HANDLE_VALUE) throw std::invalid_argument{"File does not exist."};
 
-   Raii_handle file_mapping = CreateFileMappingW(file,
-                                                 NULL,
-                                                 PAGE_READONLY,
-                                                 0,
-                                                 0,
-                                                 NULL);
+   Raii_handle file_mapping = CreateFileMappingW(file, NULL, PAGE_READONLY, 0, 0, NULL);
 
    if (file_mapping == NULL) throw std::runtime_error{"Unable to create file mapping."};
 
@@ -54,7 +39,8 @@ Mapped_file::Mapped_file(fs::path path)
    _view = {static_cast<Byte*>(MapViewOfFile(file_mapping, FILE_MAP_READ, 0, 0, 0)),
             unmapper};
 
-   if (_view == nullptr) throw std::runtime_error{"Unable to create view of file mapping."};
+   if (_view == nullptr)
+      throw std::runtime_error{"Unable to create view of file mapping."};
 }
 
 const Byte* Mapped_file::get_bytes() noexcept

@@ -1,28 +1,26 @@
 
-#include"chunk_headers.hpp"
-#include"file_saver.hpp"
-#include"magic_number.hpp"
-#include"string_helpers.hpp"
-#include"type_pun.hpp"
+#include "chunk_headers.hpp"
+#include "file_saver.hpp"
+#include "magic_number.hpp"
+#include "string_helpers.hpp"
+#include "type_pun.hpp"
 
 #define GLM_FORCE_CXX98
 #define GLM_FORCE_SWIZZLE
 
-#include"glm/vec3.hpp"
-#include"glm/vec4.hpp"
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 
-#include<atomic>
-#include<vector>
+#include <atomic>
+#include <vector>
 
 using namespace std::literals;
 
-namespace
-{
+namespace {
 
 #pragma pack(push, 1)
 
-struct Path_entry
-{
+struct Path_entry {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t name_mn;
@@ -34,8 +32,7 @@ struct Path_entry
 static_assert(std::is_standard_layout_v<Path_entry>);
 static_assert(sizeof(Path_entry) == 16);
 
-struct Path_info
-{
+struct Path_info {
    Magic_number mn;
    std::uint32_t size;
    std::uint16_t node_count;
@@ -46,8 +43,7 @@ struct Path_info
 static_assert(std::is_standard_layout_v<Path_info>);
 static_assert(sizeof(Path_info) == 14);
 
-struct Path_node
-{
+struct Path_node {
    glm::vec3 position;
    glm::vec4 rotation;
 };
@@ -55,8 +51,7 @@ struct Path_node
 static_assert(std::is_standard_layout_v<Path_node>);
 static_assert(sizeof(Path_node) == 28);
 
-struct Path_points
-{
+struct Path_points {
    Magic_number mn;
    std::uint32_t size;
 
@@ -68,8 +63,7 @@ static_assert(sizeof(Path_points) == 8);
 
 #pragma pack(pop)
 
-struct Path
-{
+struct Path {
    std::string_view name;
    std::vector<Path_node> nodes;
 };
@@ -91,13 +85,15 @@ Path read_path_entry(const Path_entry& entry)
    std::uint32_t head = 0;
    const std::uint32_t end = entry.size - 8;
 
-   const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
+   const auto align_head = [&head] {
+      if (head % 4 != 0) head += (4 - (head % 4));
+   };
 
    path.name = {reinterpret_cast<const char*>(&entry.bytes[head]), entry.name_size - 1};
 
    head += entry.name_size;
    align_head();
-   
+
    const auto& path_info = view_type_as<Path_info>(entry.bytes[head]);
 
    head += path_info.size + 8;
@@ -120,7 +116,7 @@ Path read_path_entry(const Path_entry& entry)
       align_head();
    }
 
-   return path; 
+   return path;
 }
 
 void write_node(const Path_node& node, std::string& buffer)
@@ -131,15 +127,22 @@ void write_node(const Path_node& node, std::string& buffer)
 
    buffer += indent;
    buffer += "Position("_sv;
-   buffer += std::to_string(node.position.x); buffer += ", "_sv;
-   buffer += std::to_string(node.position.y); buffer += ", "_sv;
-   buffer += std::to_string(node.position.z); buffer += ");\n"_sv;
+   buffer += std::to_string(node.position.x);
+   buffer += ", "_sv;
+   buffer += std::to_string(node.position.y);
+   buffer += ", "_sv;
+   buffer += std::to_string(node.position.z);
+   buffer += ");\n"_sv;
    buffer += indent;
    buffer += "Rotation("_sv;
-   buffer += std::to_string(node.rotation.x); buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.y); buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.z); buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.w); buffer += ");\n"_sv;
+   buffer += std::to_string(node.rotation.x);
+   buffer += ", "_sv;
+   buffer += std::to_string(node.rotation.y);
+   buffer += ", "_sv;
+   buffer += std::to_string(node.rotation.z);
+   buffer += ", "_sv;
+   buffer += std::to_string(node.rotation.w);
+   buffer += ");\n"_sv;
 
    buffer += R"(
 			Knot(0.000000);
@@ -155,7 +158,7 @@ void write_node(const Path_node& node, std::string& buffer)
    buffer += "\n\n"_sv;
 }
 
-void write_path(const Path& path, std::string& buffer) 
+void write_path(const Path& path, std::string& buffer)
 {
    const auto path_common = R"(	Data(0);
 	PathType(0);
@@ -182,7 +185,6 @@ void write_path(const Path& path, std::string& buffer)
    for (const auto& node : path.nodes) {
       write_node(node, buffer);
    }
-
 }
 
 void save_paths(std::vector<Path> paths, File_saver& file_saver)
@@ -206,11 +208,9 @@ void save_paths(std::vector<Path> paths, File_saver& file_saver)
 
    file_saver.save_file(std::move(buffer), std::move(file_name), "world"s);
 }
-
 }
 
-void handle_path(const chunks::Path& path,
-                 File_saver& file_saver)
+void handle_path(const chunks::Path& path, File_saver& file_saver)
 {
    std::uint32_t head = 0;
    const std::uint32_t end = path.size;

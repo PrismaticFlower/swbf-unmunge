@@ -1,24 +1,22 @@
 
-#include"chunk_headers.hpp"
-#include"file_saver.hpp"
-#include"magic_number.hpp"
-#include"swbf_fnv_hashes.hpp"
-#include"type_pun.hpp"
-#include"string_helpers.hpp"
+#include "chunk_headers.hpp"
+#include "file_saver.hpp"
+#include "magic_number.hpp"
+#include "string_helpers.hpp"
+#include "swbf_fnv_hashes.hpp"
+#include "type_pun.hpp"
 
-#include<algorithm>
-#include<optional>
-#include<stdexcept>
+#include <algorithm>
+#include <optional>
+#include <stdexcept>
 
 using namespace std::literals;
 
 #pragma warning(disable : 4200)
 
-namespace
-{
+namespace {
 
-struct Name_prop
-{
+struct Name_prop {
    Magic_number mn;
    std::uint32_t size;
 
@@ -28,8 +26,7 @@ struct Name_prop
 static_assert(std::is_standard_layout_v<Name_prop>);
 static_assert(sizeof(Name_prop) == 8);
 
-struct Hash_prop
-{
+struct Hash_prop {
    Magic_number type;
    std::uint32_t size;
    std::uint32_t hash;
@@ -48,7 +45,7 @@ void write_bracketed_str(std::string_view what, std::string& to)
 }
 
 void write_property(std::pair<std::string_view, std::string_view> prop_value,
-                     std::string& to)
+                    std::string& to)
 {
    to += prop_value.first;
    to += " = \""_sv;
@@ -56,8 +53,7 @@ void write_property(std::pair<std::string_view, std::string_view> prop_value,
    to += "\"\n"_sv;
 }
 
-std::string_view get_named_value(const chunks::Object& object, 
-                                 std::uint32_t& head,
+std::string_view get_named_value(const chunks::Object& object, std::uint32_t& head,
                                  Magic_number type)
 {
    const auto& prop = view_type_as<Name_prop>(object.bytes[head]);
@@ -71,13 +67,14 @@ std::string_view get_named_value(const chunks::Object& object,
    return {&prop.value[0], prop.size - 1};
 }
 
-auto read_property(const Hash_prop& property) -> std::pair<std::uint32_t, std::string_view>
+auto read_property(const Hash_prop& property)
+   -> std::pair<std::uint32_t, std::string_view>
 {
    return {property.hash, {&property.value[0], property.size - 5}};
 }
 
-auto get_properties(const chunks::Object& object,
-                    const std::uint32_t start) -> std::vector<std::pair<std::uint32_t, std::string_view>>
+auto get_properties(const chunks::Object& object, const std::uint32_t start)
+   -> std::vector<std::pair<std::uint32_t, std::string_view>>
 {
    std::uint32_t head = start;
    const std::uint32_t end = object.size;
@@ -97,23 +94,23 @@ auto get_properties(const chunks::Object& object,
    return properties;
 }
 
-auto find_geometry_name(const std::vector<std::pair<std::uint32_t, std::string_view>>& properties) -> 
-std::optional<std::string>
+auto find_geometry_name(
+   const std::vector<std::pair<std::uint32_t, std::string_view>>& properties)
+   -> std::optional<std::string>
 {
    constexpr auto geometry_name_hash = 0x47c86b4aui32;
 
-   const auto result = std::find_if(std::cbegin(properties), std::cend(properties),
-                                    [](const auto& prop) { return prop.first == 0x47c86b4a; });
+   const auto result =
+      std::find_if(std::cbegin(properties), std::cend(properties),
+                   [](const auto& prop) { return prop.first == 0x47c86b4a; });
 
    if (result != std::cend(properties)) return std::string{result->second} += ".msh"_sv;
 
    return std::nullopt;
 }
-
 }
 
-void handle_object(const chunks::Object& object,
-                   File_saver& file_saver,
+void handle_object(const chunks::Object& object, File_saver& file_saver,
                    std::string_view type)
 {
    std::string file_buffer;
@@ -123,10 +120,12 @@ void handle_object(const chunks::Object& object,
 
    std::uint32_t head = 0;
 
-   const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
+   const auto align_head = [&head] {
+      if (head % 4 != 0) head += (4 - (head % 4));
+   };
 
    write_property({"ClassLabel"_sv, get_named_value(object, head, "BASE"_mn)},
-                   file_buffer);
+                  file_buffer);
 
    align_head();
 
@@ -145,9 +144,9 @@ void handle_object(const chunks::Object& object,
    write_bracketed_str("Properties"s, file_buffer);
 
    for (const auto& property : properties) {
-      write_property({lookup_fnv_hash(property.first), property.second},
-                     file_buffer);
+      write_property({lookup_fnv_hash(property.first), property.second}, file_buffer);
    }
 
-   file_saver.save_file(std::move(file_buffer), std::string{odf_name} += ".odf"_sv, "odf"s);
+   file_saver.save_file(std::move(file_buffer), std::string{odf_name} += ".odf"_sv,
+                        "odf"s);
 }

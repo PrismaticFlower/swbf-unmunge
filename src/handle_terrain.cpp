@@ -1,28 +1,26 @@
 
-#include"chunk_headers.hpp"
-#include"file_saver.hpp"
-#include"magic_number.hpp"
-#include"string_helpers.hpp"
-#include"type_pun.hpp"
+#include "chunk_headers.hpp"
+#include "file_saver.hpp"
+#include "magic_number.hpp"
+#include "string_helpers.hpp"
+#include "type_pun.hpp"
 
-#include"tbb/task_group.h"
+#include "tbb/task_group.h"
 
-#include<cstdint>
-#include<cmath>
-#include<cstring>
-#include<array>
-#include<string>
-#include<vector>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <vector>
 
 using namespace std::literals;
 
-namespace
-{
+namespace {
 
 #pragma pack(push, 1)
 
-struct Terrain_vertex
-{
+struct Terrain_vertex {
    float x;
    float y;
    float z;
@@ -34,8 +32,7 @@ struct Terrain_vertex
 static_assert(std::is_standard_layout_v<Terrain_vertex>);
 static_assert(sizeof(Terrain_vertex) == 28);
 
-struct Terrain_texture_vertex
-{
+struct Terrain_texture_vertex {
    Byte unknown_0[11];
    std::uint8_t tex_val_1;
    Byte unknown_1[3];
@@ -45,8 +42,7 @@ struct Terrain_texture_vertex
 static_assert(std::is_standard_layout_v<Terrain_texture_vertex>);
 static_assert(sizeof(Terrain_texture_vertex) == 16);
 
-struct Texture_names
-{
+struct Texture_names {
    Magic_number mn;
    std::uint32_t size;
 
@@ -56,8 +52,7 @@ struct Texture_names
 static_assert(std::is_standard_layout_v<Texture_names>);
 static_assert(sizeof(Texture_names) == 8);
 
-struct Dtl_tex_name
-{
+struct Dtl_tex_name {
    Magic_number mn;
    std::uint32_t size;
 
@@ -68,8 +63,7 @@ static_assert(std::is_standard_layout_v<Dtl_tex_name>);
 static_assert(sizeof(Dtl_tex_name) == 8);
 
 template<typename Type>
-struct Texture_metrics
-{
+struct Texture_metrics {
    Magic_number mn;
    std::uint32_t size;
 
@@ -81,13 +75,12 @@ static_assert(sizeof(Texture_metrics<float>) == 72);
 static_assert(std::is_standard_layout_v<Texture_metrics<std::uint8_t>>);
 static_assert(sizeof(Texture_metrics<std::uint8_t>) == 24);
 
-struct Vbuf
-{
+struct Vbuf {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t element_count;
    std::uint32_t element_size;
-   std::uint32_t flags; //flags???
+   std::uint32_t flags; // flags???
 
    Byte bytes[];
 };
@@ -95,8 +88,7 @@ struct Vbuf
 static_assert(std::is_standard_layout_v<Vbuf>);
 static_assert(sizeof(Vbuf) == 20);
 
-struct Water_info
-{
+struct Water_info {
    Magic_number mn;
    std::uint32_t size;
 
@@ -108,9 +100,7 @@ struct Water_info
 static_assert(std::is_standard_layout_v<Water_info>);
 static_assert(sizeof(Water_info) == 32);
 
-
-struct Water_layer
-{
+struct Water_layer {
    Magic_number mn;
    std::uint32_t size;
 
@@ -120,11 +110,10 @@ struct Water_layer
 static_assert(std::is_standard_layout_v<Water_layer>);
 static_assert(sizeof(Water_layer) == 8);
 
-struct Water_layer_info
-{
+struct Water_layer_info {
    Byte unknown_1[8];
    float u_vel;
-   float v_vel; //Flipped in Zero Editor
+   float v_vel; // Flipped in Zero Editor
    float u_rept;
    float v_rept;
    std::uint32_t colour;
@@ -133,8 +122,7 @@ struct Water_layer_info
 static_assert(std::is_standard_layout_v<Water_layer_info>);
 static_assert(sizeof(Water_layer_info) == 28);
 
-struct Terrain_info
-{
+struct Terrain_info {
    Magic_number mn;
    std::uint32_t size;
 
@@ -155,8 +143,7 @@ struct Terrain_info
 static_assert(std::is_standard_layout_v<Terrain_info>);
 static_assert(sizeof(Terrain_info) == 36);
 
-struct Terrain_foliage
-{
+struct Terrain_foliage {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t map_size;
@@ -167,8 +154,7 @@ struct Terrain_foliage
 static_assert(std::is_standard_layout_v<Terrain_foliage>);
 static_assert(sizeof(Terrain_foliage) == 12);
 
-struct Terrain_water
-{
+struct Terrain_water {
    Magic_number mn;
    std::uint32_t size;
 
@@ -178,9 +164,7 @@ struct Terrain_water
 static_assert(std::is_standard_layout_v<Terrain_water>);
 static_assert(sizeof(Terrain_water) == 8);
 
-
-struct Terrain_patches
-{
+struct Terrain_patches {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t common_mn;
@@ -192,8 +176,7 @@ struct Terrain_patches
 static_assert(std::is_standard_layout_v<Terrain_patches>);
 static_assert(sizeof(Terrain_patches) == 16);
 
-struct Terrain_patch
-{
+struct Terrain_patch {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t info_mn;
@@ -205,8 +188,7 @@ struct Terrain_patch
 static_assert(std::is_standard_layout_v<Terrain_patch>);
 static_assert(sizeof(Terrain_patch) == 16);
 
-struct Ter_file_header
-{
+struct Ter_file_header {
    Magic_number mn = "TERR"_mn;
    std::uint32_t unknown_0 = 22;
    std::int16_t extents[4];
@@ -223,8 +205,7 @@ struct Ter_file_header
    std::uint32_t map_size;
    std::uint32_t unknown_3 = 2;
 
-   struct Texture_name
-   {
+   struct Texture_name {
       char name[32] = {'\0'};
       char detail_name[32] = {'\0'};
    };
@@ -234,8 +215,7 @@ struct Ter_file_header
    Texture_name texture_names[16]{};
    Byte unknown_4[68]{};
 
-   struct Water
-   {
+   struct Water {
       std::uint8_t unknown_0 = 0;
       float height[2];
       Byte unknown[8];
@@ -273,8 +253,7 @@ std::vector<std::uint8_t> explode_foliage(const Terrain_foliage& folg)
    return exploded_folg;
 }
 
-class Terrain_builder
-{
+class Terrain_builder {
 public:
    Terrain_builder(std::string name, const Terrain_info& info) : Terrain_builder()
    {
@@ -292,12 +271,13 @@ public:
 
       _patch_offsets.resize(_grid_length * _grid_length / 64);
 
-      const std::size_t offsets_length = static_cast<std::size_t>(std::sqrt(_patch_offsets.size()));
+      const std::size_t offsets_length =
+         static_cast<std::size_t>(std::sqrt(_patch_offsets.size()));
 
       for (std::int32_t y = 0; y < offsets_length; ++y) {
          for (std::int32_t x = 0; x < offsets_length; ++x) {
             _patch_offsets[y * offsets_length + x] = {(x * _grid_size * 8.0f),
-               (y * _grid_size * 8.0f)};
+                                                      (y * _grid_size * 8.0f)};
          }
       }
    }
@@ -349,11 +329,11 @@ public:
    void set_foliage(const Terrain_foliage& folg)
    {
       const auto exploded_folg = explode_foliage(folg);
-      const std::size_t folg_length = static_cast<std::size_t>(std::sqrt(exploded_folg.size()));
+      const std::size_t folg_length =
+         static_cast<std::size_t>(std::sqrt(exploded_folg.size()));
 
-      const auto lookup_folg_info = [&exploded_folg, folg_length]
-      (std::size_t x, std::size_t y) -> std::uint8_t
-      {
+      const auto lookup_folg_info =
+         [&exploded_folg, folg_length](std::size_t x, std::size_t y) -> std::uint8_t {
          constexpr std::size_t factor = 4;
 
          x /= factor;
@@ -401,7 +381,6 @@ public:
 
       if (head % 4 != 0) head += (4 - (head % 4));
 
-
       while (head < end) {
          const auto& chunk = view_type_as<chunks::Unknown>(patch.bytes[head]);
 
@@ -419,10 +398,10 @@ public:
    void save(File_saver& file_saver) noexcept
    {
       const std::size_t file_size = sizeof(Ter_file_header) +
-         (_heightmap.size() * sizeof(std::uint16_t)) +
-         ((_colourmap.size() * sizeof(std::uint32_t)) * 2) +
-         ((_grid_length * _grid_length) / 2) + //water
-         (_foliage_map.size() * sizeof(std::uint8_t));
+                                    (_heightmap.size() * sizeof(std::uint16_t)) +
+                                    ((_colourmap.size() * sizeof(std::uint32_t)) * 2) +
+                                    ((_grid_length * _grid_length) / 2) + // water
+                                    (_foliage_map.size() * sizeof(std::uint8_t));
 
       std::string buffer;
       buffer.reserve(file_size);
@@ -437,8 +416,8 @@ public:
       {
          tbb::task_group tasks;
 
-         tasks.run([this, &heightmap] {heightmap = flip_heightmap(); });
-         tasks.run([this, &colourmap] {colourmap = flip_colourmap(); });
+         tasks.run([this, &heightmap] { heightmap = flip_heightmap(); });
+         tasks.run([this, &colourmap] { colourmap = flip_colourmap(); });
 
          tasks.wait();
       }
@@ -450,9 +429,7 @@ public:
       buffer.append(reinterpret_cast<const char*>(colourmap.data()),
                     colourmap.size() * sizeof(std::uint32_t));
 
-      file_saver.save_file(std::move(buffer),
-                           _name,
-                           "world");
+      file_saver.save_file(std::move(buffer), _name, "world");
    }
 
 private:
@@ -463,25 +440,25 @@ private:
       _texture_axises.fill(0);
    }
 
-   void handle_vbuf(const Vbuf& vbuf,
-                    const std::pair<float, float> offset)
+   void handle_vbuf(const Vbuf& vbuf, const std::pair<float, float> offset)
    {
-      const auto*const vertices = reinterpret_cast<const Terrain_vertex*>(&vbuf.bytes[0]);
+      const auto* const vertices =
+         reinterpret_cast<const Terrain_vertex*>(&vbuf.bytes[0]);
 
       for (std::size_t i = 0; i < vbuf.element_count; ++i) {
          handle_vertex(vertices[i], offset);
       }
    };
 
-   void handle_vertex(const Terrain_vertex& vert,
-                      const std::pair<float, float> offset)
+   void handle_vertex(const Terrain_vertex& vert, const std::pair<float, float> offset)
    {
       const auto x = static_cast<std::size_t>((vert.x + offset.first) / _grid_size);
       const auto z = static_cast<std::size_t>((vert.z + offset.second) / _grid_size);
 
       if (x == _grid_length || z == _grid_length) return;
 
-      _heightmap[z * _grid_length + x] = static_cast<std::int16_t>(vert.y / _height_scale);
+      _heightmap[z * _grid_length + x] =
+         static_cast<std::int16_t>(vert.y / _height_scale);
       _colourmap[z * _grid_length + x] = vert.colour | 0xFF000000;
    }
 
@@ -526,7 +503,8 @@ private:
 
       std::memcpy(header.tile_range, _texture_scales.data(), sizeof(_texture_scales));
       std::memcpy(header.tile_mapping, _texture_axises.data(), sizeof(_texture_axises));
-      std::memcpy(header.tile_rotation, _texture_rotations.data(), sizeof(_texture_rotations));
+      std::memcpy(header.tile_rotation, _texture_rotations.data(),
+                  sizeof(_texture_rotations));
 
       header.height_scale = _height_scale;
       header.grid_size = _grid_size;
@@ -536,11 +514,9 @@ private:
       header.texture_names[0].name[0] = '\x0F';
 
       for (std::size_t i = 0; i < _textures.size(); ++i) {
-         copy_to_cstring(_textures[i],
-                         &header.texture_names[i].name[1],
+         copy_to_cstring(_textures[i], &header.texture_names[i].name[1],
                          sizeof(Ter_file_header::Texture_name::name) - 1);
-         copy_to_cstring(_detail_texture,
-                         &header.texture_names[i].detail_name[1],
+         copy_to_cstring(_detail_texture, &header.texture_names[i].detail_name[1],
                          sizeof(Ter_file_header::Texture_name::detail_name) - 1);
       }
 
@@ -552,8 +528,7 @@ private:
       header.water[0].v_repeat = _water_v_rept;
       header.water[0].colour = _water_colour;
 
-      copy_to_cstring(_water_texture,
-                      &header.water[0].texture_name[0],
+      copy_to_cstring(_water_texture, &header.water[0].texture_name[0],
                       sizeof(Ter_file_header::Water::texture_name) - 1);
    }
 
@@ -631,8 +606,7 @@ void handle_patches(const Terrain_patches& patches, Terrain_builder& builder)
       const auto& chunk = view_type_as<chunks::Unknown>(patches.bytes[head]);
 
       if (chunk.mn == "PTCH"_mn) {
-         builder.add_patch(view_type_as<Terrain_patch>(patches.bytes[head]),
-                           patch_index);
+         builder.add_patch(view_type_as<Terrain_patch>(patches.bytes[head]), patch_index);
 
          ++patch_index;
       }
@@ -641,16 +615,16 @@ void handle_patches(const Terrain_patches& patches, Terrain_builder& builder)
       if (head % 4 != 0) head += (4 - (head % 4));
    }
 }
-
 }
 
-void handle_terrain(const chunks::Terrain& terr,
-                    File_saver& file_saver)
+void handle_terrain(const chunks::Terrain& terr, File_saver& file_saver)
 {
    std::uint32_t head = 0;
    const std::uint32_t end = terr.size - 8;
 
-   const auto align_head = [&head] { if (head % 4 != 0) head += (4 - (head % 4)); };
+   const auto align_head = [&head] {
+      if (head % 4 != 0) head += (4 - (head % 4));
+   };
 
    std::string name{reinterpret_cast<const char*>(&terr.bytes[head]), terr.name_size - 1};
 

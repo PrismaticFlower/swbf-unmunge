@@ -1,16 +1,15 @@
 #pragma once
 
-#include"byte.hpp"
-#include"magic_number.hpp"
-#include"type_pun.hpp"
+#include "byte.hpp"
+#include "magic_number.hpp"
+#include "type_pun.hpp"
 
-#include<cstdint>
-#include<vector>
-#include<string>
-#include<type_traits>
+#include <cstdint>
+#include <string>
+#include <type_traits>
+#include <vector>
 
-class Ucfb_builder
-{
+class Ucfb_builder {
 public:
    using iterator = std::vector<Ucfb_builder>::iterator;
    using const_iterator = std::vector<Ucfb_builder>::const_iterator;
@@ -55,8 +54,7 @@ public:
       return _children.cend();
    }
 
-   void write(std::string_view str, bool null_terminate = true,
-              bool aligned = true);
+   void write(std::string_view str, bool null_terminate = true, bool aligned = true);
 
    template<typename Pod, typename = std::enable_if_t<std::is_pod_v<Pod>>>
    void write(const Pod& pod)
