@@ -128,8 +128,6 @@ struct Water_layer_info
    float u_rept;
    float v_rept;
    std::uint32_t colour;
-
-   static_assert(sizeof(std::array<std::uint8_t, 4>) == 4);
 };
 
 static_assert(std::is_standard_layout_v<Water_layer_info>);
@@ -231,7 +229,6 @@ struct Ter_file_header
       char detail_name[32] = {'\0'};
    };
 
-   static_assert(std::is_standard_layout_v<Texture_name>);
    static_assert(sizeof(Texture_name) == 64);
 
    Texture_name texture_names[16]{};
@@ -250,7 +247,6 @@ struct Ter_file_header
       char texture_name[31];
    };
 
-   static_assert(std::is_standard_layout_v<Water>);
    static_assert(sizeof(Water) == 68);
 
    Water water[15]{};
@@ -261,7 +257,6 @@ struct Ter_file_header
 
 static_assert(std::is_standard_layout_v<Ter_file_header>);
 static_assert(sizeof(Ter_file_header) == 2821);
-
 
 #pragma pack(pop)
 
