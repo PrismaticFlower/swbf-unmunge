@@ -1,13 +1,13 @@
 #pragma once
 
-#include<array>
-#include<cstdint>
-#include<cstddef>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 
 enum class Magic_number : std::uint32_t {};
 
-constexpr Magic_number create_magic_number(const char c_0, const char c_1, 
-                                           const char c_2, const char c_3)
+constexpr Magic_number create_magic_number(const char c_0, const char c_1, const char c_2,
+                                           const char c_3)
 {
    std::uint32_t result = 0;
 

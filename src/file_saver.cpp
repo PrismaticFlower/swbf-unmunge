@@ -1,14 +1,14 @@
-#include"file_saver.hpp"
+#include "file_saver.hpp"
 
-#include<algorithm>
-#include<fstream>
+#include <algorithm>
+#include <fstream>
 
 namespace fs = std::experimental::filesystem;
 
 File_saver::File_saver(std::experimental::filesystem::path path) noexcept
 {
    _path = std::move(path);
-   _thread = std::thread{[this] {run();}};
+   _thread = std::thread{[this] { run(); }};
 
    fs::create_directory(_path);
 }
@@ -26,16 +26,14 @@ File_saver::~File_saver()
    _thread.join();
 }
 
-void File_saver::save_file(std::string contents,
-                           std::string name,
+void File_saver::save_file(std::string contents, std::string name,
                            std::string directory) noexcept
 {
    Path_info path_info;
    path_info.name = std::move(name);
    path_info.directory = std::move(directory);
 
-   _file_queue.emplace(std::make_pair(std::move(contents),
-                                      std::move(path_info)));
+   _file_queue.emplace(std::make_pair(std::move(contents), std::move(path_info)));
 
    _cond_var.notify_one();
 }
@@ -45,9 +43,7 @@ void File_saver::run() noexcept
    while (true) {
       std::unique_lock<std::mutex> lock{_running_mutex};
 
-      _cond_var.wait(lock, [this] { 
-         return (!_running || !_file_queue.empty());
-      });
+      _cond_var.wait(lock, [this] { return (!_running || !_file_queue.empty()); });
 
       File_info info;
 
@@ -63,7 +59,7 @@ void File_saver::save(File_info info) noexcept
 
    fs::path path = _path;
 
-   path /= info.second.directory; 
+   path /= info.second.directory;
    path /= info.second.name;
 
    std::ofstream file{path, std::ios::binary | std::ios::out};
@@ -73,9 +69,8 @@ void File_saver::save(File_info info) noexcept
 
 void File_saver::create_dir(std::string_view directory) noexcept
 {
-   const auto dir_result = std::find(std::cbegin(_created_dirs),
-                                     std::cend(_created_dirs),
-                                     directory);
+   const auto dir_result =
+      std::find(std::cbegin(_created_dirs), std::cend(_created_dirs), directory);
 
    if (dir_result == std::cend(_created_dirs)) {
       std::string str_dir{directory};

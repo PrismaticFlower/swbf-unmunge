@@ -1,6 +1,6 @@
 #pragma once
 
-#include<type_traits>
+#include <type_traits>
 
 template<typename Flags_type>
 constexpr bool are_flags_set(const Flags_type value, const Flags_type flags)

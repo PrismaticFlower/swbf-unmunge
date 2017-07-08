@@ -1,11 +1,10 @@
 
-#include<cstdint>
-#include<unordered_map>
-#include<utility>
-#include<string>
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
-namespace
-{
+namespace {
 
 constexpr std::uint32_t fnv_1a_hash(const std::string_view str)
 {
@@ -24,14 +23,13 @@ constexpr std::uint32_t fnv_1a_hash(const std::string_view str)
    return hash;
 }
 
-constexpr std::pair<std::uint32_t, std::string_view> operator""_fnv(const char* str,
-                                                                    std::size_t length)
+constexpr std::pair<std::uint32_t, std::string_view>
+operator""_fnv(const char* str, std::size_t length)
 {
    return {fnv_1a_hash({str, length}), {str, length}};
 }
 
-const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes
-{
+const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes{
    "0"_fnv,
    "1"_fnv,
    "1flag"_fnv,
@@ -2704,9 +2702,7 @@ const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes
    "ZoomRate"_fnv,
    "ZoomTurnDivisorMax"_fnv,
    "ZoomTurnDivisorMin"_fnv,
-   "ZOrder"_fnv
-};
-
+   "ZOrder"_fnv};
 }
 
 std::string lookup_fnv_hash(const std::uint32_t hash)

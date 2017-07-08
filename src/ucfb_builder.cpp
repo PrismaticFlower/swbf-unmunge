@@ -1,7 +1,7 @@
-#include"ucfb_builder.hpp"
+#include "ucfb_builder.hpp"
 
-#include<limits>
-#include<stdexcept>
+#include <limits>
+#include <stdexcept>
 
 Ucfb_builder::Ucfb_builder(Magic_number magic_number)
 {
@@ -30,8 +30,7 @@ Ucfb_builder& Ucfb_builder::emplace_child(Magic_number magic_number)
    return _children.back();
 }
 
-void Ucfb_builder::write(std::string_view str, bool null_terminate, 
-                         bool aligned)
+void Ucfb_builder::write(std::string_view str, bool null_terminate, bool aligned)
 {
    _contents += str;
 

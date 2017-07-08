@@ -1,23 +1,21 @@
 
-#include"chunk_headers.hpp"
-#include"file_saver.hpp"
-#include"magic_number.hpp"
-#include"swbf_fnv_hashes.hpp"
-#include"string_helpers.hpp"
-#include"type_pun.hpp"
+#include "chunk_headers.hpp"
+#include "file_saver.hpp"
+#include "magic_number.hpp"
+#include "string_helpers.hpp"
+#include "swbf_fnv_hashes.hpp"
+#include "type_pun.hpp"
 
-#include<array>
-#include<algorithm>
-#include<string>
-#include<vector>
-#include<stack>
+#include <algorithm>
+#include <array>
+#include <stack>
+#include <string>
+#include <vector>
 
-namespace
-{
+namespace {
 
 #pragma pack(push, 1)
-struct Data_chunk
-{
+struct Data_chunk {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t hash;
@@ -26,8 +24,7 @@ struct Data_chunk
 static_assert(std::is_standard_layout_v<Data_chunk>);
 static_assert(sizeof(Data_chunk) == 12);
 
-struct Str_data_chunk
-{
+struct Str_data_chunk {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t hash;
@@ -39,8 +36,7 @@ struct Str_data_chunk
 static_assert(std::is_standard_layout_v<Str_data_chunk>);
 static_assert(sizeof(Str_data_chunk) == 17);
 
-struct Hybrid_data_chunk
-{
+struct Hybrid_data_chunk {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t hash;
@@ -54,8 +50,7 @@ struct Hybrid_data_chunk
 static_assert(std::is_standard_layout_v<Hybrid_data_chunk>);
 static_assert(sizeof(Hybrid_data_chunk) == 25);
 
-struct Hash_data_chunk
-{
+struct Hash_data_chunk {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t hash;
@@ -67,8 +62,7 @@ struct Hash_data_chunk
 static_assert(std::is_standard_layout_v<Hash_data_chunk>);
 static_assert(sizeof(Hash_data_chunk) == 17);
 
-struct Float_data_chunk
-{
+struct Float_data_chunk {
    Magic_number mn;
    std::uint32_t size;
    std::uint32_t hash;
@@ -83,7 +77,8 @@ static_assert(sizeof(Float_data_chunk) == 13);
 
 using Scope_stack = std::stack<std::uint32_t, std::vector<std::uint32_t>>;
 
-void indent_line(std::size_t level, std::string& str) {
+void indent_line(std::size_t level, std::string& str)
+{
    str.append(level, '\t');
 }
 
@@ -98,7 +93,7 @@ bool is_str_data(const Data_chunk& data)
 
    const std::size_t str_array_size = str_sizes[str_data.element_count - 1];
 
-   return (str_data.size == 9 + str_data.str_sizes_size  + str_array_size);
+   return (str_data.size == 9 + str_data.str_sizes_size + str_array_size);
 }
 
 bool is_hybrid_data(const Data_chunk& data)
@@ -115,17 +110,18 @@ bool is_hash_data(const Data_chunk& data)
    const auto& hash_data = view_type_as<Str_data_chunk>(data);
 
    const std::array<std::uint32_t, 7> hashes = {
-      0x156b70a1, //GrassPatch
-      0xaaea5743, //File
-      0x0e0d9594, //Sound 
-      0xc28f0c96, //CollisionSound 
-      0x84874d36, //Path 
-      0x6850acc6, //BorderOdf 
-      0x6a6fb399  //LeafPatch  
+      0x156b70a1, // GrassPatch
+      0xaaea5743, // File
+      0x0e0d9594, // Sound
+      0xc28f0c96, // CollisionSound
+      0x84874d36, // Path
+      0x6850acc6, // BorderOdf
+      0x6a6fb399  // LeafPatch
    };
 
    return ((std::find(std::cbegin(hashes), std::cend(hashes), hash_data.hash) !=
-            std::cend(hashes)) && hash_data.element_count > 0);
+            std::cend(hashes)) &&
+           hash_data.element_count > 0);
 }
 
 bool is_float_data(const Data_chunk& data)
@@ -136,8 +132,8 @@ bool is_float_data(const Data_chunk& data)
            (fl_data.size == (fl_data.element_count * sizeof(float) + 9)));
 }
 
-std::string handle_str_data(const Str_data_chunk& data,
-                            std::uint32_t& parent_head) {
+std::string handle_str_data(const Str_data_chunk& data, std::uint32_t& parent_head)
+{
    std::string line;
    line = lookup_fnv_hash(data.hash);
    line += '(';
@@ -163,8 +159,7 @@ std::string handle_str_data(const Str_data_chunk& data,
    return line;
 }
 
-std::string handle_hybrid_data(const Hybrid_data_chunk& chunk,
-                               std::uint32_t& head)
+std::string handle_hybrid_data(const Hybrid_data_chunk& chunk, std::uint32_t& head)
 {
    std::string line;
    line = lookup_fnv_hash(chunk.hash);
@@ -179,8 +174,7 @@ std::string handle_hybrid_data(const Hybrid_data_chunk& chunk,
    return line;
 }
 
-std::string handle_hash_data(const Hash_data_chunk& chunk,
-                             std::uint32_t& head)
+std::string handle_hash_data(const Hash_data_chunk& chunk, std::uint32_t& head)
 {
    std::string line;
    line = lookup_fnv_hash(chunk.hash);
@@ -202,8 +196,8 @@ std::string handle_hash_data(const Hash_data_chunk& chunk,
    return line;
 }
 
-std::string handle_float_data(const Float_data_chunk& chunk,
-                              std::uint32_t& head) {
+std::string handle_float_data(const Float_data_chunk& chunk, std::uint32_t& head)
+{
    std::string line;
    line = lookup_fnv_hash(chunk.hash);
    line += '(';
@@ -221,8 +215,8 @@ std::string handle_float_data(const Float_data_chunk& chunk,
    return line;
 }
 
-std::string handle_tag_data(const Float_data_chunk& chunk,
-                            std::uint32_t& head) {
+std::string handle_tag_data(const Float_data_chunk& chunk, std::uint32_t& head)
+{
    std::string line;
    line = lookup_fnv_hash(chunk.hash);
    line += "();"_sv;
@@ -231,39 +225,29 @@ std::string handle_tag_data(const Float_data_chunk& chunk,
    return line;
 }
 
-std::string handle_data(const Data_chunk& chunk,
-                        std::uint32_t& head,
+std::string handle_data(const Data_chunk& chunk, std::uint32_t& head,
                         bool strings_are_hashed)
 {
    if (is_str_data(chunk)) {
-      return handle_str_data(view_type_as<Str_data_chunk>(chunk),
-                             head);
+      return handle_str_data(view_type_as<Str_data_chunk>(chunk), head);
    }
    else if (strings_are_hashed && is_hash_data(chunk)) {
-      return handle_hash_data(view_type_as<Hash_data_chunk>(chunk),
-                              head);
+      return handle_hash_data(view_type_as<Hash_data_chunk>(chunk), head);
    }
    else if (is_hybrid_data(chunk)) {
-      return handle_hybrid_data(view_type_as<Hybrid_data_chunk>(chunk),
-                                head);
+      return handle_hybrid_data(view_type_as<Hybrid_data_chunk>(chunk), head);
    }
    else if (is_float_data(chunk)) {
-      return handle_float_data(view_type_as<Float_data_chunk>(chunk),
-                               head);
+      return handle_float_data(view_type_as<Float_data_chunk>(chunk), head);
    }
-   else
-   {
-      return handle_tag_data(view_type_as<Float_data_chunk>(chunk),
-                             head);
+   else {
+      return handle_tag_data(view_type_as<Float_data_chunk>(chunk), head);
    }
 }
-
 }
 
-void handle_config(const chunks::Config& chunk,
-                   File_saver& file_saver,
-                   std::string_view file_type,
-                   std::string_view dir,
+void handle_config(const chunks::Config& chunk, File_saver& file_saver,
+                   std::string_view file_type, std::string_view dir,
                    bool strings_are_hashed)
 {
    Scope_stack scope_stack;
@@ -277,9 +261,7 @@ void handle_config(const chunks::Config& chunk,
       const Data_chunk& child = view_type_as<Data_chunk>(chunk.bytes[head]);
 
       if (child.mn == "DATA"_mn) {
-         const auto line = handle_data(child,
-                                       head,
-                                       strings_are_hashed);
+         const auto line = handle_data(child, head, strings_are_hashed);
 
          indent_line(scope_stack.size(), buffer);
          buffer.append(line);
@@ -300,8 +282,7 @@ void handle_config(const chunks::Config& chunk,
 
       if (head % 4 != 0) head += (4 - (head % 4));
 
-      while (!scope_stack.empty() && 
-             head >= scope_stack.top()) {
+      while (!scope_stack.empty() && head >= scope_stack.top()) {
          scope_stack.pop();
          indent_line(scope_stack.size(), buffer);
          buffer.append("}\n", 2);

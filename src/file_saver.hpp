@@ -1,27 +1,23 @@
 #pragma once
 
-#include"tbb/concurrent_queue.h"
+#include "tbb/concurrent_queue.h"
 
-#include<condition_variable>
-#include<filesystem>
-#include<thread>
-#include<vector>
+#include <condition_variable>
+#include <filesystem>
+#include <thread>
+#include <vector>
 
-class File_saver
-{
+class File_saver {
 public:
    File_saver(std::experimental::filesystem::path path) noexcept;
 
    ~File_saver();
 
-   //Save data to a file asynchronously.
-   void save_file(std::string contents, 
-                  std::string name,
-                  std::string directory) noexcept;
+   // Save data to a file asynchronously.
+   void save_file(std::string contents, std::string name, std::string directory) noexcept;
 
 private:
-   struct Path_info
-   {
+   struct Path_info {
       std::string name;
       std::string directory;
    };
@@ -31,7 +27,7 @@ private:
    void run() noexcept;
 
    void save(File_info info) noexcept;
-   
+
    void create_dir(std::string_view directory) noexcept;
 
    std::mutex _running_mutex;

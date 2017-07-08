@@ -1,24 +1,22 @@
 #pragma once
 
-#include"byte.hpp"
+#include "byte.hpp"
 
-#include<type_traits>
-#include<string>
+#include <string>
+#include <type_traits>
 
 template<typename Type, typename Actual>
 inline const Type& view_type_as(const Actual& what) noexcept
 {
    static_assert(std::is_standard_layout_v<Actual>,
                  "Actual type must be standard layout.");
-   static_assert(std::is_standard_layout_v<Type>,
-                 "Viewed type must be standard layout.");
+   static_assert(std::is_standard_layout_v<Type>, "Viewed type must be standard layout.");
    static_assert(!std::is_reference_v<Type>,
                  "Viewed type will be a reference automatically.");
-   static_assert(!std::is_pointer_v<Type>,
-                 "Viewed type can not be a pointer.");
+   static_assert(!std::is_pointer_v<Type>, "Viewed type can not be a pointer.");
    static_assert(!std::is_const_v<Type>,
                  "Viewed type will have const added automatically.");
-   
+
    return reinterpret_cast<const Type&>(what);
 }
 
