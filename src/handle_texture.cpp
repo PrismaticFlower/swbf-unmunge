@@ -1,4 +1,5 @@
 
+#include "app_options.hpp"
 #include "chunk_headers.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
@@ -7,7 +8,10 @@
 #include "DDS.h"
 #include "DirectXTex.h"
 
+#include <stdexcept>
 #include <string>
+#include <tuple>
+#include <utility>
 
 #include <D3D9Types.h>
 
@@ -163,9 +167,9 @@ bool image_needs_converting(const DirectX::ScratchImage& image) noexcept
       return true;
    }
 }
-}
 
-void handle_texture(const chunks::Texture& chunk, File_saver& file_saver)
+auto read_texture(const chunks::Texture& chunk)
+   -> std::pair<std::string_view, DirectX::ScratchImage>
 {
    std::string_view name{reinterpret_cast<const char*>(&chunk.bytes[0]),
                          chunk.name_size - 1};
@@ -194,29 +198,91 @@ void handle_texture(const chunks::Texture& chunk, File_saver& file_saver)
    DirectX::LoadFromDDSMemory(buffer.data(), buffer.size(), DirectX::DDS_FLAGS_NONE,
                               nullptr, image);
 
-   DirectX::ScratchImage rgba_image;
+   return std::make_pair(std::move(name), std::move(image));
+}
+
+void ensure_basic_format(DirectX::ScratchImage& image)
+{
+   DirectX::ScratchImage conv_image;
 
    if (is_image_compressed(image)) {
       DirectX::Decompress(*image.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM,
-                          rgba_image);
+                          conv_image);
+
+      image = std::move(conv_image);
    }
    else if (image_needs_converting(image)) {
       DirectX::Convert(*image.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM,
                        DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,
-                       rgba_image);
+                       conv_image);
+
+      image = std::move(conv_image);
    }
-   else {
-      rgba_image = std::move(image);
-   }
+}
+
+void save_dds_image(std::string name, DirectX::ScratchImage image, File_saver& file_saver)
+{
+   DirectX::Blob blob;
+
+   DirectX::SaveToDDSMemory(*image.GetImage(0, 0, 0), DirectX::DDS_FLAGS_NONE, blob);
+
+   std::string buffer{static_cast<const char*>(blob.GetBufferPointer()),
+                      blob.GetBufferSize()};
+
+   file_saver.save_file(std::move(buffer), name + ".dds"s, "textures");
+}
+
+void save_tga_image(std::string name, DirectX::ScratchImage image, File_saver& file_saver)
+{
+   ensure_basic_format(image);
 
    DirectX::Blob blob;
 
-   DirectX::SaveToTGAMemory(*rgba_image.GetImage(0, 0, 0), blob);
+   DirectX::SaveToTGAMemory(*image.GetImage(0, 0, 0), blob);
 
-   buffer.clear();
-   buffer.resize(blob.GetBufferSize());
+   std::string buffer{static_cast<const char*>(blob.GetBufferPointer()),
+                      blob.GetBufferSize()};
 
-   std::memcpy(buffer.data(), blob.GetBufferPointer(), blob.GetBufferSize());
+   file_saver.save_file(std::move(buffer), name + ".tga"s, "textures");
+}
 
-   file_saver.save_file(std::move(buffer), std::string{name} + ".tga"s, "textures");
+void save_png_image(std::string name, DirectX::ScratchImage image, File_saver& file_saver)
+{
+   ensure_basic_format(image);
+
+   DirectX::Blob blob;
+
+   DirectX::SaveToWICMemory(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
+                            DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), blob);
+
+   std::string buffer{static_cast<const char*>(blob.GetBufferPointer()),
+                      blob.GetBufferSize()};
+
+   file_saver.save_file(std::move(buffer), name + ".png"s, "textures");
+}
+
+void save_image(std::string_view name, DirectX::ScratchImage image,
+                File_saver& file_saver, Image_format save_format)
+{
+   if (save_format == Image_format::tga) {
+      save_tga_image(std::string{name}, std::move(image), file_saver);
+   }
+   else if (save_format == Image_format::png) {
+      save_png_image(std::string{name}, std::move(image), file_saver);
+   }
+   else if (save_format == Image_format::dds) {
+      save_dds_image(std::string{name}, std::move(image), file_saver);
+   }
+}
+}
+
+void handle_texture(const chunks::Texture& chunk, File_saver& file_saver,
+                    Image_format save_format)
+{
+   std::string_view name;
+   DirectX::ScratchImage image;
+
+   std::tie(name, image) = read_texture(chunk);
+
+   save_image(name, std::move(image), file_saver, save_format);
 }

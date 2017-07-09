@@ -10,18 +10,20 @@
 
 using namespace std::literals;
 
-void process_chunk(const chunks::Unknown& chunk, File_saver& file_saver,
-                   tbb::task_group& tasks, msh::Builders_map& msh_builders)
+void process_chunk(const chunks::Unknown& chunk, const App_options& app_options,
+                   File_saver& file_saver, tbb::task_group& tasks,
+                   msh::Builders_map& msh_builders)
 {
    if (chunk.mn == "ucfb"_mn) {
       tasks.run([&] {
-         handle_ucfb(view_type_as<chunks::Ucfb>(chunk), file_saver, tasks, msh_builders);
+         handle_ucfb(view_type_as<chunks::Ucfb>(chunk), app_options, file_saver, tasks,
+                     msh_builders);
       });
    }
    else if (chunk.mn == "lvl_"_mn) {
       tasks.run([&] {
-         handle_lvl_child(view_type_as<chunks::Child_lvl>(chunk), file_saver, tasks,
-                          msh_builders);
+         handle_lvl_child(view_type_as<chunks::Child_lvl>(chunk), app_options, file_saver,
+                          tasks, msh_builders);
       });
    }
    // Object chunks
@@ -110,8 +112,10 @@ void process_chunk(const chunks::Unknown& chunk, File_saver& file_saver,
    }
    // Texture chunks
    else if (chunk.mn == "tex_"_mn) {
-      tasks.run(
-         [&] { handle_texture(view_type_as<chunks::Texture>(chunk), file_saver); });
+      tasks.run([&] {
+         handle_texture(view_type_as<chunks::Texture>(chunk), file_saver,
+                        app_options.image_save_format());
+      });
    }
    // World chunks
    else if (chunk.mn == "wrld"_mn) {

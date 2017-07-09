@@ -80,6 +80,9 @@
     <ClCompile Include="src\handle_object.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\app_options.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chunk_headers.hpp">
@@ -122,6 +125,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\ucfb_builder.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\app_options.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
