@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 {
    if (argc == 1) {
       std::cout << usage;
-      App_options{}.print_arguments(std::cout);
+      App_options{0, nullptr}.print_arguments(std::cout);
       std::cout << '\n';
 
       return EXIT_FAILURE;
@@ -50,8 +50,9 @@ int main(int argc, char* argv[])
 
       const auto& root_chunk = view_type_as<chunks::Unknown>(*file.get_bytes());
 
-      tasks.run_and_wait(
-         [&] { process_chunk(root_chunk, file_saver, tasks, msh_builders); });
+      tasks.run_and_wait([&] {
+         process_chunk(root_chunk, app_options, file_saver, tasks, msh_builders);
+      });
 
       msh::save_all(file_saver, msh_builders);
 

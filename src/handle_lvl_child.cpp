@@ -4,8 +4,9 @@
 
 #include "tbb/task_group.h"
 
-void handle_lvl_child(const chunks::Child_lvl& chunk, File_saver& file_saver,
-                      tbb::task_group& tasks, msh::Builders_map& msh_builders)
+void handle_lvl_child(const chunks::Child_lvl& chunk, const App_options& app_options,
+                      File_saver& file_saver, tbb::task_group& tasks,
+                      msh::Builders_map& msh_builders)
 {
    std::uint32_t head = 0;
    const std::uint32_t end = chunk.size - 8;
@@ -13,8 +14,8 @@ void handle_lvl_child(const chunks::Child_lvl& chunk, File_saver& file_saver,
    while (head < end) {
       const auto& child = view_type_as<chunks::Unknown>(chunk.bytes[head]);
 
-      const auto task = [&child, &file_saver, &tasks, &msh_builders] {
-         process_chunk(child, file_saver, tasks, msh_builders);
+      const auto task = [&child, &app_options, &file_saver, &tasks, &msh_builders] {
+         process_chunk(child, app_options, file_saver, tasks, msh_builders);
       };
 
       tasks.run(task);

@@ -28,19 +28,42 @@ auto read_filesystem_path(std::istream& istream)
 
    return std::experimental::filesystem::path{str};
 }
+
+std::istream& operator>>(std::istream& istream, Image_format& image_type)
+{
+   std::string str;
+   istream >> std::quoted(str);
+
+   if (str == "tga"_sv) {
+      image_type = Image_format::tga;
+   }
+   else if (str == "png"_sv) {
+      image_type = Image_format::png;
+   }
+   else if (str == "dds"_sv) {
+      image_type = Image_format::dds;
+   }
+   else {
+      throw std::invalid_argument{"Invalid image format specified."};
+   }
+
+   return istream;
+}
 }
 
-const auto fileinput_opt_description{R"(Set the input file to operate on.)"_sv};
+const auto fileinput_opt_description{
+   R"(<filepath> Set the input file to operate on.)"_sv};
 
 const auto image_opt_description{
-   R"(Set the output image format for textures. Can be 'tga', 'png' or 'dds'.)"_sv};
 
 App_options::App_options()
 {
    using Istr = std::istream;
 
    _options = {{"-file"s, [this](Istr& istr) { _file_path = read_filesystem_path(istr); },
-                fileinput_opt_description}};
+                fileinput_opt_description},
+               {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
+                image_opt_description}};
 }
 
 App_options::App_options(int argc, char* argv[]) : App_options()
@@ -62,6 +85,11 @@ auto App_options::input_file() const noexcept
    -> const std::experimental::filesystem::path&
 {
    return _file_path;
+}
+
+Image_format App_options::image_save_format() const noexcept
+{
+   return _img_save_format;
 }
 
 void App_options::print_arguments(std::ostream& ostream) noexcept
