@@ -55,6 +55,7 @@ const auto fileinput_opt_description{
    R"(<filepath> Set the input file to operate on.)"_sv};
 
 const auto image_opt_description{
+   R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
 
 App_options::App_options()
 {
