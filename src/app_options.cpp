@@ -29,6 +29,24 @@ auto read_filesystem_path(std::istream& istream)
    return std::experimental::filesystem::path{str};
 }
 
+std::istream& operator>>(std::istream& istream, Game_version& game_version)
+{
+   std::string str;
+   istream >> std::quoted(str);
+
+   if (str == "swbf_ii"_sv) {
+      game_version = Game_version::swbf_ii;
+   }
+   else if (str == "swbf"_sv) {
+      game_version = Game_version::swbf;
+   }
+   else {
+      throw std::invalid_argument{"Invalid game version specified."};
+   }
+
+   return istream;
+}
+
 std::istream& operator>>(std::istream& istream, Image_format& image_type)
 {
    std::string str;
@@ -54,6 +72,9 @@ std::istream& operator>>(std::istream& istream, Image_format& image_type)
 const auto fileinput_opt_description{
    R"(<filepath> Set the input file to operate on.)"_sv};
 
+const auto game_ver_opt_description{
+   R"(<version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"_sv};
+
 const auto image_opt_description{
    R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
 
@@ -63,8 +84,12 @@ App_options::App_options()
 
    _options = {{"-file"s, [this](Istr& istr) { _file_path = read_filesystem_path(istr); },
                 fileinput_opt_description},
+               {"-version"s, [this](Istr& istr) { istr >> _game_version; },
+                game_ver_opt_description},
                {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
-                image_opt_description}};
+                image_opt_description}
+
+   };
 }
 
 App_options::App_options(int argc, char* argv[]) : App_options()

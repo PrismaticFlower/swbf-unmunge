@@ -8,6 +8,8 @@
 
 enum class Image_format { tga, png, dds };
 
+enum class Game_version { swbf_ii, swbf };
+
 class App_options {
 public:
    App_options(const App_options&) = delete;
@@ -39,5 +41,6 @@ private:
    std::vector<Option> _options;
 
    std::experimental::filesystem::path _file_path;
+   Game_version _game_version;
    Image_format _img_save_format = Image_format::tga;
 };
