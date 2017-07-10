@@ -123,8 +123,15 @@ void process_chunk(const chunks::Unknown& chunk, const App_options& app_options,
          [&] { handle_world(view_type_as<chunks::World>(chunk), tasks, file_saver); });
    }
    else if (chunk.mn == "plan"_mn) {
-      tasks.run(
-         [&] { handle_planning(view_type_as<chunks::Planning>(chunk), file_saver); });
+      if (app_options.game_version() == Game_version::swbf_ii) {
+         tasks.run(
+            [&] { handle_planning(view_type_as<chunks::Planning>(chunk), file_saver); });
+      }
+      else {
+         tasks.run([&] {
+            handle_planning_swbf1(view_type_as<chunks::Planning>(chunk), file_saver);
+         });
+      }
    }
    else if (chunk.mn == "plnp"_mn) {
       return;

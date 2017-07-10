@@ -83,6 +83,9 @@
     <ClCompile Include="src\app_options.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\handle_planning_swbf1.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chunk_headers.hpp">

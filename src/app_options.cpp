@@ -113,6 +113,11 @@ auto App_options::input_file() const noexcept
    return _file_path;
 }
 
+Game_version App_options::game_version() const noexcept
+{
+   return _game_version;
+}
+
 Image_format App_options::image_save_format() const noexcept
 {
    return _img_save_format;

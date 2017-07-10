@@ -21,6 +21,8 @@ public:
 
    auto input_file() const noexcept -> const std::experimental::filesystem::path&;
 
+   Game_version game_version() const noexcept;
+
    Image_format image_save_format() const noexcept;
 
    void print_arguments(std::ostream& ostream) noexcept;

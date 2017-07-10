@@ -38,6 +38,8 @@ void handle_world(const chunks::World& world, tbb::task_group& tasks,
 
 void handle_planning(const chunks::Planning& planning, File_saver& file_saver);
 
+void handle_planning_swbf1(const chunks::Planning& planning, File_saver& file_saver);
+
 void handle_path(const chunks::Path& path, File_saver& file_saver);
 
 void handle_localization(const chunks::Localization& locl, tbb::task_group& tasks,

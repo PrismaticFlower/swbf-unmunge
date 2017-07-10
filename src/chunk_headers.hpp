@@ -107,7 +107,7 @@ struct Planning : impl::Chunk_base {
       std::uint32_t size;
       std::uint16_t hub_count;
       std::uint16_t arc_count;
-      std::uint16_t unknown;
+      std::uint16_t unknown; // Branch info count in SWBF1, I uh think
    } info;
 
    Byte _padding[2];
