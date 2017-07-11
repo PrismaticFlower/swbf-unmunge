@@ -4,6 +4,7 @@
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #define GLM_FORCE_CXX98
 #define GLM_FORCE_SWIZZLE
@@ -210,8 +211,10 @@ void save_paths(std::vector<Path> paths, File_saver& file_saver)
 }
 }
 
-void handle_path(const chunks::Path& path, File_saver& file_saver)
+void handle_path(Ucfb_reader path_reader, File_saver& file_saver)
 {
+   const auto& path = path_reader.view_as_chunk<chunks::Path>();
+
    std::uint32_t head = 0;
    const std::uint32_t end = path.size;
 

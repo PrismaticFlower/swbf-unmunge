@@ -4,6 +4,7 @@
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "DDS.h"
 #include "DirectXTex.h"
@@ -276,9 +277,10 @@ void save_image(std::string_view name, DirectX::ScratchImage image,
 }
 }
 
-void handle_texture(const chunks::Texture& chunk, File_saver& file_saver,
-                    Image_format save_format)
+void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format)
 {
+   const auto& chunk = texture.view_as_chunk<chunks::Texture>();
+
    std::string_view name;
    DirectX::ScratchImage image;
 

@@ -5,6 +5,7 @@
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include <algorithm>
 #include <array>
@@ -246,10 +247,11 @@ std::string handle_data(const Data_chunk& chunk, std::uint32_t& head,
 }
 }
 
-void handle_config(const chunks::Config& chunk, File_saver& file_saver,
-                   std::string_view file_type, std::string_view dir,
-                   bool strings_are_hashed)
+void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view file_type,
+                   std::string_view dir, bool strings_are_hashed)
 {
+   const auto& chunk = config.view_as_chunk<chunks::Config>();
+
    Scope_stack scope_stack;
    std::string buffer;
    buffer.reserve(1024);

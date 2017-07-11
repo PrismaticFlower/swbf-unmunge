@@ -1,6 +1,7 @@
 #pragma once
 
 #include "msh_builder.hpp"
+#include "ucfb_reader.hpp"
 
 namespace chunks {
 struct Unknown;
@@ -11,6 +12,6 @@ namespace tbb {
 class task_group;
 }
 
-void process_chunk(const chunks::Unknown& chunk, const App_options& app_options,
+void process_chunk(Ucfb_reader chunk, const App_options& app_options,
                    File_saver& file_saver, tbb::task_group& tasks,
                    msh::Builders_map& msh_builders);

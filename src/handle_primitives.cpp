@@ -3,6 +3,7 @@
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 namespace {
 
@@ -120,8 +121,10 @@ auto read_primitive(std::uint32_t& head, const std::uint32_t end,
 }
 }
 
-void handle_primitives(const chunks::Primitives& prim, msh::Builders_map& builders)
+void handle_primitives(Ucfb_reader primitives, msh::Builders_map& builders)
 {
+   const auto& prim = primitives.view_as_chunk<chunks::Primitives>();
+
    std::string name{reinterpret_cast<const char*>(&prim.bytes[0]), prim.info_size - 5};
 
    std::uint32_t head = prim.info_size;

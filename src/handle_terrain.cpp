@@ -4,6 +4,7 @@
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
 
@@ -617,8 +618,10 @@ void handle_patches(const Terrain_patches& patches, Terrain_builder& builder)
 }
 }
 
-void handle_terrain(const chunks::Terrain& terr, File_saver& file_saver)
+void handle_terrain(Ucfb_reader terrain, File_saver& file_saver)
 {
+   const auto& terr = terrain.view_as_chunk<chunks::Terrain>();
+
    std::uint32_t head = 0;
    const std::uint32_t end = terr.size - 8;
 

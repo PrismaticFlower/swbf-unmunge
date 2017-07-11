@@ -19,7 +19,7 @@ using namespace std::literals;
 namespace {
 
 struct Args_pack {
-   const chunks::Unknown& chunk;
+   Ucfb_reader chunk;
    const App_options& app_options;
    File_saver& file_saver;
    tbb::task_group& tasks;
@@ -125,117 +125,101 @@ const auto chunk_processors = Chunk_processor_map{
    {"ucfb"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_ucfb(view_type_as<chunks::Ucfb>(args.chunk), args.app_options,
-                    args.file_saver, args.tasks, args.msh_builders);
+        handle_ucfb(args.chunk, args.app_options, args.file_saver, args.tasks,
+                    args.msh_builders);
      }}},
 
    {"lvl_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_lvl_child(view_type_as<chunks::Child_lvl>(args.chunk), args.app_options,
-                         args.file_saver, args.tasks, args.msh_builders);
+        handle_lvl_child(args.chunk, args.app_options, args.file_saver, args.tasks,
+                         args.msh_builders);
      }}},
 
    // Class Chunks
    {"entc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
-                      "GameObjectClass"_sv);
+        handle_object(args.chunk, args.file_saver, "GameObjectClass"_sv);
      }}},
    {"expc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
-                      "ExplosionClass"_sv);
+        handle_object(args.chunk, args.file_saver, "ExplosionClass"_sv);
      }}},
    {"ordc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
-                      "OrdnanceClass"_sv);
+        handle_object(args.chunk, args.file_saver, "OrdnanceClass"_sv);
      }}},
    {"wpnc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
-                      "WeaponClass"_sv);
+        handle_object(args.chunk, args.file_saver, "WeaponClass"_sv);
      }}},
 
    // Config chunks
    {"fx__"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver, ".fx"_sv,
-                      "effects"_sv);
+        handle_config(args.chunk, args.file_saver, ".fx"_sv, "effects"_sv);
      }}},
    {"sky_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".sky"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".sky"_sv, "world"_sv);
      }}},
    {"prp_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".prp"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".prp"_sv, "world"_sv);
      }}},
    {"bnd_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".bnd"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".bnd"_sv, "world"_sv);
      }}},
    {"lght"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".light"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".light"_sv, "world"_sv);
      }}},
    {"port"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".pvs"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".pvs"_sv, "world"_sv);
      }}},
    {"path"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".pth"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".pth"_sv, "world"_sv);
      }}},
    {"comb"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".combo"_sv, "combos"_sv);
+        handle_config(args.chunk, args.file_saver, ".combo"_sv, "combos"_sv);
      }}},
    {"sanm"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".sanm"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".sanm"_sv, "config"_sv);
      }}},
    {"hud_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".hud"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".hud"_sv, "config"_sv);
      }}},
    {"load"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
-                      ".cfg"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".cfg"_sv, "config"_sv);
      }}},
 
    // Texture chunks
    {"tex_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_texture(view_type_as<chunks::Texture>(args.chunk), args.file_saver,
-                       args.app_options.image_save_format());
+        handle_texture(args.chunk, args.file_saver, args.app_options.image_save_format());
      }}},
    {"tex_"_mn, {Input_platform::ps2, Game_version::swbf_ii, nullptr}},
    {"tex_"_mn, {Input_platform::xbox, Game_version::swbf_ii, nullptr}},
@@ -243,61 +227,38 @@ const auto chunk_processors = Chunk_processor_map{
    // World chunks
    {"wrld"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_world(view_type_as<chunks::World>(args.chunk), args.tasks,
-                     args.file_saver);
-     }}},
+     [](Args_pack args) { handle_world(args.chunk, args.tasks, args.file_saver); }}},
    {"plan"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_planning(view_type_as<chunks::Planning>(args.chunk), args.file_saver);
-     }}},
+     [](Args_pack args) { handle_planning(args.chunk, args.file_saver); }}},
    {"plan"_mn,
     {Input_platform::pc, Game_version::swbf,
-     [](Args_pack args) {
-        handle_planning_swbf1(view_type_as<chunks::Planning>(args.chunk),
-                              args.file_saver);
-     }}},
+     [](Args_pack args) { handle_planning_swbf1(args.chunk, args.file_saver); }}},
    {"PATH"_mn,
     {Input_platform::pc, Game_version::swbf,
-     [](Args_pack args) {
-        handle_path(view_type_as<chunks::Path>(args.chunk), args.file_saver);
-     }}},
+     [](Args_pack args) { handle_path(args.chunk, args.file_saver); }}},
    {"tern"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_terrain(view_type_as<chunks::Terrain>(args.chunk), args.file_saver);
-     }}},
+     [](Args_pack args) { handle_terrain(args.chunk, args.file_saver); }}},
    // Model chunks
    {"skel"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_skeleton(view_type_as<chunks::Skeleton>(args.chunk), args.msh_builders);
-     }}},
+     [](Args_pack args) { handle_skeleton(args.chunk, args.msh_builders); }}},
    {"modl"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_model(view_type_as<chunks::Model>(args.chunk), args.msh_builders,
-                     args.tasks);
-     }}},
+     [](Args_pack args) { handle_model(args.chunk, args.msh_builders, args.tasks); }}},
    {"coll"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_collision(view_type_as<chunks::Collision>(args.chunk), args.msh_builders);
-     }}},
+     [](Args_pack args) { handle_collision(args.chunk, args.msh_builders); }}},
    {"prim"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_primitives(view_type_as<chunks::Primitives>(args.chunk),
-                          args.msh_builders);
-     }}},
+     [](Args_pack args) { handle_primitives(args.chunk, args.msh_builders); }}},
 
    // Misc chunks
    {"Locl"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_localization(view_type_as<chunks::Localization>(args.chunk), args.tasks,
-                            args.file_saver);
+        handle_localization(args.chunk, args.tasks, args.file_saver);
      }}},
 
    // Ignored Chunks, for which we want no output at all.
@@ -306,19 +267,19 @@ const auto chunk_processors = Chunk_processor_map{
 };
 }
 
-void process_chunk(const chunks::Unknown& chunk, const App_options& app_options,
+void process_chunk(Ucfb_reader chunk, const App_options& app_options,
                    File_saver& file_saver, tbb::task_group& tasks,
                    msh::Builders_map& msh_builders)
 {
-   const auto processor = chunk_processors.lookup(chunk.mn, app_options.input_platform(),
-                                                  app_options.game_version());
+   const auto processor = chunk_processors.lookup(
+      chunk.magic_number(), app_options.input_platform(), app_options.game_version());
 
    if (processor) {
-      tasks.run([&, processor] {
+      tasks.run([&, chunk, processor] {
          processor({chunk, app_options, file_saver, tasks, msh_builders});
       });
    }
    else {
-      tasks.run([&] { handle_unknown(chunk, file_saver); });
+      tasks.run([&, chunk] { handle_unknown(chunk, file_saver); });
    }
 }

@@ -5,6 +5,7 @@
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #define GLM_FORCE_SWIZZLE
 #define GLM_FORCE_CXX98
@@ -689,9 +690,11 @@ void process_animation_entries(std::vector<const Entry*> entries, std::string_vi
 }
 }
 
-void handle_world(const chunks::World& world, tbb::task_group& tasks,
+void handle_world(Ucfb_reader world_reader, tbb::task_group& tasks,
                   File_saver& file_saver)
 {
+   const auto& world = world_reader.view_as_chunk<chunks::World>();
+
    std::string_view name;
    std::string_view terrain_name;
    std::string_view sky_name;

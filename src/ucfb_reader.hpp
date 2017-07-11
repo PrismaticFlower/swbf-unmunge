@@ -55,8 +55,12 @@ public:
 
    // Temporary function for use as a compatibility shim. This *will* be removed
    // as soon as all code has been migrated away from using raw structs.
-   [[deprecated("Replace with ucfb_reader abstraction.")]] const chunks::Unknown&
-   view_as_chunk() const noexcept;
+   template<typename Type>
+   [[deprecated("Replace with ucfb_reader abstraction.")]] const Type& view_as_chunk()
+      const noexcept
+   {
+      return view_type_as<Type>(_data[-8]);
+   }
 
 private:
    // Special constructor for use by read_child, performs no error checking.

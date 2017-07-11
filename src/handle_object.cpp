@@ -5,6 +5,7 @@
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -110,9 +111,11 @@ auto find_geometry_name(
 }
 }
 
-void handle_object(const chunks::Object& object, File_saver& file_saver,
+void handle_object(Ucfb_reader object_reader, File_saver& file_saver,
                    std::string_view type)
 {
+   const auto& object = object_reader.view_as_chunk<chunks::Object>();
+
    std::string file_buffer;
    file_buffer.reserve(1024);
 

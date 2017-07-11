@@ -5,6 +5,7 @@
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
 
@@ -177,14 +178,16 @@ void dump_localization(const chunks::Localization& locl, File_saver& file_saver)
 }
 }
 
-void handle_localization(const chunks::Localization& locl, tbb::task_group& tasks,
+void handle_localization(Ucfb_reader localization, tbb::task_group& tasks,
                          File_saver& file_saver)
 {
-   tasks.run([&locl, &file_saver] {
+   const auto& locl = localization.view_as_chunk<chunks::Localization>();
+
+   tasks.run([localization, &locl, &file_saver] {
       std::string name{reinterpret_cast<const char*>(&locl.bytes[0]), locl.name_size - 1};
       name += ".loc"_sv;
 
-      handle_unknown(view_type_as<chunks::Unknown>(locl), file_saver, std::move(name));
+      handle_unknown(localization, file_saver, std::move(name));
    });
 
    tasks.run([&locl, &file_saver] { dump_localization(locl, file_saver); });

@@ -4,6 +4,7 @@
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
 
@@ -225,8 +226,10 @@ void write_planning(std::string name, const std::vector<Hub_info> hubs,
 }
 }
 
-void handle_planning(const chunks::Planning& plan, File_saver& file_saver)
+void handle_planning(Ucfb_reader planning, File_saver& file_saver)
 {
+   const auto& plan = planning.view_as_chunk<chunks::Planning>();
+
    std::uint32_t head = 0;
    const std::uint32_t end = plan.size - 16;
 

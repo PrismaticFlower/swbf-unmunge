@@ -53,8 +53,3 @@ Magic_number Ucfb_reader::magic_number() const noexcept
 {
    return _mn;
 }
-
-const chunks::Unknown& Ucfb_reader::view_as_chunk() const noexcept
-{
-   return view_type_as<chunks::Unknown>(_data[-8]);
-}

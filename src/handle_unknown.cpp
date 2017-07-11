@@ -3,6 +3,7 @@
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
+#include "ucfb_reader.hpp"
 
 #include <atomic>
 #include <optional>
@@ -25,9 +26,11 @@ std::string get_unique_chunk_name() noexcept
 }
 }
 
-void handle_unknown(const chunks::Unknown& chunk, File_saver& file_saver,
+void handle_unknown(Ucfb_reader chunk_reader, File_saver& file_saver,
                     std::optional<std::string> file_name)
 {
+   const auto& chunk = chunk_reader.view_as_chunk<chunks::Unknown>();
+
    const std::uint32_t size = chunk.size + sizeof(chunk);
 
    std::string file;

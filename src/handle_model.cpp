@@ -5,6 +5,7 @@
 #include "msh_builder.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 #include "vbuf_helpers.hpp"
 
 #include "tbb/task_group.h"
@@ -562,9 +563,11 @@ void process_shadows(const chunks::Model& model, msh::Builder& builder)
 }
 }
 
-void handle_model(const chunks::Model& model, msh::Builders_map& builders,
+void handle_model(Ucfb_reader model_reader, msh::Builders_map& builders,
                   tbb::task_group& tasks)
 {
+   const auto& model = model_reader.view_as_chunk<chunks::Model>();
+
    const std::string name{reinterpret_cast<const char*>(&model.bytes[0]),
                           model.name_size - 1};
 

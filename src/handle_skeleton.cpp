@@ -3,6 +3,7 @@
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #define GLM_FORCE_CXX98
 #include "glm/glm.hpp"
@@ -104,8 +105,10 @@ void add_bones(const std::vector<std::string_view>& names,
 }
 }
 
-void handle_skeleton(const chunks::Skeleton& skel, msh::Builders_map& builders)
+void handle_skeleton(Ucfb_reader skeleton, msh::Builders_map& builders)
 {
+   const auto& skel = skeleton.view_as_chunk<chunks::Skeleton>();
+
    const std::string name{reinterpret_cast<const char*>(&skel.bytes[0]),
                           skel.info_size - 5};
 

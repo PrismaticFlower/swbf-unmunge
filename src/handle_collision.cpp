@@ -3,6 +3,7 @@
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 namespace {
 
@@ -118,8 +119,10 @@ void handle_tree(const Tree& tree, msh::Collsion_mesh& collision_mesh)
 }
 }
 
-void handle_collision(const chunks::Collision& coll, msh::Builders_map& builders)
+void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
 {
+   const auto& coll = collision.view_as_chunk<chunks::Collision>();
+
    std::string name{reinterpret_cast<const char*>(&coll.bytes[0]), coll.name_size - 1};
 
    std::uint32_t head = coll.name_size;
