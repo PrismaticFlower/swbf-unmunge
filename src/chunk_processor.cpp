@@ -4,171 +4,318 @@
 #include "chunk_headers.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
+#include "string_helpers.hpp"
 #include "type_pun.hpp"
 
 #include "tbb/task_group.h"
 
+#include <algorithm>
+#include <initializer_list>
+#include <tuple>
+#include <unordered_map>
+
 using namespace std::literals;
+
+namespace {
+
+struct Args_pack {
+   const chunks::Unknown& chunk;
+   const App_options& app_options;
+   File_saver& file_saver;
+   tbb::task_group& tasks;
+   msh::Builders_map& msh_builders;
+};
+
+void ignore_chunk(Args_pack){};
+
+class Chunk_processor_map {
+public:
+   using Processor_func = void (*)(Args_pack);
+
+   using Key_value_pair =
+      std::pair<const Magic_number,
+                std::tuple<Input_platform, Game_version, Processor_func>>;
+
+   Chunk_processor_map(std::initializer_list<Key_value_pair> init_list) noexcept
+      : _processors{init_list}
+   {
+   }
+
+   // Looksup a chunk processor by performing the following.
+   //
+   // First all the processors for a magic number are fetched. If none exist nullptr is
+   // returned.
+   //
+   // Then an exact match for the platform and game version is searched for, if it is
+   // found it's returned.
+   //
+   // Else a platform match is searched for if it is found it is returned.
+   //
+   // Else if no platform match was found a game version match is searched for, if it is
+   // found then it is returned.
+   //
+   // Finally if no ideal match can be found the first processor is returned.
+   Processor_func lookup(Magic_number mn, Input_platform platform,
+                         Game_version version) const noexcept
+   {
+      const auto range = _processors.equal_range(mn);
+
+      if (range.first == range.second) return {};
+
+      const auto exact_match = find_exact_match(range, platform, version);
+
+      if (exact_match != range.second) {
+         return std::get<Processor_func>(exact_match->second);
+      }
+
+      const auto platform_match = find_platform_match(range, platform);
+
+      if (platform_match != range.second) {
+         return std::get<Processor_func>(platform_match->second);
+      }
+
+      const auto version_match = find_game_match(range, version);
+
+      if (version_match != range.second) {
+         return std::get<Processor_func>(version_match->second);
+      }
+
+      return std::get<Processor_func>(range.first->second);
+   }
+
+private:
+   using Map_type =
+      std::unordered_multimap<Magic_number,
+                              std::tuple<Input_platform, Game_version, Processor_func>>;
+   using Const_iterator = Map_type::const_iterator;
+   using Handler_range = std::pair<Const_iterator, Const_iterator>;
+
+   static Const_iterator find_exact_match(const Handler_range range,
+                                          Input_platform platform, Game_version version)
+   {
+      return std::find_if(range.first, range.second,
+                          [platform, version](const Key_value_pair& pair) {
+                             return (platform == std::get<Input_platform>(pair.second) &&
+                                     version == std::get<Game_version>(pair.second));
+                          });
+   }
+
+   static Const_iterator find_platform_match(const Handler_range range,
+                                             Input_platform platform)
+   {
+      return std::find_if(range.first, range.second,
+                          [platform](const Key_value_pair& pair) {
+                             return (platform == std::get<Input_platform>(pair.second));
+                          });
+   }
+
+   static Const_iterator find_game_match(const Handler_range range, Game_version version)
+   {
+      return std::find_if(range.first, range.second,
+                          [version](const Key_value_pair& pair) {
+                             return (version == std::get<Game_version>(pair.second));
+                          });
+   }
+
+   Map_type _processors;
+};
+
+const auto chunk_processors = Chunk_processor_map{
+   // Parent Chunks
+   {"ucfb"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_ucfb(view_type_as<chunks::Ucfb>(args.chunk), args.app_options,
+                    args.file_saver, args.tasks, args.msh_builders);
+     }}},
+
+   {"lvl_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_lvl_child(view_type_as<chunks::Child_lvl>(args.chunk), args.app_options,
+                         args.file_saver, args.tasks, args.msh_builders);
+     }}},
+
+   // Class Chunks
+   {"entc"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
+                      "GameObjectClass"_sv);
+     }}},
+   {"expc"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
+                      "ExplosionClass"_sv);
+     }}},
+   {"ordc"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
+                      "OrdnanceClass"_sv);
+     }}},
+   {"wpnc"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_object(view_type_as<chunks::Object>(args.chunk), args.file_saver,
+                      "WeaponClass"_sv);
+     }}},
+
+   // Config chunks
+   {"fx__"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver, ".fx"_sv,
+                      "effects"_sv);
+     }}},
+   {"sky_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".sky"_sv, "world"_sv);
+     }}},
+   {"prp_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".prp"_sv, "world"_sv);
+     }}},
+   {"bnd_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".bnd"_sv, "world"_sv);
+     }}},
+   {"lght"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".light"_sv, "world"_sv);
+     }}},
+   {"port"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".pvs"_sv, "world"_sv);
+     }}},
+   {"path"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".pth"_sv, "world"_sv);
+     }}},
+   {"comb"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".combo"_sv, "combos"_sv);
+     }}},
+   {"sanm"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".sanm"_sv, "config"_sv);
+     }}},
+   {"hud_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".hud"_sv, "config"_sv);
+     }}},
+   {"load"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(view_type_as<chunks::Config>(args.chunk), args.file_saver,
+                      ".cfg"_sv, "config"_sv);
+     }}},
+
+   // Texture chunks
+   {"tex_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_texture(view_type_as<chunks::Texture>(args.chunk), args.file_saver,
+                       args.app_options.image_save_format());
+     }}},
+   {"tex_"_mn, {Input_platform::ps2, Game_version::swbf_ii, nullptr}},
+   {"tex_"_mn, {Input_platform::xbox, Game_version::swbf_ii, nullptr}},
+
+   // World chunks
+   {"wrld"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_world(view_type_as<chunks::World>(args.chunk), args.tasks,
+                     args.file_saver);
+     }}},
+   {"plan"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_planning(view_type_as<chunks::Planning>(args.chunk), args.file_saver);
+     }}},
+   {"plan"_mn,
+    {Input_platform::pc, Game_version::swbf,
+     [](Args_pack args) {
+        handle_planning_swbf1(view_type_as<chunks::Planning>(args.chunk),
+                              args.file_saver);
+     }}},
+   {"PATH"_mn,
+    {Input_platform::pc, Game_version::swbf,
+     [](Args_pack args) {
+        handle_path(view_type_as<chunks::Path>(args.chunk), args.file_saver);
+     }}},
+   {"tern"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_terrain(view_type_as<chunks::Terrain>(args.chunk), args.file_saver);
+     }}},
+   // Model chunks
+   {"skel"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_skeleton(view_type_as<chunks::Skeleton>(args.chunk), args.msh_builders);
+     }}},
+   {"modl"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_model(view_type_as<chunks::Model>(args.chunk), args.msh_builders,
+                     args.tasks);
+     }}},
+   {"coll"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_collision(view_type_as<chunks::Collision>(args.chunk), args.msh_builders);
+     }}},
+   {"prim"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_primitives(view_type_as<chunks::Primitives>(args.chunk),
+                          args.msh_builders);
+     }}},
+
+   // Misc chunks
+   {"Locl"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_localization(view_type_as<chunks::Localization>(args.chunk), args.tasks,
+                            args.file_saver);
+     }}},
+
+   // Ignored Chunks, for which we want no output at all.
+   {"gmod"_mn, {Input_platform::pc, Game_version::swbf_ii, ignore_chunk}},
+   {"plnp"_mn, {Input_platform::pc, Game_version::swbf_ii, ignore_chunk}},
+};
+}
 
 void process_chunk(const chunks::Unknown& chunk, const App_options& app_options,
                    File_saver& file_saver, tbb::task_group& tasks,
                    msh::Builders_map& msh_builders)
 {
-   if (chunk.mn == "ucfb"_mn) {
-      tasks.run([&] {
-         handle_ucfb(view_type_as<chunks::Ucfb>(chunk), app_options, file_saver, tasks,
-                     msh_builders);
-      });
-   }
-   else if (chunk.mn == "lvl_"_mn) {
-      tasks.run([&] {
-         handle_lvl_child(view_type_as<chunks::Child_lvl>(chunk), app_options, file_saver,
-                          tasks, msh_builders);
-      });
-   }
-   // Object chunks
-   else if (chunk.mn == "entc"_mn) {
-      tasks.run([&] {
-         handle_object(view_type_as<chunks::Object>(chunk), file_saver,
-                       "GameObjectClass"s);
-      });
-   }
-   else if (chunk.mn == "expc"_mn) {
-      tasks.run([&] {
-         handle_object(view_type_as<chunks::Object>(chunk), file_saver,
-                       "ExplosionClass"s);
-      });
-   }
-   else if (chunk.mn == "ordc"_mn) {
-      tasks.run([&] {
-         handle_object(view_type_as<chunks::Object>(chunk), file_saver, "OrdnanceClass"s);
-      });
-   }
-   else if (chunk.mn == "wpnc"_mn) {
-      tasks.run([&] {
-         handle_object(view_type_as<chunks::Object>(chunk), file_saver, "WeaponClass"s);
-      });
-   }
-   // Config chunks
-   else if (chunk.mn == "fx__"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".fx", "effects");
-      });
-   }
-   else if (chunk.mn == "sky_"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".sky", "world");
-      });
-   }
-   else if (chunk.mn == "prp_"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".prp", "world",
-                       true);
-      });
-   }
-   else if (chunk.mn == "bnd_"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".bnd", "world",
-                       true);
-      });
-   }
-   else if (chunk.mn == "lght"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".light",
-                       "world");
-      });
-   }
-   else if (chunk.mn == "port"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".pvs", "world");
-      });
-   }
-   else if (chunk.mn == "path"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".pth", "world");
-      });
-   }
-   else if (chunk.mn == "comb"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".combo",
-                       "combos");
-      });
-   }
-   else if (chunk.mn == "sanm"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".sanm",
-                       "config");
-      });
-   }
-   else if (chunk.mn == "hud_"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".hud", "config");
-      });
-   }
-   else if (chunk.mn == "load"_mn) {
-      tasks.run([&] {
-         handle_config(view_type_as<chunks::Config>(chunk), file_saver, ".cfg", "load");
-      });
-   }
-   // Texture chunks
-   else if (chunk.mn == "tex_"_mn) {
-      tasks.run([&] {
-         handle_texture(view_type_as<chunks::Texture>(chunk), file_saver,
-                        app_options.image_save_format());
-      });
-   }
-   // World chunks
-   else if (chunk.mn == "wrld"_mn) {
-      tasks.run(
-         [&] { handle_world(view_type_as<chunks::World>(chunk), tasks, file_saver); });
-   }
-   else if (chunk.mn == "plan"_mn) {
-      if (app_options.game_version() == Game_version::swbf_ii) {
-         tasks.run(
-            [&] { handle_planning(view_type_as<chunks::Planning>(chunk), file_saver); });
-      }
-      else {
-         tasks.run([&] {
-            handle_planning_swbf1(view_type_as<chunks::Planning>(chunk), file_saver);
-         });
-      }
-   }
-   else if (chunk.mn == "plnp"_mn) {
-      return;
-   }
-   else if (chunk.mn == "PATH"_mn) {
-      tasks.run([&] { handle_path(view_type_as<chunks::Path>(chunk), file_saver); });
-   }
-   else if (chunk.mn == "tern"_mn) {
-      tasks.run(
-         [&] { handle_terrain(view_type_as<chunks::Terrain>(chunk), file_saver); });
-   }
-   // Model chunks
-   else if (chunk.mn == "skel"_mn) {
-      tasks.run(
-         [&] { handle_skeleton(view_type_as<chunks::Skeleton>(chunk), msh_builders); });
-   }
-   else if (chunk.mn == "modl"_mn) {
-      tasks.run(
-         [&] { handle_model(view_type_as<chunks::Model>(chunk), msh_builders, tasks); });
-   }
-   else if (chunk.mn == "gmod"_mn) {
-      return;
-   }
-   else if (chunk.mn == "coll"_mn) {
-      tasks.run(
-         [&] { handle_collision(view_type_as<chunks::Collision>(chunk), msh_builders); });
-   }
-   else if (chunk.mn == "prim"_mn) {
-      tasks.run([&] {
-         handle_primitives(view_type_as<chunks::Primitives>(chunk), msh_builders);
-      });
-   }
-   // Misc chunks
-   else if (chunk.mn == "Locl"_mn) {
-      tasks.run([&] {
-         handle_localization(view_type_as<chunks::Localization>(chunk), tasks,
-                             file_saver);
+   const auto processor = chunk_processors.lookup(chunk.mn, app_options.input_platform(),
+                                                  app_options.game_version());
+
+   if (processor) {
+      tasks.run([&, processor] {
+         processor({chunk, app_options, file_saver, tasks, msh_builders});
       });
    }
    else {
