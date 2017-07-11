@@ -14,7 +14,9 @@ swbf-unmunge <options>
 
 Options:
  -file <filepath> Set the input file to operate on.
+ -version <version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.
  -imgfmt <format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.
+ -platform <format> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.
 ```
 
 So as an example.
