@@ -37,6 +37,7 @@
     </ClCompile>
     <ClCompile Include="src\handle_ucfb.cpp" />
     <ClCompile Include="src\ucfb_builder.cpp" />
+    <ClCompile Include="src\ucfb_reader.cpp" />
     <ClCompile Include="src\vbuf_helpers.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +55,7 @@
     <ClInclude Include="src\swbf_fnv_hashes.hpp" />
     <ClInclude Include="src\type_pun.hpp" />
     <ClInclude Include="src\ucfb_builder.hpp" />
+    <ClInclude Include="src\ucfb_reader.hpp" />
     <ClInclude Include="src\vbuf_helpers.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

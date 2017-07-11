@@ -1,6 +1,7 @@
 #include "chunk_headers.hpp"
 #include "chunk_processor.hpp"
 #include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
 
@@ -10,20 +11,16 @@ void handle_ucfb(const chunks::Ucfb& chunk, const App_options& app_options,
                  File_saver& file_saver, tbb::task_group& tasks,
                  msh::Builders_map& msh_builders)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = chunk.size;
+   Ucfb_reader reader{chunk.bytes - 8, chunk.size + 8};
 
-   while (head < end) {
-      const auto& child = view_type_as<chunks::Unknown>(chunk.bytes[head]);
+   while (reader) {
+      const auto child = reader.read_child();
 
-      const auto task = [&child, &app_options, &file_saver, &tasks, &msh_builders] {
-         process_chunk(child, app_options, file_saver, tasks, msh_builders);
+      const auto task = [child, &app_options, &file_saver, &tasks, &msh_builders] {
+         process_chunk(child.view_as_chunk(), app_options, file_saver, tasks,
+                       msh_builders);
       };
 
       tasks.run(task);
-
-      head += (child.size + sizeof(chunks::Unknown));
-
-      if (head % 4 != 0) head += (4 - (head % 4));
    }
 }
