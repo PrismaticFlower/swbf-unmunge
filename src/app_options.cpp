@@ -67,6 +67,27 @@ std::istream& operator>>(std::istream& istream, Image_format& image_type)
 
    return istream;
 }
+
+std::istream& operator>>(std::istream& istream, Input_platform& platform)
+{
+   std::string str;
+   istream >> std::quoted(str);
+
+   if (str == "pc"_sv) {
+      platform = Input_platform::pc;
+   }
+   else if (str == "ps2"_sv) {
+      platform = Input_platform::ps2;
+   }
+   else if (str == "xbox"_sv) {
+      platform = Input_platform::xbox;
+   }
+   else {
+      throw std::invalid_argument{"Invalid input platform specified."};
+   }
+
+   return istream;
+}
 }
 
 const auto fileinput_opt_description{
@@ -78,6 +99,9 @@ const auto game_ver_opt_description{
 const auto image_opt_description{
    R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
 
+const auto input_plat_opt_description{
+   R"(<format> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
+
 App_options::App_options()
 {
    using Istr = std::istream;
@@ -87,7 +111,9 @@ App_options::App_options()
                {"-version"s, [this](Istr& istr) { istr >> _game_version; },
                 game_ver_opt_description},
                {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
-                image_opt_description}
+                image_opt_description},
+               {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
+                input_plat_opt_description}
 
    };
 }
@@ -121,6 +147,11 @@ Game_version App_options::game_version() const noexcept
 Image_format App_options::image_save_format() const noexcept
 {
    return _img_save_format;
+}
+
+Input_platform App_options::input_platform() const noexcept
+{
+   return _input_platform;
 }
 
 void App_options::print_arguments(std::ostream& ostream) noexcept

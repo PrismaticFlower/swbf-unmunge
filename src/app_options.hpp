@@ -10,6 +10,8 @@ enum class Image_format { tga, png, dds };
 
 enum class Game_version { swbf_ii, swbf };
 
+enum class Input_platform { pc, ps2, xbox };
+
 class App_options {
 public:
    App_options(const App_options&) = delete;
@@ -24,6 +26,8 @@ public:
    Game_version game_version() const noexcept;
 
    Image_format image_save_format() const noexcept;
+
+   Input_platform input_platform() const noexcept;
 
    void print_arguments(std::ostream& ostream) noexcept;
 
@@ -45,4 +49,5 @@ private:
    std::experimental::filesystem::path _file_path;
    Game_version _game_version;
    Image_format _img_save_format = Image_format::tga;
+   Input_platform _input_platform;
 };
