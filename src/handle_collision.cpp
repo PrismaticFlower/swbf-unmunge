@@ -5,12 +5,11 @@
 #include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
+#include <array>
+
 namespace {
 
 struct Collision_info {
-   Magic_number mn;
-   std::uint32_t size;
-
    std::uint32_t vertex_count;
    std::uint32_t node_count;
    std::uint32_t leaf_count;
@@ -20,142 +19,65 @@ struct Collision_info {
 };
 
 static_assert(std::is_standard_layout_v<Collision_info>);
-static_assert(sizeof(Collision_info) == 48);
+static_assert(sizeof(Collision_info) == 40);
 
-struct Parent_node {
-   Magic_number mn;
-   std::uint32_t size;
-   char str[];
-};
-
-static_assert(std::is_standard_layout_v<Parent_node>);
-static_assert(sizeof(Parent_node) == 8);
-
-struct Vertices {
-   Magic_number mn;
-   std::uint32_t size;
-   glm::vec3 positions[];
-};
-
-static_assert(std::is_standard_layout_v<Vertices>);
-static_assert(sizeof(Vertices) == 8);
-
-struct Tree {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Tree>);
-static_assert(sizeof(Tree) == 8);
-
-#pragma pack(push, 1)
-
-struct Tree_leaf {
-   Magic_number mn;
-   std::uint32_t size;
-
-   std::uint8_t index_count;
-   std::uint8_t unknown_0;
-   std::uint8_t unknown_1;
-   std::uint8_t unknown_2;
-   std::uint8_t unknown_3;
-   std::uint8_t unknown_4;
-   std::uint8_t unknown_5;
-
-   std::uint16_t indices[];
-};
-
-static_assert(std::is_standard_layout_v<Tree_leaf>);
-static_assert(sizeof(Tree_leaf) == 15);
-
-#pragma pack(pop)
-
-std::string read_parent(const Parent_node& node)
+std::vector<glm::vec3> read_positions(Ucfb_reader_strict<"POSI"_mn> vertices,
+                                      const std::size_t vertex_count)
 {
-   return {&node.str[0], node.size - 1};
-}
+   static_assert(std::is_standard_layout_v<glm::vec3> &&
+                 std::is_standard_layout_v<std::array<float, 3>>);
+   static_assert(sizeof(glm::vec3) == sizeof(std::array<float, 3>));
 
-std::vector<glm::vec3> read_positions(const Vertices& vertices)
-{
    std::vector<glm::vec3> buffer;
-   buffer.resize(vertices.size / sizeof(glm::vec3));
+   buffer.resize(vertex_count);
 
-   std::memcpy(buffer.data(), &vertices.positions[0], buffer.size() * sizeof(glm::vec3));
+   const auto vertex_array = vertices.read_array<std::array<float, 3>>(vertex_count);
+
+   std::memcpy(buffer.data(), vertex_array.data(), buffer.size() * sizeof(glm::vec3));
 
    return buffer;
 }
 
-std::vector<std::uint16_t> read_tree_leaf(const Tree_leaf& leaf)
+std::vector<std::uint16_t> read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn> leaf)
 {
-   std::vector<std::uint16_t> strip;
-   strip.reserve(leaf.index_count);
+   std::uint8_t index_count = leaf.read_trivial_unaligned<std::uint8_t>();
+   leaf.consume_unaligned(6);
 
-   for (std::size_t i = 0; i < leaf.index_count; ++i) {
-      strip.push_back(leaf.indices[i]);
-   }
+   const auto indices = leaf.read_array<std::uint16_t>(index_count);
 
-   return strip;
+   return {std::cbegin(indices), std::cend(indices)};
 }
 
-void handle_tree(const Tree& tree, msh::Collsion_mesh& collision_mesh)
+void handle_tree(Ucfb_reader_strict<"TREE"_mn> tree, msh::Collsion_mesh& collision_mesh)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = tree.size - 8;
+   while (tree) {
+      const auto child = tree.read_child();
 
-   while (head < end) {
-      const auto& child = view_type_as<chunks::Unknown>(tree.bytes[head]);
-
-      if (child.mn == "LEAF"_mn) {
-         const auto& leaf = view_type_as<Tree_leaf>(child);
-
-         collision_mesh.strips.emplace_back(read_tree_leaf(leaf));
+      if (child.magic_number() == "LEAF"_mn) {
+         collision_mesh.strips.emplace_back(
+            read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn>{child}));
       }
-
-      head += child.size + 8;
-      if (head % 4 != 0) head += (4 - (head % 4));
    }
 }
 }
 
 void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
 {
-   const auto& coll = collision.view_as_chunk<chunks::Collision>();
+   const std::string name{collision.read_child_strict<"NAME"_mn>().read_string()};
 
-   std::string name{reinterpret_cast<const char*>(&coll.bytes[0]), coll.name_size - 1};
+   const auto parent = collision.read_child_strict<"NODE"_mn>().read_string();
 
-   std::uint32_t head = coll.name_size;
-   const std::uint32_t end = coll.size - 8;
-
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-   align_head();
+   const auto info =
+      collision.read_child_strict<"INFO"_mn>().read_trivial<Collision_info>();
 
    msh::Collsion_mesh collision_mesh;
+   collision_mesh.parent = parent;
+   collision_mesh.strips.reserve(info.leaf_count);
 
-   while (head < end) {
-      const auto& child = view_type_as<chunks::Unknown>(coll.bytes[head]);
+   collision_mesh.vertices =
+      read_positions(collision.read_child_strict<"POSI"_mn>(), info.vertex_count);
 
-      if (child.mn == "INFO"_mn) {
-         const auto& info = view_type_as<Collision_info>(child);
-
-         collision_mesh.strips.reserve(info.leaf_count);
-      }
-      else if (child.mn == "NODE"_mn) {
-         collision_mesh.parent = read_parent(view_type_as<Parent_node>(child));
-      }
-      else if (child.mn == "POSI"_mn) {
-         collision_mesh.vertices = read_positions(view_type_as<Vertices>(child));
-      }
-      else if (child.mn == "TREE"_mn) {
-         handle_tree(view_type_as<Tree>(child), collision_mesh);
-      }
-
-      head += child.size + 8;
-      align_head();
-   }
+   handle_tree(collision.read_child_strict<"TREE"_mn>(), collision_mesh);
 
    builders[name].add_collision_mesh(std::move(collision_mesh));
 }
