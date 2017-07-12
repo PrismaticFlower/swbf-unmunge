@@ -1,6 +1,8 @@
 ﻿#pragma once
 
+#include <algorithm>
 #include <cstring>
+#include <iterator>
 #include <string>
 #include <utility>
 
@@ -82,4 +84,14 @@ inline void copy_to_cstring(std::string_view from, char* const to, const std::si
 
    std::memcpy(to, from.data(), length);
    to[length] = '\0';
+}
+
+template<typename Char_type, typename Size_type>
+inline std::size_t cstring_length(const Char_type* const string,
+                                  const Size_type max_length)
+{
+   const auto string_end =
+      std::find(string, string + max_length, static_cast<Char_type>('\0'));
+
+   return static_cast<Size_type>(std::distance(string, string_end));
 }
