@@ -134,6 +134,8 @@ public:
 
    Magic_number magic_number() const noexcept;
 
+   std::size_t size() const noexcept;
+
    // Temporary function for use as a compatibility shim. This *will* be removed
    // as soon as all code has been migrated away from using raw structs.
    template<typename Type>

@@ -76,6 +76,11 @@ Magic_number Ucfb_reader::magic_number() const noexcept
    return _mn;
 }
 
+std::size_t Ucfb_reader::size() const noexcept
+{
+   return _size;
+}
+
 void Ucfb_reader::check_head()
 {
    if (_head > _size) {
