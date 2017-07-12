@@ -1,7 +1,5 @@
 #include "ucfb_reader.hpp"
 
-#include <gsl/gsl>
-
 #include <stdexcept>
 
 Ucfb_reader::Ucfb_reader(const Byte* bytes, const std::uint32_t size)
@@ -22,7 +20,7 @@ Ucfb_reader::Ucfb_reader(const Magic_number mn, const std::uint32_t size,
 {
 }
 
-Ucfb_reader Ucfb_reader::read_child(bool unaligned)
+Ucfb_reader Ucfb_reader::read_child(const bool unaligned)
 {
    const auto child_mn = read_trivial<Magic_number>();
    const auto child_size = read_trivial<std::uint32_t>();
@@ -30,13 +28,37 @@ Ucfb_reader Ucfb_reader::read_child(bool unaligned)
 
    _head += child_size;
 
-   if (_head > _size) {
-      throw std::runtime_error{"Attempt to read past end of chunk."};
-   }
+   check_head();
 
    if (!unaligned) align_head();
 
    return Ucfb_reader{child_mn, child_size, _data + child_data_offset};
+}
+
+Ucfb_reader Ucfb_reader::read_child_strict_impl(const Magic_number child_mn,
+                                                const bool unaligned)
+{
+   const auto old_head = _head;
+
+   const auto child = read_child(unaligned);
+
+   if (child.magic_number() != child_mn) {
+      _head = old_head;
+
+      throw std::runtime_error{"Chunk magic number mistmatch"
+                               " when performing strict read of child chunk."};
+   }
+
+   return child;
+}
+
+void Ucfb_reader::consume(const std::size_t amount, const bool unaligned)
+{
+   _head += amount;
+
+   check_head();
+
+   if (!unaligned) align_head();
 }
 
 Ucfb_reader::operator bool() const noexcept
@@ -52,4 +74,11 @@ void Ucfb_reader::reset_head() noexcept
 Magic_number Ucfb_reader::magic_number() const noexcept
 {
    return _mn;
+}
+
+void Ucfb_reader::check_head()
+{
+   if (_head > _size) {
+      throw std::runtime_error{"Attempt to read past end of chunk."};
+   }
 }
