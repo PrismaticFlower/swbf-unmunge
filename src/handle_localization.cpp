@@ -1,10 +1,7 @@
 
 #include "chunk_handlers.hpp"
-#include "chunk_headers.hpp"
 #include "file_saver.hpp"
-#include "magic_number.hpp"
 #include "string_helpers.hpp"
-#include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
@@ -12,12 +9,6 @@
 using namespace std::literals;
 
 namespace {
-
-struct Entry {
-   std::uint32_t hash;
-   std::uint16_t next_offset;
-   char16_t string[];
-};
 
 std::string cast_encoding(std::u16string_view from) noexcept
 {
@@ -141,54 +132,44 @@ std::string cast_encoding(std::u16string_view from) noexcept
    return rt;
 }
 
-void dump_localization(const chunks::Localization& locl, File_saver& file_saver)
+void dump_localization(Ucfb_reader_strict<"Locl"_mn> localization, File_saver& file_saver)
 {
-   std::string name{reinterpret_cast<const char*>(&locl.bytes[0]), locl.name_size - 1};
-   name += ".txt"_sv;
-
-   std::uint32_t head = locl.name_size;
-   const std::uint32_t end = locl.size - sizeof(chunks::Localization);
-
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-
-   align_head();
-
-   // Consume the Body header.
-   head += 8;
+   const auto name = localization.read_child_strict<"NAME"_mn>().read_string();
 
    std::string buffer;
    buffer.reserve(16384);
 
-   while (head < end) {
-      const Entry& entry = view_type_as<Entry>(locl.bytes[head]);
+   auto body = localization.read_child_strict<"BODY"_mn>();
 
-      std::u16string_view string{entry.string};
+   while (body) {
+      const auto hash = body.read_trivial<std::uint32_t>();
 
-      buffer += to_hexstring(entry.hash);
+      if (hash == 0) break;
+
+      const auto section_size = body.read_trivial_unaligned<std::uint16_t>();
+      const auto char_array = body.read_array<char16_t>((section_size - 6) / 2);
+
+      buffer += to_hexstring(hash);
       buffer += ' ';
-      buffer += cast_encoding(string);
+      buffer += cast_encoding({char_array.data()});
       buffer += '\n';
-
-      head += entry.next_offset;
    }
 
-   file_saver.save_file(std::move(buffer), std::move(name), "localization"s);
+   file_saver.save_file(std::move(buffer), std::string{name}, "localization"s);
 }
 }
 
 void handle_localization(Ucfb_reader localization, tbb::task_group& tasks,
                          File_saver& file_saver)
 {
-   const auto& locl = localization.view_as_chunk<chunks::Localization>();
+   tasks.run([localization, &file_saver]() {
+      auto localization_copy = localization;
+      const auto name = localization_copy.read_child_strict<"NAME"_mn>().read_string();
 
-   tasks.run([localization, &locl, &file_saver] {
-      std::string name{reinterpret_cast<const char*>(&locl.bytes[0]), locl.name_size - 1};
-      name += ".loc"_sv;
-
-      handle_unknown(localization, file_saver, std::move(name));
+      handle_unknown(localization, file_saver, std::string{name});
    });
 
-   tasks.run([&locl, &file_saver] { dump_localization(locl, file_saver); });
+   tasks.run([localization, &file_saver] {
+      dump_localization(Ucfb_reader_strict<"Locl"_mn>{localization}, file_saver);
+   });
 }
