@@ -83,7 +83,7 @@ public:
    template<typename Char_type = char>
    auto read_string(const bool unaligned = false) -> std::basic_string_view<Char_type>
    {
-      const Char_type* const string = reinterpret_cast<const char*>(_data + _head);
+      const Char_type* const string = reinterpret_cast<const Char_type*>(_data + _head);
       const auto string_length = cstring_length(string, _size - _head);
 
       _head += (string_length + 1) * sizeof(Char_type);
