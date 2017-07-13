@@ -1,11 +1,10 @@
 
 #include "chunk_headers.hpp"
+#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "type_pun.hpp"
 #include "ucfb_reader.hpp"
-
-#include <array>
 
 namespace {
 
@@ -24,14 +23,10 @@ static_assert(sizeof(Collision_info) == 40);
 std::vector<glm::vec3> read_positions(Ucfb_reader_strict<"POSI"_mn> vertices,
                                       const std::size_t vertex_count)
 {
-   static_assert(std::is_standard_layout_v<glm::vec3> &&
-                 std::is_standard_layout_v<std::array<float, 3>>);
-   static_assert(sizeof(glm::vec3) == sizeof(std::array<float, 3>));
-
    std::vector<glm::vec3> buffer;
    buffer.resize(vertex_count);
 
-   const auto vertex_array = vertices.read_array<std::array<float, 3>>(vertex_count);
+   const auto vertex_array = vertices.read_array<pod::Vec3>(vertex_count);
 
    std::memcpy(buffer.data(), vertex_array.data(), buffer.size() * sizeof(glm::vec3));
 
