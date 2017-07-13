@@ -172,7 +172,8 @@ class Ucfb_reader_strict : public Ucfb_reader {
 public:
    Ucfb_reader_strict() = delete;
 
-   explicit Ucfb_reader_strict(Ucfb_reader ucfb_reader) : Ucfb_reader{ucfb_reader}
+   explicit Ucfb_reader_strict(Ucfb_reader ucfb_reader) noexcept
+      : Ucfb_reader{ucfb_reader}
    {
       Expects(type_mn == ucfb_reader.magic_number());
    }
