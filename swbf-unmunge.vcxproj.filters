@@ -139,5 +139,8 @@
     <ClInclude Include="src\ucfb_reader.hpp">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\glm_pod_wrappers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

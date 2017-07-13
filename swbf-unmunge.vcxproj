@@ -47,6 +47,7 @@
     <ClInclude Include="src\chunk_headers.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
+    <ClInclude Include="src\glm_pod_wrappers.hpp" />
     <ClInclude Include="src\magic_number.hpp" />
     <ClInclude Include="src\mapped_file.hpp" />
     <ClInclude Include="src\chunk_handlers.hpp" />
