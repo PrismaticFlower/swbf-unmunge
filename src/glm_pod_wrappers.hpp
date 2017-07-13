@@ -51,7 +51,7 @@ struct Vec4_template {
 
    operator glm::tvec4<Type>() const noexcept
    {
-      return {x, y, z};
+      return {x, y, z, w};
    }
 };
 
