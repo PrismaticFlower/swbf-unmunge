@@ -49,7 +49,9 @@ enum class Collision_flags : std::uint32_t {
    building = 4,
    terrain = 8,
    ordnance = 16,
-   flyer = 32
+   flyer = 32,
+
+   all = 63
 };
 
 struct Material {
@@ -102,12 +104,12 @@ struct Collsion_mesh {
 struct Collision_primitive {
    std::string parent;
 
-   Primitive_type type;
-   Collision_flags flags;
+   Primitive_type type = Primitive_type::cube;
+   Collision_flags flags = Collision_flags::all;
 
-   glm::quat rotation;
-   glm::vec3 position;
-   glm::vec3 size;
+   glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
+   glm::vec3 position{0.0f, 0.0f, 0.0f};
+   glm::vec3 size{0.0f, 0.0f, 0.0f};
 };
 
 class Builder {
