@@ -9,6 +9,7 @@
 #include <gsl/gsl>
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -111,7 +112,7 @@ public:
    template<Magic_number type_mn>
    auto read_child_strict(const bool unaligned = false) -> Ucfb_reader_strict<type_mn>
    {
-      return {read_child_strict_impl(type_mn, unaligned),
+      return {read_child_strict(type_mn, unaligned),
               Ucfb_reader_strict<type_mn>::Unchecked_tag{}};
    }
 
@@ -119,6 +120,26 @@ public:
    auto read_child_strict_unaligned() -> Ucfb_reader_strict<type_mn>
    {
       return read_child_strict<type_mn>(true);
+   }
+
+   template<Magic_number type_mn>
+   auto read_child_strict_optional(const bool unaligned = false)
+      -> std::optional<Ucfb_reader_strict<type_mn>>
+   {
+      const auto child = read_child_strict_optional(type_mn, unaligned);
+
+      if (child) {
+         return {*child, Ucfb_reader_strict<type_mn>::Unchecked_tag{}};
+      }
+
+      return {};
+   }
+
+   template<Magic_number type_mn>
+   auto read_child_strict_optional_unaligned()
+      -> std::optional<Ucfb_reader_strict<type_mn>>
+   {
+      return read_child_strict_optional<type_mn>(true);
    }
 
    void consume(const std::size_t amount, const bool unaligned = false);
@@ -149,7 +170,10 @@ private:
    // Special constructor for use by read_child, performs no error checking.
    Ucfb_reader(const Magic_number mn, const std::uint32_t size, const Byte* const data);
 
-   Ucfb_reader read_child_strict_impl(const Magic_number child_mn, const bool unaligned);
+   Ucfb_reader read_child_strict(const Magic_number child_mn, const bool unaligned);
+
+   auto read_child_strict_optional(const Magic_number child_mn, const bool unaligned)
+      -> std::optional<Ucfb_reader>;
 
    void check_head();
 

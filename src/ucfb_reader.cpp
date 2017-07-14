@@ -35,8 +35,8 @@ Ucfb_reader Ucfb_reader::read_child(const bool unaligned)
    return Ucfb_reader{child_mn, child_size, _data + child_data_offset};
 }
 
-Ucfb_reader Ucfb_reader::read_child_strict_impl(const Magic_number child_mn,
-                                                const bool unaligned)
+Ucfb_reader Ucfb_reader::read_child_strict(const Magic_number child_mn,
+                                           const bool unaligned)
 {
    const auto old_head = _head;
 
@@ -47,6 +47,23 @@ Ucfb_reader Ucfb_reader::read_child_strict_impl(const Magic_number child_mn,
 
       throw std::runtime_error{"Chunk magic number mistmatch"
                                " when performing strict read of child chunk."};
+   }
+
+   return child;
+}
+
+auto Ucfb_reader::read_child_strict_optional(const Magic_number child_mn,
+                                             const bool unaligned)
+   -> std::optional<Ucfb_reader>
+{
+   const auto old_head = _head;
+
+   const auto child = read_child(unaligned);
+
+   if (child.magic_number() != child_mn) {
+      _head = old_head;
+
+      return {};
    }
 
    return child;
