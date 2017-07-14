@@ -69,7 +69,7 @@ struct Hub_info {
 };
 
 struct Connection_info {
-   std::string_view name;
+   std::string name;
    std::size_t start;
    std::size_t end;
    std::uint32_t filter_flags;
@@ -132,7 +132,7 @@ Connection_info read_next_arc(Ucfb_reader_strict<"ARCS"_mn>& arcs)
 
    Connection_info info;
 
-   info.name = {name.data(), cstring_length(name.data(), name.size())};
+   info.name = std::string{name.data(), cstring_length(name.data(), name.size())};
    info.start = start;
    info.end = end;
    info.filter_flags = filter_flags;
