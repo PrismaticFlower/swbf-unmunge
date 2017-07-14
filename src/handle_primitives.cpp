@@ -1,9 +1,7 @@
 
-#include "chunk_headers.hpp"
 #include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
-#include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
 #include "glm/gtc/quaternion.hpp"
@@ -26,7 +24,7 @@ struct Primitive_Data {
 static_assert(std::is_pod_v<Primitive_Data>);
 static_assert(sizeof(Primitive_Data) == 16);
 
-auto read_primitive(Ucfb_reader& primitives) -> msh::Collision_primitive
+auto read_next_primitive(Ucfb_reader& primitives) -> msh::Collision_primitive
 {
    msh::Collision_primitive msh_prim;
 
@@ -63,6 +61,6 @@ void handle_primitives(Ucfb_reader primitives, msh::Builders_map& builders)
    auto& builder = builders[name];
 
    for (auto i = 0; i < primitive_count; ++i) {
-      builder.add_collision_primitive(read_primitive(primitives));
+      builder.add_collision_primitive(read_next_primitive(primitives));
    }
 }
