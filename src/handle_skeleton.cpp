@@ -1,87 +1,52 @@
 
-#include "chunk_headers.hpp"
+#define GLM_FORCE_CXX98
+
+#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
-#include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
-#define GLM_FORCE_CXX98
-#include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 namespace {
 
-#pragma pack(push, 1)
-
 struct Xframe {
-   glm::mat3 matrix;
-
-   static_assert(std::is_standard_layout_v<glm::mat3>);
-   static_assert(sizeof(glm::mat3) == 36);
-
-   glm::vec3 position;
-
-   static_assert(std::is_standard_layout_v<glm::vec3>);
-   static_assert(sizeof(glm::vec3) == 12);
+   pod::Mat3 matrix;
+   pod::Vec3 position;
 };
 
-static_assert(std::is_standard_layout_v<Xframe>);
+static_assert(std::is_pod_v<Xframe>);
 static_assert(sizeof(Xframe) == 48);
-
-#pragma pack(pop)
-
-struct Str_array {
-   Magic_number mn;
-   std::uint32_t size;
-   char strs[];
-};
-
-static_assert(std::is_standard_layout_v<Str_array>);
-static_assert(sizeof(Str_array) == 8);
-
-struct Xframe_array {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Xframe xframes[];
-};
-
-static_assert(std::is_standard_layout_v<Xframe_array>);
-static_assert(sizeof(Xframe_array) == 8);
 
 auto read_xframe(const Xframe& xframe) -> std::pair<glm::vec3, glm::quat>
 {
-   return {xframe.position, glm::quat_cast(xframe.matrix)};
+   return {xframe.position, glm::quat_cast(glm::mat3{xframe.matrix})};
 }
 
-auto read_str_array(const Str_array& names, std::size_t count)
+template<Magic_number magic_number>
+auto read_bone_names(Ucfb_reader_strict<magic_number> names, std::size_t count)
    -> std::vector<std::string_view>
 {
    std::vector<std::string_view> strings;
    strings.reserve(count);
 
-   for (std::size_t i{0}, head{0}; i < count; ++i) {
-      if (head > names.size) throw std::runtime_error{"bad string array in skeleton"};
-
-      strings.emplace_back(&names.strs[head]);
-
-      head += strings.back().length() + 1;
+   for (std::size_t i{0}; i < count; ++i) {
+      strings.emplace_back(names.read_string_unaligned());
    }
 
    return strings;
 }
 
-auto read_xframe_array(const Xframe_array& xfrms, std::size_t count)
+auto read_bone_xframes(Ucfb_reader_strict<"XFRM"_mn> xframes, std::size_t count)
    -> std::vector<std::pair<glm::vec3, glm::quat>>
 {
    std::vector<std::pair<glm::vec3, glm::quat>> positions;
    positions.reserve(count);
 
-   for (std::size_t i{0}, head{0}; i < count; ++i) {
-      if (head > xfrms.size) throw std::runtime_error{"bad xframe array in skeleton"};
+   const auto xframe_array = xframes.read_array<Xframe>(count);
 
-      positions.emplace_back(read_xframe(xfrms.xframes[i]));
-
-      head += sizeof(Xframe);
+   for (const auto& xframe : xframe_array) {
+      positions.emplace_back(read_xframe(xframe));
    }
 
    return positions;
@@ -107,43 +72,19 @@ void add_bones(const std::vector<std::string_view>& names,
 
 void handle_skeleton(Ucfb_reader skeleton, msh::Builders_map& builders)
 {
-   const auto& skel = skeleton.view_as_chunk<chunks::Skeleton>();
+   auto info = skeleton.read_child_strict<"INFO"_mn>();
 
-   const std::string name{reinterpret_cast<const char*>(&skel.bytes[0]),
-                          skel.info_size - 5};
+   const std::string name{info.read_string_unaligned()};
+   const auto bone_count = info.read_trivial_unaligned<std::uint16_t>();
 
-   std::uint32_t head = skel.info_size;
-   const std::uint32_t end = skel.size - 8;
+   std::vector<std::string_view> names =
+      read_bone_names(skeleton.read_child_strict<"NAME"_mn>(), bone_count);
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-   align_head();
+   std::vector<std::string_view> parents =
+      read_bone_names(skeleton.read_child_strict<"PRNT"_mn>(), bone_count);
 
-   const std::uint16_t bone_count =
-      view_type_as<std::uint16_t>(skel.bytes[name.length() + 1]);
-
-   std::vector<std::string_view> names;
-   std::vector<std::string_view> parents;
-   std::vector<std::pair<glm::vec3, glm::quat>> positions;
-
-   while (head < end) {
-      const auto& chunk = view_type_as<chunks::Unknown>(skel.bytes[head]);
-
-      if (chunk.mn == "NAME"_mn) {
-         names = read_str_array(view_type_as<Str_array>(skel.bytes[head]), bone_count);
-      }
-      else if (chunk.mn == "PRNT"_mn) {
-         parents = read_str_array(view_type_as<Str_array>(skel.bytes[head]), bone_count);
-      }
-      else if (chunk.mn == "XFRM"_mn) {
-         positions =
-            read_xframe_array(view_type_as<Xframe_array>(skel.bytes[head]), bone_count);
-      }
-
-      head += chunk.size + 8;
-      align_head();
-   }
+   std::vector<std::pair<glm::vec3, glm::quat>> positions =
+      read_bone_xframes(skeleton.read_child_strict<"XFRM"_mn>(), bone_count);
 
    add_bones(names, parents, positions, builders[name]);
 }
