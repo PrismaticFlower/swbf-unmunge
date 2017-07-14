@@ -313,9 +313,6 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
 
    auto& builder = builders[name];
 
-   model.read_child_strict<"NODE"_mn>();
-   model.read_child_strict<"INFO"_mn>();
-
    while (model) {
       const auto child = model.read_child();
 
