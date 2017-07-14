@@ -32,7 +32,10 @@ auto read_next_primitive(Ucfb_reader& primitives) -> msh::Collision_primitive
 
    auto mask = primitives.read_child_strict_optional<"MASK"_mn>();
 
-   if (mask) msh_prim.flags = mask->read_trivial<msh::Collision_flags>();
+   if (mask) {
+      msh_prim.flags =
+         static_cast<msh::Collision_flags>(mask->read_trivial<std::uint8_t>());
+   }
 
    msh_prim.parent = primitives.read_child_strict<"PRNT"_mn>().read_string();
 
