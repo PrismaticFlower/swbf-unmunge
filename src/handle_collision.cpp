@@ -60,6 +60,8 @@ void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
 {
    const std::string name{collision.read_child_strict<"NAME"_mn>().read_string()};
 
+   collision.read_child_strict_optional<"MASK"_mn>();
+
    const auto parent = collision.read_child_strict<"NODE"_mn>().read_string();
 
    const auto info =
