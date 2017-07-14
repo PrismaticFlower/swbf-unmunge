@@ -129,7 +129,7 @@ public:
       const auto child = read_child_strict_optional(type_mn, unaligned);
 
       if (child) {
-         return {*child, Ucfb_reader_strict<type_mn>::Unchecked_tag{}};
+         return {{*child, Ucfb_reader_strict<type_mn>::Unchecked_tag{}}};
       }
 
       return {};
