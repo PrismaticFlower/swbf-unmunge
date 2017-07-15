@@ -1,12 +1,16 @@
 
-#include "chunk_headers.hpp"
+#include "byte.hpp"
 #include "file_saver.hpp"
+#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
+#include "math_helpers.hpp"
 #include "string_helpers.hpp"
-#include "type_pun.hpp"
+#include "terrain_builder.hpp"
 #include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
+
+#include <gsl/gsl>
 
 #include <array>
 #include <cmath>
@@ -19,658 +23,346 @@ using namespace std::literals;
 
 namespace {
 
-#pragma pack(push, 1)
-
-struct Terrain_vertex {
-   float x;
-   float y;
-   float z;
-   Byte unknown[12];
-
-   std::uint32_t colour;
+enum class Vbuf_type : std::uint32_t {
+   geometry = 290,
+   texture = 20770,
+   texture_extra = 130
 };
-
-static_assert(std::is_standard_layout_v<Terrain_vertex>);
-static_assert(sizeof(Terrain_vertex) == 28);
-
-struct Terrain_texture_vertex {
-   Byte unknown_0[11];
-   std::uint8_t tex_val_1;
-   Byte unknown_1[3];
-   std::uint8_t tex_val_0;
-};
-
-static_assert(std::is_standard_layout_v<Terrain_texture_vertex>);
-static_assert(sizeof(Terrain_texture_vertex) == 16);
-
-struct Texture_names {
-   Magic_number mn;
-   std::uint32_t size;
-
-   char names[];
-};
-
-static_assert(std::is_standard_layout_v<Texture_names>);
-static_assert(sizeof(Texture_names) == 8);
-
-struct Dtl_tex_name {
-   Magic_number mn;
-   std::uint32_t size;
-
-   char str[];
-};
-
-static_assert(std::is_standard_layout_v<Dtl_tex_name>);
-static_assert(sizeof(Dtl_tex_name) == 8);
-
-template<typename Type>
-struct Texture_metrics {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Type values[16];
-};
-
-static_assert(std::is_standard_layout_v<Texture_metrics<float>>);
-static_assert(sizeof(Texture_metrics<float>) == 72);
-static_assert(std::is_standard_layout_v<Texture_metrics<std::uint8_t>>);
-static_assert(sizeof(Texture_metrics<std::uint8_t>) == 24);
-
-struct Vbuf {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t element_count;
-   std::uint32_t element_size;
-   std::uint32_t flags; // flags???
-
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Vbuf>);
-static_assert(sizeof(Vbuf) == 20);
-
-struct Water_info {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Byte unknown_1[8];
-   float water_height;
-   Byte unknown_2[12];
-};
-
-static_assert(std::is_standard_layout_v<Water_info>);
-static_assert(sizeof(Water_info) == 32);
-
-struct Water_layer {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Water_layer>);
-static_assert(sizeof(Water_layer) == 8);
-
-struct Water_layer_info {
-   Byte unknown_1[8];
-   float u_vel;
-   float v_vel; // Flipped in Zero Editor
-   float u_rept;
-   float v_rept;
-   std::uint32_t colour;
-};
-
-static_assert(std::is_standard_layout_v<Water_layer_info>);
-static_assert(sizeof(Water_layer_info) == 28);
 
 struct Terrain_info {
-   Magic_number mn;
-   std::uint32_t size;
-
-   float grid_size;
+   float grid_unit_size;
    float height_scale;
    float height_floor;
    float height_ceiling;
-
-   std::uint16_t grid_length;
-   std::uint16_t unknown_count_1;
-
-   std::uint16_t unknown_count_2;
+   std::uint16_t grid_size;
+   std::uint16_t height_patches;
+   std::uint16_t texture_patches;
    std::uint16_t texture_count;
-
-   std::uint16_t unknown[2];
+   std::uint16_t max_texture_layers;
+   std::uint16_t unknown;
 };
 
-static_assert(std::is_standard_layout_v<Terrain_info>);
-static_assert(sizeof(Terrain_info) == 36);
+static_assert(std::is_pod_v<Terrain_info>);
+static_assert(sizeof(Terrain_info) == 28);
 
-struct Terrain_foliage {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t map_size;
-
-   std::uint8_t data[];
+struct Vbuf_info {
+   std::uint32_t element_count;
+   std::uint32_t element_size;
+   Vbuf_type element_type;
 };
 
-static_assert(std::is_standard_layout_v<Terrain_foliage>);
-static_assert(sizeof(Terrain_foliage) == 12);
+static_assert(std::is_pod_v<Vbuf_info>);
+static_assert(sizeof(Vbuf_info) == 12);
 
-struct Terrain_water {
-   Magic_number mn;
-   std::uint32_t size;
+struct Terrain_vbuf_entry {
+   pod::Vec3 position;
+   pod::Vec3 normal;
 
-   Byte bytes[];
+   std::uint32_t colour;
 };
 
-static_assert(std::is_standard_layout_v<Terrain_water>);
-static_assert(sizeof(Terrain_water) == 8);
+static_assert(std::is_pod_v<Terrain_vbuf_entry>);
+static_assert(sizeof(Terrain_vbuf_entry) == 28);
 
-struct Terrain_patches {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t common_mn;
-   std::uint32_t common_size;
+struct Texture_vbuf_entry {
+   std::uint16_t x;
+   std::uint16_t y;
+   std::uint16_t z;
+   std::uint16_t unknown_0;
 
-   Byte bytes[];
+   std::uint8_t unknown_1;
+   std::uint8_t texture_value_0;
+   std::uint8_t unknown_2;
+   std::uint8_t texture_value_1;
+
+   std::uint32_t colour;
 };
 
-static_assert(std::is_standard_layout_v<Terrain_patches>);
-static_assert(sizeof(Terrain_patches) == 16);
+static_assert(std::is_pod_v<Texture_vbuf_entry>);
+static_assert(sizeof(Texture_vbuf_entry) == 16);
 
-struct Terrain_patch {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t info_mn;
-   std::uint32_t info_size;
+struct Texture_vbuf_extra_entry {
+   std::uint32_t x;
+   std::uint32_t y;
+   std::uint32_t z;
 
-   Byte bytes[];
+   Byte unknown_0[3];
+   std::uint8_t texture_value;
 };
 
-static_assert(std::is_standard_layout_v<Terrain_patch>);
-static_assert(sizeof(Terrain_patch) == 16);
+static_assert(std::is_pod_v<Texture_vbuf_extra_entry>);
+static_assert(sizeof(Texture_vbuf_extra_entry) == 16);
 
-struct Ter_file_header {
-   Magic_number mn = "TERR"_mn;
-   std::uint32_t unknown_0 = 22;
-   std::int16_t extents[4];
-   std::uint32_t unknown_1 = 164;
+const static std::array<std::array<int, 2>, 81> patch_index_table{
+   {{0, 8}, {1, 8}, {2, 8}, {3, 8}, {4, 8}, {5, 8}, {6, 8}, {7, 8}, {8, 8},
+    {0, 7}, {1, 7}, {2, 7}, {3, 7}, {4, 7}, {5, 7}, {6, 7}, {7, 7}, {8, 7},
+    {0, 6}, {1, 6}, {2, 6}, {3, 6}, {4, 6}, {5, 6}, {6, 6}, {7, 6}, {8, 6},
+    {0, 5}, {1, 5}, {2, 5}, {3, 5}, {4, 5}, {5, 5}, {6, 5}, {7, 5}, {8, 5},
+    {0, 4}, {1, 4}, {2, 4}, {3, 4}, {4, 4}, {5, 4}, {6, 4}, {7, 4}, {8, 4},
+    {0, 3}, {1, 3}, {2, 3}, {3, 3}, {4, 3}, {5, 3}, {6, 3}, {7, 3}, {8, 3},
+    {0, 2}, {1, 2}, {2, 2}, {3, 2}, {4, 2}, {5, 2}, {6, 2}, {7, 2}, {8, 2},
+    {0, 1}, {1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1}, {6, 1}, {7, 1}, {8, 1},
+    {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0}, {7, 0}, {8, 0}}};
 
-   float tile_range[16];
-   std::uint8_t tile_mapping[16];
-   float tile_rotation[16];
-
-   float height_scale;
-   float grid_size;
-
-   std::uint32_t unknown_2 = 1;
-   std::uint32_t map_size;
-   std::uint32_t unknown_3 = 2;
-
-   struct Texture_name {
-      char name[32] = {'\0'};
-      char detail_name[32] = {'\0'};
-   };
-
-   static_assert(sizeof(Texture_name) == 64);
-
-   Texture_name texture_names[16]{};
-   Byte unknown_4[68]{};
-
-   struct Water {
-      std::uint8_t unknown_0 = 0;
-      float height[2];
-      Byte unknown[8];
-      float u_vel;
-      float v_vel;
-      float u_repeat;
-      float v_repeat;
-      std::uint32_t colour;
-      char texture_name[31];
-   };
-
-   static_assert(sizeof(Water) == 68);
-
-   Water water[15]{};
-
-   Byte unknown_5[525]{};
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Ter_file_header>);
-static_assert(sizeof(Ter_file_header) == 2821);
-
-#pragma pack(pop)
-
-std::vector<std::uint8_t> explode_foliage(const Terrain_foliage& folg)
+auto create_patches_index_table(std::uint16_t grid_size)
+   -> std::vector<std::array<int, 2>>
 {
-   std::vector<std::uint8_t> exploded_folg;
-   exploded_folg.resize(folg.map_size * 2);
+   constexpr auto patch_factor = 64;
 
-   for (std::size_t i = 0; i < exploded_folg.size(); i += 2) {
-      exploded_folg[i] = (folg.data[i / 2] >> 4) & 0x0F;
-      exploded_folg[i + 1] = folg.data[i / 2] & 0x0F;
+   std::vector<std::array<int, 2>> index_table;
+   index_table.resize(grid_size * grid_size / patch_factor);
+
+   const auto index_length = static_cast<int>(std::sqrt(index_table.size()));
+
+   for (auto x = 0; x < index_length; ++x) {
+      for (auto y = 0; y < index_length; ++y) {
+         index_table[x + index_length * y] = {x * 8, ((index_length - y) - 1) * 8};
+      }
    }
 
-   return exploded_folg;
+   return index_table;
 }
 
-class Terrain_builder {
-public:
-   Terrain_builder(std::string name, const Terrain_info& info) : Terrain_builder()
-   {
-      _name = std::move(name);
-      _name += ".ter"_sv;
-
-      _grid_size = info.grid_size;
-      _height_scale = info.height_scale;
-      _grid_length = info.grid_length;
-      _texture_count = info.texture_count;
-
-      _heightmap.resize(_grid_length * _grid_length);
-      _colourmap.resize(_grid_length * _grid_length);
-      _foliage_map.resize(_grid_length * _grid_length / 2);
-
-      _patch_offsets.resize(_grid_length * _grid_length / 64);
-
-      const std::size_t offsets_length =
-         static_cast<std::size_t>(std::sqrt(_patch_offsets.size()));
-
-      for (std::int32_t y = 0; y < offsets_length; ++y) {
-         for (std::int32_t x = 0; x < offsets_length; ++x) {
-            _patch_offsets[y * offsets_length + x] = {(x * _grid_size * 8.0f),
-                                                      (y * _grid_size * 8.0f)};
-         }
-      }
-   }
-
-   void set_texture_scales(const Texture_metrics<float>& scales) noexcept
-   {
-      for (std::size_t i = 0; i < _texture_scales.size(); ++i) {
-         _texture_scales[i] = 1.0f / scales.values[i];
-      }
-   }
-
-   void set_texture_rotations(const Texture_metrics<float>& rotations) noexcept
-   {
-      for (std::size_t i = 0; i < _texture_rotations.size(); ++i) {
-         _texture_rotations[i] = rotations.values[i];
-      }
-   }
-
-   void set_texture_axises(const Texture_metrics<std::uint8_t>& axises) noexcept
-   {
-      for (std::size_t i = 0; i < _texture_axises.size(); ++i) {
-         _texture_axises[i] = axises.values[i];
-      }
-   }
-
-   void set_textures(const Texture_names& names) noexcept
-   {
-      std::uint32_t head = 0;
-      const std::uint32_t end = names.size - 8;
-
-      std::size_t index = 0;
-
-      while (head < end) {
-         _textures[index] = &names.names[head];
-         head += static_cast<std::uint32_t>(_textures[index].length()) + 1;
-
-         if (!_textures[index].empty()) _textures[index] += ".tga"_sv;
-
-         ++index;
-      }
-   }
-
-   void set_detail_texture(const Dtl_tex_name& name) noexcept
-   {
-      _detail_texture = name.str;
-      if (!_detail_texture.empty()) _detail_texture += ".tga"_sv;
-   }
-
-   void set_foliage(const Terrain_foliage& folg)
-   {
-      const auto exploded_folg = explode_foliage(folg);
-      const std::size_t folg_length =
-         static_cast<std::size_t>(std::sqrt(exploded_folg.size()));
-
-      const auto lookup_folg_info =
-         [&exploded_folg, folg_length](std::size_t x, std::size_t y) -> std::uint8_t {
-         constexpr std::size_t factor = 4;
-
-         x /= factor;
-         y /= factor;
-
-         return exploded_folg[y * folg_length + x];
-      };
-
-      std::vector<std::uint8_t> foliage;
-      foliage.resize(_grid_length * _grid_length);
-
-      for (std::size_t y = 0; y < _grid_length; ++y) {
-         for (std::size_t x = 0; x < _grid_length; ++x) {
-            foliage[y * _grid_length + x] = lookup_folg_info(x, y);
-         }
-      }
-
-      implode_foliage(foliage);
-   }
-
-   void set_water(const Terrain_water& watr)
-   {
-      std::uint32_t head = 0;
-      const std::uint32_t end = watr.size;
-
-      while (head < end) {
-         const auto& chunk = view_type_as<chunks::Unknown>(watr.bytes[head]);
-
-         if (chunk.mn == "INFO"_mn) {
-            handle_water_info(view_type_as<Water_info>(watr.bytes[head]));
-         }
-         else if (chunk.mn == "LAYR"_mn) {
-            handle_water_layer(view_type_as<Water_layer>(watr.bytes[head]));
-         }
-
-         head += chunk.size + 8;
-         if (head % 4 != 0) head += (4 - (head % 4));
-      }
-   }
-
-   void add_patch(const Terrain_patch& patch, std::size_t index) noexcept
-   {
-      std::uint32_t head = patch.info_size;
-      const std::uint32_t end = patch.size - 8;
-
-      if (head % 4 != 0) head += (4 - (head % 4));
-
-      while (head < end) {
-         const auto& chunk = view_type_as<chunks::Unknown>(patch.bytes[head]);
-
-         if (chunk.mn == "VBUF"_mn) {
-            const auto& vbuf = view_type_as<Vbuf>(chunk);
-
-            if (vbuf.element_size == 28) handle_vbuf(vbuf, _patch_offsets[index]);
-         }
-
-         head += chunk.size + 8;
-         if (head % 4 != 0) head += (4 - (head % 4));
-      }
-   }
-
-   void save(File_saver& file_saver) noexcept
-   {
-      const std::size_t file_size = sizeof(Ter_file_header) +
-                                    (_heightmap.size() * sizeof(std::uint16_t)) +
-                                    ((_colourmap.size() * sizeof(std::uint32_t)) * 2) +
-                                    ((_grid_length * _grid_length) / 2) + // water
-                                    (_foliage_map.size() * sizeof(std::uint8_t));
-
-      std::string buffer;
-      buffer.reserve(file_size);
-
-      buffer.resize(sizeof(Ter_file_header));
-      Ter_file_header* header = new (buffer.data()) Ter_file_header{};
-      fill_header(*header);
-
-      std::vector<std::int16_t> heightmap;
-      std::vector<std::uint32_t> colourmap;
-
-      {
-         tbb::task_group tasks;
-
-         tasks.run([this, &heightmap] { heightmap = flip_heightmap(); });
-         tasks.run([this, &colourmap] { colourmap = flip_colourmap(); });
-
-         tasks.wait();
-      }
-
-      buffer.append(reinterpret_cast<const char*>(heightmap.data()),
-                    heightmap.size() * sizeof(std::int16_t));
-      buffer.append(reinterpret_cast<const char*>(colourmap.data()),
-                    colourmap.size() * sizeof(std::uint32_t));
-      buffer.append(reinterpret_cast<const char*>(colourmap.data()),
-                    colourmap.size() * sizeof(std::uint32_t));
-
-      file_saver.save_file(std::move(buffer), _name, "world");
-   }
-
-private:
-   Terrain_builder()
-   {
-      _texture_scales.fill(0.03125f);
-      _texture_rotations.fill(0.0f);
-      _texture_axises.fill(0);
-   }
-
-   void handle_vbuf(const Vbuf& vbuf, const std::pair<float, float> offset)
-   {
-      const auto* const vertices =
-         reinterpret_cast<const Terrain_vertex*>(&vbuf.bytes[0]);
-
-      for (std::size_t i = 0; i < vbuf.element_count; ++i) {
-         handle_vertex(vertices[i], offset);
-      }
-   };
-
-   void handle_vertex(const Terrain_vertex& vert, const std::pair<float, float> offset)
-   {
-      const auto x = static_cast<std::size_t>((vert.x + offset.first) / _grid_size);
-      const auto z = static_cast<std::size_t>((vert.z + offset.second) / _grid_size);
-
-      if (x == _grid_length || z == _grid_length) return;
-
-      _heightmap[z * _grid_length + x] =
-         static_cast<std::int16_t>(vert.y / _height_scale);
-      _colourmap[z * _grid_length + x] = vert.colour | 0xFF000000;
-   }
-
-   void handle_water_info(const Water_info& info)
-   {
-      _water_height = info.water_height;
-   }
-
-   void handle_water_layer(const Water_layer& layer)
-   {
-      std::uint32_t head = 0;
-
-      _water_texture = reinterpret_cast<const char*>(&layer.bytes[head]);
-      head += static_cast<std::uint32_t>(_water_texture.length()) + 1;
-
-      if (!_water_texture.empty()) _water_texture += ".tga"_sv;
-
-      const auto& layer_info = view_type_as<Water_layer_info>(layer.bytes[head]);
-
-      _water_u_vel = layer_info.u_vel;
-      _water_v_vel = layer_info.v_vel * -1.0f;
-      _water_u_rept = layer_info.u_rept;
-      _water_v_rept = layer_info.v_rept;
-      _water_colour = layer_info.colour;
-   }
-
-   void implode_foliage(const std::vector<std::uint8_t>& foliage)
-   {
-      _foliage_map.resize(foliage.size() / 2);
-
-      for (std::size_t i = 0; i < foliage.size(); i += 2) {
-         _foliage_map[i / 2] = (foliage[i] << 4) | foliage[i + 1];
-      }
-   }
-
-   void fill_header(Ter_file_header& header) const
-   {
-      header.extents[0] = _grid_length / -2;
-      header.extents[1] = _grid_length / -2;
-      header.extents[2] = _grid_length / 2;
-      header.extents[3] = _grid_length / 2;
-
-      std::memcpy(header.tile_range, _texture_scales.data(), sizeof(_texture_scales));
-      std::memcpy(header.tile_mapping, _texture_axises.data(), sizeof(_texture_axises));
-      std::memcpy(header.tile_rotation, _texture_rotations.data(),
-                  sizeof(_texture_rotations));
-
-      header.height_scale = _height_scale;
-      header.grid_size = _grid_size;
-
-      header.map_size = _grid_length;
-
-      header.texture_names[0].name[0] = '\x0F';
-
-      for (std::size_t i = 0; i < _textures.size(); ++i) {
-         copy_to_cstring(_textures[i], &header.texture_names[i].name[1],
-                         sizeof(Ter_file_header::Texture_name::name) - 1);
-         copy_to_cstring(_detail_texture, &header.texture_names[i].detail_name[1],
-                         sizeof(Ter_file_header::Texture_name::detail_name) - 1);
-      }
-
-      header.water[0].height[0] = _water_height;
-      header.water[0].height[1] = _water_height;
-      header.water[0].u_vel = _water_u_vel;
-      header.water[0].v_vel = _water_v_vel;
-      header.water[0].u_repeat = _water_u_rept;
-      header.water[0].v_repeat = _water_v_rept;
-      header.water[0].colour = _water_colour;
-
-      copy_to_cstring(_water_texture, &header.water[0].texture_name[0],
-                      sizeof(Ter_file_header::Water::texture_name) - 1);
-   }
-
-   std::vector<std::int16_t> flip_heightmap() const
-   {
-      std::vector<std::int16_t> flipped;
-      flipped.resize(_heightmap.size());
-
-      for (std::int32_t y = 0; y < _grid_length; ++y) {
-         for (std::int32_t x = 0; x < _grid_length; ++x) {
-            flipped[y * _grid_length + x] =
-               _heightmap[((_grid_length - 1) - y) * _grid_length + x];
-         }
-      }
-
-      return flipped;
-   }
-
-   std::vector<std::uint32_t> flip_colourmap() const
-   {
-      std::vector<std::uint32_t> flipped;
-      flipped.resize(_colourmap.size());
-
-      for (std::int32_t y = 0; y < _grid_length; ++y) {
-         for (std::int32_t x = 0; x < _grid_length; ++x) {
-            flipped[y * _grid_length + x] =
-               _colourmap[((_grid_length - 1) - y) * _grid_length + x];
-         }
-      }
-
-      return flipped;
-   }
-
-   std::string _name;
-
-   float _grid_size;
-   float _height_scale;
-   float _height_upscale;
-
-   std::uint16_t _grid_length;
-
-   std::uint16_t _texture_count;
-
-   std::array<std::string, 16> _textures;
-   std::string _detail_texture;
-   std::array<float, 16> _texture_scales;
-   std::array<float, 16> _texture_rotations;
-   std::array<std::uint8_t, 16> _texture_axises;
-
-   std::vector<std::pair<float, float>> _patch_offsets;
-
-   std::vector<std::int16_t> _heightmap;
-   std::vector<std::uint32_t> _colourmap;
-   std::vector<std::uint8_t> _foliage_map;
-
-   float _water_height = 0.0f;
-   std::string _water_texture;
-   float _water_u_vel;
-   float _water_v_vel;
-   float _water_u_rept;
-   float _water_v_rept;
-   std::uint32_t _water_colour;
-};
-
-void handle_patches(const Terrain_patches& patches, Terrain_builder& builder)
+std::uint32_t pack_rgba_colour(std::array<std::uint8_t, 4> colour)
 {
-   std::uint32_t head = patches.common_size;
-   const std::uint32_t end = patches.size - 8;
+   std::uint32_t result = 0;
 
-   if (head % 4 != 0) head += (4 - (head % 4));
+   result |= (colour[0] << 0);
+   result |= (colour[1] << 8);
+   result |= (colour[2] << 16);
+   result |= (colour[3] << 24);
+
+   return result;
+}
+
+auto read_texture_names(Ucfb_reader_strict<"LTEX"_mn> textures, std::size_t texture_count)
+   -> std::array<std::string, Terrain_builder::max_textures>
+{
+   Expects(texture_count <= Terrain_builder::max_textures);
+
+   std::array<std::string, Terrain_builder::max_textures> texture_names;
+
+   for (std::size_t i = 0; i < texture_count; ++i) {
+      texture_names[i] = textures.read_string_unaligned();
+   }
+
+   return texture_names;
+}
+
+template<typename Type, Magic_number magic_number>
+auto read_texture_options(Ucfb_reader_strict<magic_number> options)
+   -> std::array<Type, Terrain_builder::max_textures>
+{
+   return options.read_trivial<std::array<Type, Terrain_builder::max_textures>>();
+}
+
+void read_vbuf_elements(const std::array<Terrain_vbuf_entry, 81>& elements,
+                        std::array<int, 2> patch_offset, Terrain_builder& builder)
+{
+   static_assert(sizeof(std::array<Terrain_vbuf_entry, 81>) ==
+                 sizeof(Terrain_vbuf_entry) * 81);
+
+   for (std::size_t i = 0; i < elements.size(); ++i) {
+      const auto element_offset = patch_index_table[i];
+
+      const std::array<std::uint16_t, 2> offset = {
+         static_cast<std::uint16_t>(patch_offset[0] + element_offset[0]),
+         static_cast<std::uint16_t>(patch_offset[1] + element_offset[1])};
+
+      builder.set_point_height(offset, elements[i].position.y);
+      builder.set_point_colour(offset, elements[i].colour | 0xFF000000);
+   }
+}
+
+void read_vbuf_elements(const std::array<Texture_vbuf_entry, 81>& elements,
+                        std::array<int, 2> patch_offset, std::uint_fast8_t& texture_index,
+                        Terrain_builder& builder)
+{
+   static_assert(sizeof(std::array<Texture_vbuf_entry, 81>) ==
+                 sizeof(Texture_vbuf_entry) * 81);
+
+   for (std::size_t i = 0; i < elements.size(); ++i) {
+      const auto element_offset = patch_index_table[i];
+
+      const std::array<std::uint16_t, 2> offset = {
+         static_cast<std::uint16_t>(patch_offset[0] + element_offset[0]),
+         static_cast<std::uint16_t>(patch_offset[1] + element_offset[1])};
+
+      builder.set_point_texture(offset, texture_index, elements[i].texture_value_0);
+      builder.set_point_texture(offset, texture_index + 1, elements[i].texture_value_1);
+   }
+
+   texture_index += 2;
+}
+
+void read_vbuf_elements(const std::array<Texture_vbuf_extra_entry, 81>& elements,
+                        std::array<int, 2> patch_offset, std::uint_fast8_t& texture_index,
+                        Terrain_builder& builder)
+{
+   static_assert(sizeof(std::array<Texture_vbuf_extra_entry, 81>) ==
+                 sizeof(Texture_vbuf_extra_entry) * 81);
+
+   for (std::size_t i = 0; i < elements.size(); ++i) {
+      const auto element_offset = patch_index_table[i];
+
+      const std::array<std::uint16_t, 2> offset = {
+         static_cast<std::uint16_t>(patch_offset[0] + element_offset[0]),
+         static_cast<std::uint16_t>(patch_offset[1] + element_offset[1])};
+
+      builder.set_point_texture(offset, texture_index, elements[i].texture_value);
+   }
+
+   ++texture_index;
+}
+
+void read_vbuf(Ucfb_reader_strict<"VBUF"_mn> vbuf, std::array<int, 2> patch_offset,
+               std::uint_fast8_t& texture_index, Terrain_builder& builder)
+{
+   const auto info = vbuf.read_trivial<Vbuf_info>();
+
+   if (info.element_count != 81) {
+      // throw std::runtime_error{"Badly sized VBUF encountered in terrain."};
+      return;
+   }
+
+   if (info.element_size != 28 && info.element_size != 16) {
+      throw std::runtime_error{"Badly sized VBUF element encountered in terrain."};
+   }
+
+   if (info.element_type == Vbuf_type::texture_extra) {
+      read_vbuf_elements(vbuf.read_trivial<std::array<Texture_vbuf_extra_entry, 81>>(),
+                         patch_offset, texture_index, builder);
+   }
+   else if (info.element_type == Vbuf_type::texture) {
+      read_vbuf_elements(vbuf.read_trivial<std::array<Texture_vbuf_entry, 81>>(),
+                         patch_offset, texture_index, builder);
+   }
+   else if (info.element_type == Vbuf_type::geometry) {
+      read_vbuf_elements(vbuf.read_trivial<std::array<Terrain_vbuf_entry, 81>>(),
+                         patch_offset, builder);
+   }
+   else {
+      throw std::runtime_error{"Unknown VBUF type encountered in terrain."};
+   }
+}
+
+void read_patch(Ucfb_reader_strict<"PTCH"_mn> patch, std::array<int, 2> patch_offset,
+                Terrain_builder& builder)
+{
+   patch.read_child_strict<"INFO"_mn>();
+
+   std::uint_fast8_t texture_index = 0;
+
+   while (patch) {
+      const auto child = patch.read_child();
+
+      if (child.magic_number() == "VBUF"_mn) {
+         read_vbuf(Ucfb_reader_strict<"VBUF"_mn>{child}, patch_offset, texture_index,
+                   builder);
+      }
+   }
+}
+
+void read_patches(Ucfb_reader_strict<"PCHS"_mn> patches, Terrain_info terrain_info,
+                  Terrain_builder& builder)
+{
+   const auto index_table = create_patches_index_table(terrain_info.grid_size);
+
+   patches.read_child_strict<"COMN"_mn>();
 
    std::size_t patch_index = 0;
 
-   while (head < end) {
-      const auto& chunk = view_type_as<chunks::Unknown>(patches.bytes[head]);
+   while (patches) {
+      read_patch(patches.read_child_strict<"PTCH"_mn>(), index_table[patch_index],
+                 builder);
 
-      if (chunk.mn == "PTCH"_mn) {
-         builder.add_patch(view_type_as<Terrain_patch>(patches.bytes[head]), patch_index);
-
-         ++patch_index;
-      }
-
-      head += chunk.size + 8;
-      if (head % 4 != 0) head += (4 - (head % 4));
+      ++patch_index;
    }
+}
+
+void read_water_layer(Ucfb_reader_strict<"LAYR"_mn> layer, Terrain_builder& builder)
+{
+
+   const auto texture = layer.read_string_unaligned();
+   layer.consume_unaligned(4);
+   const auto height = layer.read_trivial_unaligned<float>();
+   const auto velocity = layer.read_trivial_unaligned<pod::Vec2>();
+   const auto repeat = layer.read_trivial_unaligned<pod::Vec2>();
+   const auto colour =
+      pack_rgba_colour(layer.read_trivial_unaligned<std::array<std::uint8_t, 4>>());
+
+   builder.set_water_settings(height, velocity, {repeat.x, -repeat.y}, colour, texture);
+}
+
+void read_water_map(Ucfb_reader_strict<"WMAP"_mn> wmap, Terrain_info terrain_info,
+                    Terrain_builder& builder)
+{
+   const auto watermap = wmap.read_array<std::uint8_t>(wmap.size());
+
+   const auto water_map_length =
+      static_cast<std::uint16_t>(std::floor(std::sqrt(watermap.size())));
+
+   const std::uint16_t patches_length = terrain_info.grid_size / 4ui16;
+
+   for (std::uint16_t x = 0; x < water_map_length; ++x) {
+      for (std::uint16_t y = 0; y < water_map_length; ++y) {
+         const std::array<std::uint16_t, 2> wmap_range = {0ui16, water_map_length};
+         const std::array<std::uint16_t, 2> patch_range = {0ui16, patches_length};
+
+         const std::uint16_t patch_x = range_convert(x, wmap_range, patch_range);
+         const std::uint16_t patch_y = range_convert(y, wmap_range, patch_range);
+
+         const auto index = (x + water_map_length * ((water_map_length - 1) - y));
+
+         builder.set_patch_water({patch_x, patch_y}, (watermap[index] != 0));
+      }
+   }
+}
+
+void read_water(Ucfb_reader_strict<"WATR"_mn> water, Terrain_info terrain_info,
+                Terrain_builder& builder)
+{
+   water.read_child_strict<"INFO"_mn>();
+
+   read_water_layer(water.read_child_strict<"LAYR"_mn>(), builder);
+
+   read_water_map(water.read_child_strict<"WMAP"_mn>(), terrain_info, builder);
 }
 }
 
 void handle_terrain(Ucfb_reader terrain, File_saver& file_saver)
 {
-   const auto& terr = terrain.view_as_chunk<chunks::Terrain>();
+   const auto name = terrain.read_child_strict<"NAME"_mn>().read_string();
 
-   std::uint32_t head = 0;
-   const std::uint32_t end = terr.size - 8;
+   const auto info = terrain.read_child_strict<"INFO"_mn>().read_trivial<Terrain_info>();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
+   Terrain_builder builder{info.grid_unit_size, info.height_scale, info.grid_size};
 
-   std::string name{reinterpret_cast<const char*>(&terr.bytes[head]), terr.name_size - 1};
+   builder.set_textures(
+      read_texture_names(terrain.read_child_strict<"LTEX"_mn>(), info.texture_count));
 
-   head += terr.name_size;
-   align_head();
+   terrain.read_child_strict<"DTEX"_mn>(); // Unused(?) detail texture array.
 
-   const auto& terrain_info = view_type_as<Terrain_info>(terr.bytes[head]);
+   builder.set_detail_texture(terrain.read_child_strict<"DTLX"_mn>().read_string());
 
-   Terrain_builder builder{std::move(name), terrain_info};
+   const auto scal = terrain.read_child_strict<"SCAL"_mn>();
+   const auto axis = terrain.read_child_strict<"AXIS"_mn>();
+   const auto rotn = terrain.read_child_strict<"ROTN"_mn>();
 
-   head += sizeof(Terrain_info);
+   builder.set_texture_options(read_texture_options<float>(scal),
+                               read_texture_options<std::uint8_t>(axis),
+                               read_texture_options<float>(rotn));
 
-   while (head < end) {
-      const auto& chunk = view_type_as<chunks::Unknown>(terr.bytes[head]);
+   while (terrain) {
+      const auto child = terrain.read_child();
 
-      if (chunk.mn == "LTEX"_mn) {
-         builder.set_textures(view_type_as<Texture_names>(chunk));
+      if (child.magic_number() == "PCHS"_mn) {
+         read_patches(Ucfb_reader_strict<"PCHS"_mn>{child}, info, builder);
       }
-      else if (chunk.mn == "DTLX"_mn) {
-         builder.set_detail_texture(view_type_as<Dtl_tex_name>(chunk));
+      else if (child.magic_number() == "WATR"_mn) {
+         read_water(Ucfb_reader_strict<"WATR"_mn>{child}, info, builder);
       }
-      else if (chunk.mn == "SCAL"_mn) {
-         builder.set_texture_scales(view_type_as<Texture_metrics<float>>(chunk));
-      }
-      else if (chunk.mn == "ROTN"_mn) {
-         builder.set_texture_rotations(view_type_as<Texture_metrics<float>>(chunk));
-      }
-      else if (chunk.mn == "AXIS"_mn) {
-         builder.set_texture_axises(view_type_as<Texture_metrics<std::uint8_t>>(chunk));
-      }
-      else if (chunk.mn == "PCHS"_mn) {
-         handle_patches(view_type_as<Terrain_patches>(chunk), builder);
-      }
-      else if (chunk.mn == "FOLG"_mn) {
-         builder.set_foliage(view_type_as<Terrain_foliage>(chunk));
-      }
-      else if (chunk.mn == "WATR"_mn) {
-         builder.set_water(view_type_as<Terrain_water>(chunk));
-      }
-
-      head += chunk.size + 8;
-      align_head();
    }
 
-   builder.save(file_saver);
+   builder.save(name, file_saver);
 }
