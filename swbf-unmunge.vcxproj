@@ -36,6 +36,7 @@
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</WholeProgramOptimization>
     </ClCompile>
     <ClCompile Include="src\handle_ucfb.cpp" />
+    <ClCompile Include="src\terrain_builder.cpp" />
     <ClCompile Include="src\ucfb_builder.cpp" />
     <ClCompile Include="src\ucfb_reader.cpp" />
     <ClCompile Include="src\vbuf_helpers.cpp" />
@@ -51,9 +52,11 @@
     <ClInclude Include="src\magic_number.hpp" />
     <ClInclude Include="src\mapped_file.hpp" />
     <ClInclude Include="src\chunk_handlers.hpp" />
+    <ClInclude Include="src\math_helpers.hpp" />
     <ClInclude Include="src\msh_builder.hpp" />
     <ClInclude Include="src\string_helpers.hpp" />
     <ClInclude Include="src\swbf_fnv_hashes.hpp" />
+    <ClInclude Include="src\terrain_builder.hpp" />
     <ClInclude Include="src\type_pun.hpp" />
     <ClInclude Include="src\ucfb_builder.hpp" />
     <ClInclude Include="src\ucfb_reader.hpp" />
