@@ -26,6 +26,8 @@ Options:)"s;
 
 int main(int argc, char* argv[])
 {
+   std::ios_base::sync_with_stdio(false);
+
    if (argc == 1) {
       std::cout << usage;
       App_options{0, nullptr}.print_arguments(std::cout);
