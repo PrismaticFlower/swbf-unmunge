@@ -1,10 +1,9 @@
 
-#include "chunk_headers.hpp"
 #include "file_saver.hpp"
+#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
-#include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
 #define GLM_FORCE_SWIZZLE
@@ -16,9 +15,8 @@
 
 #include "tbb/task_group.h"
 
+#include <algorithm>
 #include <array>
-#include <atomic>
-#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -28,93 +26,20 @@ using namespace std::literals;
 
 namespace {
 
-#pragma pack(push, 1)
-
 struct Xframe {
-   Magic_number mn;
-   std::uint32_t size;
-
-   glm::mat3 matrix;
-   glm::vec3 position;
+   pod::Mat3 matrix;
+   pod::Vec3 position;
 };
 
-static_assert(std::is_standard_layout_v<Xframe>);
-static_assert(sizeof(Xframe) == 56);
-
-struct Size {
-   Magic_number mn;
-   std::uint32_t size;
-
-   glm::vec3 vec;
-
-   static_assert(std::is_standard_layout_v<glm::vec3>);
-   static_assert(sizeof(glm::vec3) == 12);
-};
-
-static_assert(std::is_standard_layout_v<Size>);
-static_assert(sizeof(Size) == 20);
-
-struct Property {
-   Magic_number mn;
-   std::uint32_t size;
-
-   std::uint32_t hash;
-
-   char str[];
-};
-
-static_assert(std::is_standard_layout_v<Property>);
-static_assert(sizeof(Property) == 12);
-
-struct Entry {
-   Magic_number mn;
-   std::uint32_t size;
-
-   std::uint32_t info_mn;
-   std::uint32_t info_size;
-
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Entry>);
-static_assert(sizeof(Entry) == 16);
-
-struct Name_value {
-   Magic_number mn;
-   std::uint32_t size;
-
-   char str[];
-};
-
-static_assert(std::is_standard_layout_v<Name_value>);
-static_assert(sizeof(Name_value) == 8);
-
-struct Flag_value {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t flags;
-};
-
-static_assert(std::is_standard_layout_v<Flag_value>);
-static_assert(sizeof(Flag_value) == 12);
+static_assert(std::is_pod_v<Xframe>);
+static_assert(sizeof(Xframe) == 48);
 
 struct Animation_key {
-   static_assert(std::is_standard_layout_v<glm::vec3>);
-   static_assert(sizeof(glm::vec3) == 12);
-
-   Magic_number mn;
-   std::uint32_t size;
-
    float time;
-   glm::vec3 data;
+   std::array<float, 3> data;
    std::uint8_t type;
-   float spline_data[6];
+   std::array<float, 6> spline_data;
 };
-
-static_assert(std::is_standard_layout_v<Animation_key>);
-static_assert(sizeof(Animation_key) == 49);
-
-#pragma pack(pop)
 
 const std::string_view world_header = {R"(Version(3);
 SaveType(0);
@@ -147,11 +72,6 @@ WorldExtents()
 	Max(0.000000, 0.000000, 0.000000);
 }
 )"_sv};
-
-std::string_view read_name_value(const Name_value& name_value)
-{
-   return {&name_value.str[0], name_value.size - 1};
-}
 
 void write_key_value(bool indent, std::string_view key, std::string_view value,
                      std::string& buffer)
@@ -215,6 +135,31 @@ void write_key_value(bool indent, std::string_view key, glm::vec3 value,
    buffer += ");\n"_sv;
 }
 
+void write_animation_key(std::string_view key, Animation_key value, std::string& buffer)
+{
+   buffer += '\t';
+   buffer += key;
+   buffer += '(';
+   buffer += std::to_string(value.time);
+   buffer += ", "_sv;
+   buffer += std::to_string(value.data[0]);
+   buffer += ", "_sv;
+   buffer += std::to_string(value.data[1]);
+   buffer += ", "_sv;
+   buffer += std::to_string(value.data[2]);
+   buffer += ", "_sv;
+   buffer += std::to_string(static_cast<std::int16_t>(value.type));
+
+   for (const auto& fl : value.spline_data) {
+      buffer += ", "_sv;
+      buffer += std::to_string(fl);
+   }
+
+   buffer.resize(buffer.size() - 2);
+
+   buffer += ");\n"_sv;
+}
+
 char convert_region_type(std::string_view type)
 {
    if (type == "box"_sv) return '0';
@@ -229,67 +174,52 @@ std::pair<glm::quat, glm::vec3> convert_xframe(const Xframe& xframe)
    auto position = xframe.position;
    position.z *= -1.0f;
 
-   auto quat = glm::quat_cast(xframe.matrix);
+   auto quat = glm::quat_cast(glm::mat3{xframe.matrix});
    quat *= glm::quat{0.0f, 0.0f, 1.0f, 0.0f};
 
    return {quat, position};
 }
 
-std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const Size& size)
+std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const glm::vec3 size)
 {
    std::array<glm::vec3, 4> corners = {{
-      {size.vec.x, 0.0f, size.vec.z},
-      {-size.vec.x, 0.0f, size.vec.z},
-      {-size.vec.x, 0.0f, -size.vec.z},
-      {size.vec.x, 0.0f, -size.vec.z},
+      {size.x, 0.0f, size.z},
+      {-size.x, 0.0f, size.z},
+      {-size.x, 0.0f, -size.z},
+      {size.x, 0.0f, -size.z},
    }};
 
-   corners[0] = xframe.matrix * corners[0];
-   corners[1] = xframe.matrix * corners[1];
-   corners[2] = xframe.matrix * corners[2];
-   corners[3] = xframe.matrix * corners[3];
+   corners[0] = glm::mat3{xframe.matrix} * corners[0];
+   corners[1] = glm::mat3{xframe.matrix} * corners[1];
+   corners[2] = glm::mat3{xframe.matrix} * corners[2];
+   corners[3] = glm::mat3{xframe.matrix} * corners[3];
 
-   corners[0] += xframe.position;
-   corners[1] += xframe.position;
-   corners[2] += xframe.position;
-   corners[3] += xframe.position;
+   corners[0] += glm::vec3{xframe.position};
+   corners[1] += glm::vec3{xframe.position};
+   corners[2] += glm::vec3{xframe.position};
+   corners[3] += glm::vec3{xframe.position};
 
    return corners;
 }
 
-void process_property(const Property& prop, std::uint32_t& head, std::string& buffer)
+void read_property(Ucfb_reader_strict<"PROP"_mn> property, std::string& buffer)
 {
-   const auto name = lookup_fnv_hash(prop.hash);
+   const auto hash = property.read_trivial<std::uint32_t>();
+   const auto value = property.read_string();
 
-   write_key_value(true, name, {&prop.str[0], prop.size - 5}, buffer);
-
-   head += prop.size + 8;
+   write_key_value(true, lookup_fnv_hash(hash), value, buffer);
 }
 
-void process_region(const Entry& region, std::string& buffer)
+void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = region.size - 8;
+   auto info = region.read_child_strict<"INFO"_mn>();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
+   const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
+   const auto name = info.read_child_strict<"NAME"_mn>().read_string();
 
-   const auto type = read_name_value(view_type_as<Name_value>(region.bytes[head]));
+   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
 
-   head += view_type_as<Name_value>(region.bytes[head]).size + 8;
-   align_head();
-
-   const auto name = read_name_value(view_type_as<Name_value>(region.bytes[head]));
-
-   head += view_type_as<Name_value>(region.bytes[head]).size + 8;
-   align_head();
-
-   const auto& xframe = view_type_as<Xframe>(region.bytes[head]);
-   head += sizeof(Xframe);
-
-   const auto& size = view_type_as<Size>(region.bytes[head]);
-   head += sizeof(Size);
+   const glm::vec3 size = info.read_child_strict<"SIZE"_mn>().read_trivial<pod::Vec3>();
 
    buffer += "Region(\""_sv;
    buffer += name;
@@ -300,79 +230,45 @@ void process_region(const Entry& region, std::string& buffer)
    const auto world_coords = convert_xframe(xframe);
    write_key_value(true, "Position"_sv, world_coords.second, buffer);
    write_key_value(true, "Rotation"_sv, world_coords.first, buffer);
-   write_key_value(true, "Size"_sv, size.vec, buffer);
+   write_key_value(true, "Size"_sv, size, buffer);
 
-   while (head < end) {
-      const auto& prop = view_type_as<Property>(region.bytes[head]);
+   while (region) {
+      auto property = region.read_child_strict<"PROP"_mn>();
 
-      process_property(prop, head, buffer);
-
-      align_head();
+      read_property(property, buffer);
    }
 
    buffer += "}\n\n"_sv;
 }
 
-void process_barrier(const Entry& barrier, std::string& buffer)
+void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
 {
-   struct Barrier_info {
-      Xframe xframe;
-      Size size;
-      Flag_value flag;
-   };
+   auto info = barrier.read_child_strict<"INFO"_mn>();
 
-   static_assert(std::is_standard_layout_v<Barrier_info>);
-   static_assert(sizeof(Barrier_info) == 88);
-
-   std::uint32_t head = 0;
-
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-
-   const auto name = read_name_value(view_type_as<Name_value>(barrier.bytes[head]));
-
-   head += view_type_as<Name_value>(barrier.bytes[head]).size + 8;
-   align_head();
-
-   const auto& barrier_info = view_type_as<Barrier_info>(barrier.bytes[head]);
-   head += sizeof(Barrier_info);
-
-   const auto corners = get_barrier_corners(barrier_info.xframe, barrier_info.size);
+   const auto name = info.read_child_strict<"NAME"_mn>().read_string();
+   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto size = info.read_child_strict<"SIZE"_mn>().read_trivial<pod::Vec3>();
+   const auto flags = info.read_child_strict<"FLAG"_mn>().read_trivial<std::uint32_t>();
 
    buffer += "Barrier(\""_sv;
    buffer += name;
    buffer += "\")\n{\n"_sv;
 
-   for (const auto& corner : corners) {
+   for (const auto& corner : get_barrier_corners(xframe, size)) {
       write_key_value(true, "Corner"_sv, corner, buffer);
    }
 
-   write_key_value(true, "Flag"_sv, barrier_info.flag.flags, buffer);
+   write_key_value(true, "Flag"_sv, flags, buffer);
    buffer += "}\n\n"_sv;
 }
 
-void process_hint(const Entry& hint, std::string& buffer)
+void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = hint.size - 8;
+   auto info = hint.read_child_strict<"INFO"_mn>();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-
-   const auto type = read_name_value(view_type_as<Name_value>(hint.bytes[head]));
-
-   head += view_type_as<Name_value>(hint.bytes[head]).size + 8;
-   align_head();
-
-   const auto name = read_name_value(view_type_as<Name_value>(hint.bytes[head]));
-
-   head += view_type_as<Name_value>(hint.bytes[head]).size + 8;
-   align_head();
-
-   const auto& xframe = view_type_as<Xframe>(hint.bytes[head]);
-   head += sizeof(Xframe);
+   const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
+   const auto name = info.read_child_strict<"NAME"_mn>().read_string();
+   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
 
    buffer += "Hint(\""_sv;
    buffer += name;
@@ -384,38 +280,23 @@ void process_hint(const Entry& hint, std::string& buffer)
    write_key_value(true, "Position"_sv, world_coords.second, buffer);
    write_key_value(true, "Rotation"_sv, world_coords.first, buffer);
 
-   while (head < end) {
-      const auto& prop = view_type_as<Property>(hint.bytes[head]);
+   while (hint) {
+      const auto property = hint.read_child_strict<"PROP"_mn>();
 
-      process_property(prop, head, buffer);
-
-      align_head();
+      read_property(property, buffer);
    }
 
    buffer += "}\n\n"_sv;
 }
 
-void process_animation(const Entry& anim, std::string& buffer)
+void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = anim.size - anim.info_size - 8;
+   auto info = animation.read_child_strict<"INFO"_mn>();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-
-   const std::uint32_t name_size = anim.info_size - 6;
-   const std::string_view name{reinterpret_cast<const char*>(&anim.bytes[0]),
-                               name_size - 1};
-
-   head += name_size;
-
-   const float length = view_type_as<float>(anim.bytes[head]);
-   const std::int32_t unknown_flag_1 = view_type_as<std::uint8_t>(anim.bytes[head + 4]);
-   const std::int32_t unknown_flag_2 = view_type_as<std::uint8_t>(anim.bytes[head + 5]);
-
-   head += 6;
-   align_head();
+   const auto name = info.read_string_unaligned();
+   const auto length = info.read_trivial_unaligned<float>();
+   const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
+   const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
 
    buffer += "Animation(\""_sv;
    buffer += name;
@@ -427,70 +308,39 @@ void process_animation(const Entry& anim, std::string& buffer)
    buffer += std::to_string(unknown_flag_2);
    buffer += ")\n{\n"_sv;
 
-   const auto write_anim_key = [&buffer, &head](std::string_view key_name,
-                                                const Animation_key& key,
-                                                auto&& mutator) {
-      buffer += '\t';
-      buffer += key_name;
-      buffer += '(';
-      buffer += std::to_string(key.time);
-      buffer += ", "_sv;
-      buffer += std::to_string(mutator(key.data.x));
-      buffer += ", "_sv;
-      buffer += std::to_string(mutator(key.data.y));
-      buffer += ", "_sv;
-      buffer += std::to_string(mutator(key.data.z));
-      buffer += ", "_sv;
-      buffer += std::to_string(static_cast<std::int16_t>(key.type));
+   while (animation) {
+      auto key = animation.read_child();
 
-      for (const auto& fl : key.spline_data) {
-         buffer += ", "_sv;
-         buffer += std::to_string(mutator(fl));
+      Animation_key key_info;
+      key_info.time = key.read_trivial_unaligned<float>();
+      key_info.data = key.read_trivial_unaligned<std::array<float, 3>>();
+      key_info.type = key.read_trivial_unaligned<std::uint8_t>();
+      key_info.spline_data = key.read_trivial_unaligned<std::array<float, 6>>();
+
+      if (key.magic_number() == "ROTK"_mn) {
+         std::for_each(std::begin(key_info.data), std::end(key_info.data),
+                       glm::degrees<float>);
+         std::for_each(std::begin(key_info.spline_data), std::end(key_info.spline_data),
+                       glm::degrees<float>);
+
+         write_animation_key("AddRotationKey"_sv, key_info, buffer);
       }
-
-      buffer.resize(buffer.size() - 2);
-
-      buffer += ");\n"_sv;
-
-      head += sizeof(Animation_key);
-   };
-
-   while (head < end) {
-      const auto& key = view_type_as<Animation_key>(anim.bytes[head]);
-
-      if (key.mn == "ROTK"_mn) {
-         write_anim_key("AddRotationKey"_sv, key, glm::degrees<float>);
+      else if (key.magic_number() == "POSK"_mn) {
+         write_animation_key("AddPositionKey"_sv, key_info, buffer);
       }
-      else if (key.mn == "POSK"_mn) {
-         write_anim_key("AddPositionKey"_sv, key, [](auto&& fl) { return fl; });
-      }
-
-      align_head();
    }
 
    buffer += "}\n\n"_sv;
 }
 
-void process_animation_group(const Entry& anmg, std::string& buffer)
+void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string& buffer)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = anmg.size - anmg.info_size - 8;
+   auto info = anim_group.read_child_strict<"INFO"_mn>();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
+   const auto name = info.read_string_unaligned();
 
-   const std::uint32_t name_size = anmg.info_size - 2;
-   const std::string_view name{reinterpret_cast<const char*>(&anmg.bytes[0]),
-                               name_size - 1};
-
-   head += name_size;
-
-   const std::int32_t unknown_flag_1 = view_type_as<std::uint8_t>(anmg.bytes[head]);
-   const std::int32_t unknown_flag_2 = view_type_as<std::uint8_t>(anmg.bytes[head + 1]);
-
-   head += 2;
-   align_head();
+   const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
+   const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
 
    buffer += "AnimationGroup(\""_sv;
    buffer += name;
@@ -500,41 +350,31 @@ void process_animation_group(const Entry& anmg, std::string& buffer)
    buffer += std::to_string(unknown_flag_2);
    buffer += ")\n{\n"_sv;
 
-   while (head < end) {
-      const auto& name_pair = view_type_as<Name_value>(anmg.bytes[head]);
-
-      const std::size_t first_len = std::strlen(&name_pair.str[0]) + 1;
-      const std::size_t second_len = name_pair.size - first_len;
-
-      std::string_view first{&name_pair.str[0], first_len - 1};
-      std::string_view second{&name_pair.str[first_len], second_len - 1};
+   while (anim_group) {
+      auto anim_pair = anim_group.read_child_strict<"ANIM"_mn>();
 
       buffer += "\tAnimation(\""_sv;
-      buffer += first;
+      buffer += anim_pair.read_string_unaligned();
       buffer += "\", \""_sv;
-      buffer += second;
+      buffer += anim_pair.read_string_unaligned();
       buffer += "\");\n"_sv;
-
-      head += name_pair.size + 8;
-      align_head();
    }
 
    buffer += "}\n\n"_sv;
 }
 
-void process_animation_hierarchy(const Entry& anmh, std::string& buffer)
+void read_animation_hierarchy(Ucfb_reader_strict<"anmh"_mn> anim_hierarchy,
+                              std::string& buffer)
 {
-   const std::size_t string_count = view_type_as<std::uint8_t>(anmh.bytes[0]);
-   const char* str_array = reinterpret_cast<const char*>(&anmh.bytes[1]);
+   auto info = anim_hierarchy.read_child_strict<"INFO"_mn>();
+
+   const auto string_count = info.read_trivial_unaligned<std::uint8_t>();
 
    std::vector<std::string_view> strings;
+   strings.reserve(string_count);
 
    for (std::size_t i = 0; i < string_count; ++i) {
-      const std::size_t str_len = std::strlen(str_array);
-
-      strings.emplace_back(str_array, str_len);
-
-      str_array += (str_len + 1);
+      strings.emplace_back(info.read_string_unaligned());
    }
 
    buffer += "Hierarchy(\""_sv;
@@ -550,24 +390,13 @@ void process_animation_hierarchy(const Entry& anmh, std::string& buffer)
    buffer += "}\n\n"_sv;
 }
 
-void process_instance(const Entry& instance, std::string& buffer)
+void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = instance.size - 8;
+   auto info = instance.read_child_strict<"INFO"_mn>();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-
-   const auto type = read_name_value(view_type_as<Name_value>(instance.bytes[head]));
-
-   head += view_type_as<Name_value>(instance.bytes[head]).size + 8;
-   align_head();
-
-   const auto name = read_name_value(view_type_as<Name_value>(instance.bytes[head]));
-
-   head += view_type_as<Name_value>(instance.bytes[head]).size + 8;
-   align_head();
+   const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
+   const auto name = info.read_child_strict<"NAME"_mn>().read_string();
+   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
 
    buffer += "Object(\""_sv;
    buffer += name;
@@ -575,47 +404,42 @@ void process_instance(const Entry& instance, std::string& buffer)
    buffer += type;
    buffer += "\", 1)\n{\n"_sv;
 
-   const auto& xframe = view_type_as<Xframe>(instance.bytes[head]);
-   head += sizeof(Xframe);
-
    const auto world_coords = convert_xframe(xframe);
    write_key_value(true, "ChildRotation"_sv, world_coords.first, buffer);
    write_key_value(true, "ChildPosition"_sv, world_coords.second, buffer);
 
-   while (head < end) {
-      const auto& prop = view_type_as<Property>(instance.bytes[head]);
+   while (instance) {
+      auto property = instance.read_child_strict<"PROP"_mn>();
 
-      process_property(prop, head, buffer);
-
-      align_head();
+      read_property(property, buffer);
    }
 
    buffer += "}\n\n"_sv;
 }
 
-void process_region_entries(std::vector<const Entry*> entries, std::string_view name,
-                            File_saver& file_saver)
+void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
+                            std::string_view name, File_saver& file_saver)
 {
    std::string buffer;
-   buffer.reserve(256 * entries.size());
+   buffer.reserve(256 * regions.size());
    buffer += "Version(1);\n"_sv;
 
-   write_key_value(false, "RegionCount"_sv, entries.size(), buffer);
+   write_key_value(false, "RegionCount"_sv, regions.size(), buffer);
    buffer += '\n';
 
-   for (const auto* entry : entries) {
-      process_region(*entry, buffer);
+   for (const auto& region : regions) {
+      read_region(region, buffer);
    }
 
    file_saver.save_file(std::move(buffer), std::string{name} += ".rgn"_sv, "world"s);
 }
 
-void process_instance_entries(std::vector<const Entry*> entries, const std::string name,
-                              const std::string terrain_name, const std::string sky_name,
-                              File_saver& file_saver)
+void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
+                              const std::string name, const std::string terrain_name,
+                              const std::string sky_name, File_saver& file_saver)
 {
    std::string buffer;
-   buffer.reserve((world_header.length() + 256) + 256 * entries.size());
+   buffer.reserve((world_header.length() + 256) + 256 * instances.size());
 
    buffer += world_header;
    buffer += '\n';
@@ -628,8 +452,8 @@ void process_instance_entries(std::vector<const Entry*> entries, const std::stri
    write_key_value(false, "LightName"_sv, name + ".lgt"s, buffer);
    buffer += '\n';
 
-   for (const auto* entry : entries) {
-      process_instance(*entry, buffer);
+   for (const auto& instance : instances) {
+      read_instance(instance, buffer);
    }
 
    std::string extension = ".wld"s;
@@ -639,50 +463,50 @@ void process_instance_entries(std::vector<const Entry*> entries, const std::stri
    file_saver.save_file(std::move(buffer), name + extension, "world"s);
 }
 
-void process_barrier_entries(std::vector<const Entry*> entries, std::string_view name,
-                             File_saver& file_saver)
+void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers,
+                             std::string_view name, File_saver& file_saver)
 {
    std::string buffer;
-   buffer.reserve(256 * entries.size());
+   buffer.reserve(256 * barriers.size());
 
-   write_key_value(false, "BarrierCount"_sv, entries.size(), buffer);
+   write_key_value(false, "BarrierCount"_sv, barriers.size(), buffer);
    buffer += '\n';
 
-   for (const auto* entry : entries) {
-      process_barrier(*entry, buffer);
+   for (const auto& barrier : barriers) {
+      read_barrier(barrier, buffer);
    }
 
    file_saver.save_file(std::move(buffer), std::string{name} += ".bar"_sv, "world"s);
 }
 
-void process_hint_entries(std::vector<const Entry*> entries, std::string_view name,
-                          File_saver& file_saver)
+void process_hint_entries(std::vector<Ucfb_reader_strict<"Hint"_mn>> hints,
+                          std::string_view name, File_saver& file_saver)
 {
    std::string buffer;
-   buffer.reserve(256 * entries.size());
+   buffer.reserve(256 * hints.size());
 
-   for (const auto* entry : entries) {
-      process_hint(*entry, buffer);
+   for (const auto& hint : hints) {
+      read_hint(hint, buffer);
    }
 
    file_saver.save_file(std::move(buffer), std::string{name} += ".hnt"_sv, "world"s);
 }
 
-void process_animation_entries(std::vector<const Entry*> entries, std::string_view name,
+void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_view name,
                                File_saver& file_saver)
 {
    std::string buffer;
    buffer.reserve(512 * entries.size());
 
-   for (const auto* entry : entries) {
-      if (entry->mn == "anim"_mn) {
-         process_animation(*entry, buffer);
+   for (const auto& entry : entries) {
+      if (entry.magic_number() == "anim"_mn) {
+         read_animation(Ucfb_reader_strict<"anim"_mn>{entry}, buffer);
       }
-      else if (entry->mn == "anmg"_mn) {
-         process_animation_group(*entry, buffer);
+      else if (entry.magic_number() == "anmg"_mn) {
+         read_animation_group(Ucfb_reader_strict<"anmg"_mn>{entry}, buffer);
       }
-      else if (entry->mn == "anmh"_mn) {
-         process_animation_hierarchy(*entry, buffer);
+      else if (entry.magic_number() == "anmh"_mn) {
+         read_animation_hierarchy(Ucfb_reader_strict<"anmh"_mn>{entry}, buffer);
       }
    }
 
@@ -690,61 +514,50 @@ void process_animation_entries(std::vector<const Entry*> entries, std::string_vi
 }
 }
 
-void handle_world(Ucfb_reader world_reader, tbb::task_group& tasks,
-                  File_saver& file_saver)
+void handle_world(Ucfb_reader world, tbb::task_group& tasks, File_saver& file_saver)
 {
-   const auto& world = world_reader.view_as_chunk<chunks::World>();
+   const auto name = world.read_child_strict<"NAME"_mn>().read_string();
 
-   std::string_view name;
    std::string_view terrain_name;
+
+   auto terrain_name_reader = world.read_child_strict_optional<"TNAM"_mn>();
+   if (terrain_name_reader) terrain_name = terrain_name_reader->read_string();
+
    std::string_view sky_name;
 
-   std::uint32_t head = 0;
-   const std::uint32_t end = world.size;
+   auto sky_name_reader = world.read_child_strict_optional<"SNAM"_mn>();
+   if (sky_name_reader) sky_name = sky_name_reader->read_string();
 
-   std::vector<const Entry*> region_entries;
-   std::vector<const Entry*> instance_entries;
-   std::vector<const Entry*> barrier_entries;
-   std::vector<const Entry*> hint_entries;
-   std::vector<const Entry*> animation_entries;
+   std::vector<Ucfb_reader_strict<"regn"_mn>> region_entries;
+   std::vector<Ucfb_reader_strict<"inst"_mn>> instance_entries;
+   std::vector<Ucfb_reader_strict<"BARR"_mn>> barrier_entries;
+   std::vector<Ucfb_reader_strict<"Hint"_mn>> hint_entries;
+   std::vector<Ucfb_reader> animation_entries;
 
-   while (head < end) {
-      const auto& chunk = view_type_as<chunks::Unknown>(world.bytes[head]);
+   while (world) {
+      auto child = world.read_child();
 
-      if (chunk.mn == "regn"_mn) {
-         region_entries.emplace_back(&view_type_as<Entry>(chunk));
+      if (child.magic_number() == "regn"_mn) {
+         region_entries.emplace_back(Ucfb_reader_strict<"regn"_mn>{child});
       }
-      else if (chunk.mn == "inst"_mn) {
-         instance_entries.emplace_back(&view_type_as<Entry>(chunk));
+      else if (child.magic_number() == "inst"_mn) {
+         instance_entries.emplace_back(Ucfb_reader_strict<"inst"_mn>{child});
       }
-      else if (chunk.mn == "BARR"_mn) {
-         barrier_entries.emplace_back(&view_type_as<Entry>(chunk));
+      else if (child.magic_number() == "BARR"_mn) {
+         barrier_entries.emplace_back(Ucfb_reader_strict<"BARR"_mn>{child});
       }
-      else if (chunk.mn == "Hint"_mn) {
-         hint_entries.emplace_back(&view_type_as<Entry>(chunk));
+      else if (child.magic_number() == "Hint"_mn) {
+         hint_entries.emplace_back(Ucfb_reader_strict<"Hint"_mn>{child});
       }
-      else if (chunk.mn == "anim"_mn) {
-         animation_entries.emplace_back(&view_type_as<Entry>(chunk));
+      else if (child.magic_number() == "anim"_mn) {
+         animation_entries.emplace_back(child);
       }
-      else if (chunk.mn == "anmg"_mn) {
-         animation_entries.emplace_back(&view_type_as<Entry>(chunk));
+      else if (child.magic_number() == "anmg"_mn) {
+         animation_entries.emplace_back(child);
       }
-      else if (chunk.mn == "anmh"_mn) {
-         animation_entries.emplace_back(&view_type_as<Entry>(chunk));
+      else if (child.magic_number() == "anmh"_mn) {
+         animation_entries.emplace_back(child);
       }
-      else if (chunk.mn == "NAME"_mn) {
-         name = read_name_value(view_type_as<Name_value>(chunk));
-      }
-      else if (chunk.mn == "TNAM"_mn) {
-         terrain_name = read_name_value(view_type_as<Name_value>(chunk));
-      }
-      else if (chunk.mn == "SNAM"_mn) {
-         sky_name = read_name_value(view_type_as<Name_value>(chunk));
-      }
-
-      head += chunk.size + 8;
-
-      if (head % 4 != 0) head += (4 - (head % 4));
    }
 
    tasks.run([ region_entries{std::move(region_entries)}, name, &file_saver ] {
