@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
       tbb::task_group tasks;
       msh::Builders_map msh_builders;
 
-      Ucfb_reader root_reader{file.bytes(), file.size()};
+      Ucfb_reader root_reader{file.bytes()};
 
       tasks.run_and_wait([&, root_reader] {
          process_chunk(root_reader, app_options, file_saver, tasks, msh_builders);

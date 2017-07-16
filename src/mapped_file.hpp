@@ -2,6 +2,8 @@
 
 #include "byte.hpp"
 
+#include <gsl/gsl>
+
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -13,9 +15,7 @@ public:
    Mapped_file() = default;
    Mapped_file(fs::path path);
 
-   const Byte* bytes() noexcept;
-
-   std::uint32_t size() noexcept;
+   gsl::span<const Byte> bytes() const noexcept;
 
 private:
    std::shared_ptr<Byte> _view;

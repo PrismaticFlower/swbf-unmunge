@@ -18,7 +18,7 @@ class Ucfb_reader_strict;
 class Ucfb_reader {
 public:
    Ucfb_reader() = delete;
-   Ucfb_reader(const Byte* bytes, const std::uint32_t size);
+   Ucfb_reader(const gsl::span<const Byte> bytes);
 
    template<Magic_number type_mn>
    Ucfb_reader(const Ucfb_reader_strict<type_mn>&) = delete;

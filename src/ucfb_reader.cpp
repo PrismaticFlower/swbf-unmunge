@@ -2,13 +2,13 @@
 
 #include <stdexcept>
 
-Ucfb_reader::Ucfb_reader(const Byte* bytes, const std::uint32_t size)
+Ucfb_reader::Ucfb_reader(const gsl::span<const Byte> bytes)
    : _mn{view_type_as<Magic_number>(bytes[0])},
-     _size{view_type_as<std::uint32_t>(bytes[4])}, _data{bytes + 8}
+     _size{view_type_as<std::uint32_t>(bytes[4])}, _data{&bytes[8]}
 {
-   Expects((size >= 8));
+   Expects((bytes.size() >= 8));
 
-   if (_size > (size - 8)) {
+   if (_size > static_cast<std::size_t>(bytes.size() - 8)) {
       throw std::runtime_error{
          "Size of supplied memory is less than size of supposed chunk."};
    }

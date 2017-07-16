@@ -54,12 +54,7 @@ Mapped_file::Mapped_file(fs::path path)
       throw std::runtime_error{"Unable to create view of file mapping."};
 }
 
-const Byte* Mapped_file::bytes() noexcept
+gsl::span<const Byte> Mapped_file::bytes() const noexcept
 {
-   return _view.get();
-}
-
-std::uint32_t Mapped_file::size() noexcept
-{
-   return _size;
+   return {_view.get(), _size};
 }
