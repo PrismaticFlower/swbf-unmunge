@@ -2,6 +2,8 @@
 
 #include "byte.hpp"
 
+#include <gsl/gsl>
+
 #include <string>
 #include <type_traits>
 
@@ -40,4 +42,16 @@ inline std::string view_pod_as_string(Pod&& pod)
                  "Type can not be rvalue to pointer.");
 
    return {reinterpret_cast<const char*>(&pod), sizeof(Pod)};
+}
+
+template<typename Pod>
+inline std::string_view view_pod_span_as_string(gsl::span<const Pod> array)
+{
+   static_assert(std::is_pod_v<std::remove_reference_t<Pod>>,
+                 "Type must be plain-old-data.");
+   static_assert(!std::is_pointer_v<std::remove_reference_t<Pod>>,
+                 "Type can not be a pointer.");
+
+   return {reinterpret_cast<const char*>(array.data()),
+           static_cast<std::size_t>(array.size_bytes())};
 }

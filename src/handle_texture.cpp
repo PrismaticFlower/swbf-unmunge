@@ -1,9 +1,8 @@
 
 #include "app_options.hpp"
-#include "chunk_headers.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
-#include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "DDS.h"
 #include "DirectXTex.h"
@@ -20,47 +19,15 @@ using namespace std::literals;
 namespace {
 
 struct Format_info {
-   Magic_number mn;
-   std::uint32_t size;
-
-   struct {
-      Magic_number mn;
-      std::uint32_t size;
-      std::uint32_t dx_format;
-      std::uint16_t width;
-      std::uint16_t height;
-      std::uint16_t unknown;
-      std::uint16_t mipmap_count;
-      std::uint32_t unknown_1;
-   } info;
-
-   static_assert(sizeof(decltype(info)) == 24);
-
-   struct {
-      Magic_number mn;
-      std::uint32_t size;
-      std::uint32_t lvl_mn;
-      std::uint32_t lvl_size;
-
-      std::uint32_t info_mn;
-      std::uint32_t info_size;
-      std::uint32_t info_mipmap;
-      std::uint32_t info_mipmap_size;
-   } face;
-
-   static_assert(sizeof(decltype(face)) == 32);
-
-   struct {
-      Magic_number mn;
-      std::uint32_t size;
-
-      Byte data[];
-   } body;
-
-   static_assert(sizeof(decltype(body)) == 8);
+   std::uint32_t dx_format;
+   std::uint16_t width;
+   std::uint16_t height;
+   std::uint16_t unknown;
+   std::uint16_t mipmap_count;
+   std::uint32_t unknown_1;
 };
 
-static_assert(sizeof(Format_info) == 72);
+static_assert(sizeof(Format_info) == 16);
 
 DirectX::DDS_PIXELFORMAT d3d_to_dds_format(std::uint32_t format)
 {
@@ -118,14 +85,14 @@ DirectX::DDS_PIXELFORMAT d3d_to_dds_format(std::uint32_t format)
    }
 }
 
-DirectX::DDS_HEADER format_info_to_dds_header(const Format_info& format_info)
+DirectX::DDS_HEADER create_dds_header(Format_info format_info)
 {
    DirectX::DDS_HEADER dds_header{};
    dds_header.dwSize = 124;
    dds_header.dwFlags = (0x1 | 0x2 | 0x4 | 0x1000);
-   dds_header.dwHeight = format_info.info.height;
-   dds_header.dwWidth = format_info.info.width;
-   dds_header.ddspf = d3d_to_dds_format(format_info.info.dx_format);
+   dds_header.dwHeight = format_info.height;
+   dds_header.dwWidth = format_info.width;
+   dds_header.ddspf = d3d_to_dds_format(format_info.dx_format);
    dds_header.dwCaps = 0x1000;
 
    return dds_header;
@@ -168,31 +135,37 @@ bool image_needs_converting(const DirectX::ScratchImage& image) noexcept
    }
 }
 
-auto read_texture(const chunks::Texture& chunk)
+auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
    -> std::pair<std::string_view, DirectX::ScratchImage>
 {
-   std::string_view name{reinterpret_cast<const char*>(&chunk.bytes[0]),
-                         chunk.name_size - 1};
+   const auto name = texture.read_child_strict<"NAME"_mn>().read_string();
 
-   std::uint32_t head = chunk.name_size;
+   texture.read_child_strict<"INFO"_mn>(); // array of formats used by the texture
 
-   if (head % 4 != 0) head += (4 - (head % 4));
+   // there are actually as many FMT_ chunks as the number of formats referenced in
+   // the INFO chunk after NAME. But we'll only ever end up using one and the highest
+   // quality format seems to come first so we just use that one.
+   auto format = texture.read_child_strict<"FMT_"_mn>();
 
-   const auto& tex_formats =
-      *reinterpret_cast<const chunks::Unknown*>(&chunk.bytes[head]);
-   head += tex_formats.size + 8;
+   const auto format_info =
+      format.read_child_strict<"INFO"_mn>().read_trivial<Format_info>();
 
-   const auto& format_info = view_type_as<Format_info>(chunk.bytes[head]);
+   // once again we (perhaps incorrectly) only care about the first face
+   auto face = format.read_child_strict<"FACE"_mn>();
+   // and the first mipmap
+   auto mipmap_level = face.read_child_strict<"LVL_"_mn>();
+   mipmap_level.read_child_strict<"INFO"_mn>();
 
-   const auto dds_header = format_info_to_dds_header(format_info);
+   auto body = mipmap_level.read_child_strict<"BODY"_mn>();
+   const auto pixels = body.read_array<std::uint8_t>(body.size());
+
+   const auto dds_header = create_dds_header(format_info);
 
    std::string buffer;
-   buffer.reserve(128 + format_info.body.size);
+   buffer.reserve(128 + pixels.size());
    buffer += "DDS "s;
-   buffer.resize(128 + format_info.body.size, '\0');
-
-   std::memcpy(&buffer[4], &dds_header, sizeof(dds_header));
-   std::memcpy(&buffer[128], &format_info.body.data[0], format_info.body.size);
+   buffer += view_pod_as_string(dds_header);
+   buffer += view_pod_span_as_string(pixels);
 
    DirectX::ScratchImage image;
    DirectX::LoadFromDDSMemory(buffer.data(), buffer.size(), DirectX::DDS_FLAGS_NONE,
@@ -276,13 +249,12 @@ void save_image(std::string_view name, DirectX::ScratchImage image,
 }
 }
 
-void handle_texture(const chunks::Texture& chunk, File_saver& file_saver,
-                    Image_format save_format)
+void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format)
 {
    std::string_view name;
    DirectX::ScratchImage image;
 
-   std::tie(name, image) = read_texture(chunk);
+   std::tie(name, image) = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture});
 
    save_image(name, std::move(image), file_saver, save_format);
 }

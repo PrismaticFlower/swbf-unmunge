@@ -1,12 +1,13 @@
 
-#include "chunk_headers.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
-#include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #define GLM_FORCE_CXX98
 #define GLM_FORCE_SWIZZLE
+
+#include "glm_pod_wrappers.hpp"
 
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -18,108 +19,64 @@ using namespace std::literals;
 
 namespace {
 
-#pragma pack(push, 1)
-
-struct Path_entry {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t name_mn;
-   std::uint32_t name_size;
-
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Path_entry>);
-static_assert(sizeof(Path_entry) == 16);
-
 struct Path_info {
-   Magic_number mn;
-   std::uint32_t size;
    std::uint16_t node_count;
    std::uint16_t unknown_0;
    std::uint16_t unknown_1;
 };
 
-static_assert(std::is_standard_layout_v<Path_info>);
-static_assert(sizeof(Path_info) == 14);
+static_assert(std::is_pod_v<Path_info>);
+static_assert(sizeof(Path_info) == 6);
 
 struct Path_node {
-   glm::vec3 position;
-   glm::vec4 rotation;
+   pod::Vec3 position;
+   pod::Vec4 rotation;
 };
 
-static_assert(std::is_standard_layout_v<Path_node>);
+static_assert(std::is_pod_v<Path_node>);
 static_assert(sizeof(Path_node) == 28);
-
-struct Path_points {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Path_node nodes[];
-};
-
-static_assert(std::is_standard_layout_v<Path_points>);
-static_assert(sizeof(Path_points) == 8);
-
-#pragma pack(pop)
 
 struct Path {
    std::string_view name;
-   std::vector<Path_node> nodes;
+   std::vector<std::pair<glm::vec3, glm::vec4>> nodes;
 };
 
-Path_node flip_path_node(const Path_node& node)
+auto read_path_node(const Path_node& node) -> std::pair<glm::vec3, glm::vec4>
 {
-   Path_node flipped{node};
-   flipped.position.z *= -1.0f;
-   flipped.rotation = node.rotation.zwxy();
-   flipped.rotation.y *= -1.0f;
+   std::pair<glm::vec3, glm::vec4> flipped{node.position, node.rotation};
+   flipped.first.z *= -1.0f;
+   flipped.second = flipped.second.zwxy();
+   flipped.second.y *= -1.0f;
 
    return flipped;
 }
 
-Path read_path_entry(const Path_entry& entry)
+Path read_path_entry(Ucfb_reader_strict<"path"_mn> entry)
 {
    Path path;
 
-   std::uint32_t head = 0;
-   const std::uint32_t end = entry.size - 8;
+   path.name = entry.read_child_strict<"NAME"_mn>().read_string();
 
-   const auto align_head = [&head] {
-      if (head % 4 != 0) head += (4 - (head % 4));
-   };
-
-   path.name = {reinterpret_cast<const char*>(&entry.bytes[head]), entry.name_size - 1};
-
-   head += entry.name_size;
-   align_head();
-
-   const auto& path_info = view_type_as<Path_info>(entry.bytes[head]);
-
-   head += path_info.size + 8;
-   align_head();
+   const auto path_info = entry.read_child_strict<"INFO"_mn>().read_trivial<Path_info>();
 
    path.nodes.reserve(path_info.node_count);
 
-   while (head < end) {
-      const auto& child = view_type_as<chunks::Unknown>(entry.bytes[head]);
+   while (entry) {
+      auto child = entry.read_child();
 
-      if (child.mn == "PNTS"_mn) {
-         const auto& path_points = view_type_as<Path_points>(entry.bytes[head]);
+      if (child.magic_number() == "PNTS"_mn) {
+         const auto nodes = child.read_array<Path_node>(path_info.node_count);
 
-         for (std::size_t i = 0; i < path_info.node_count; ++i) {
-            path.nodes.emplace_back(flip_path_node(path_points.nodes[i]));
+         for (const auto& node : nodes) {
+            path.nodes.emplace_back(read_path_node(node));
          }
       }
-
-      head += child.size + 8;
-      align_head();
    }
 
    return path;
 }
 
-void write_node(const Path_node& node, std::string& buffer)
+void write_node(const std::pair<glm::vec3, glm::vec4>& node, std::string& buffer)
 {
    buffer += "\t\tNode()\n\t\t{\n"_sv;
 
@@ -127,21 +84,21 @@ void write_node(const Path_node& node, std::string& buffer)
 
    buffer += indent;
    buffer += "Position("_sv;
-   buffer += std::to_string(node.position.x);
+   buffer += std::to_string(node.first.x);
    buffer += ", "_sv;
-   buffer += std::to_string(node.position.y);
+   buffer += std::to_string(node.first.y);
    buffer += ", "_sv;
-   buffer += std::to_string(node.position.z);
+   buffer += std::to_string(node.first.z);
    buffer += ");\n"_sv;
    buffer += indent;
    buffer += "Rotation("_sv;
-   buffer += std::to_string(node.rotation.x);
+   buffer += std::to_string(node.second.x);
    buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.y);
+   buffer += std::to_string(node.second.y);
    buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.z);
+   buffer += std::to_string(node.second.z);
    buffer += ", "_sv;
-   buffer += std::to_string(node.rotation.w);
+   buffer += std::to_string(node.second.w);
    buffer += ");\n"_sv;
 
    buffer += R"(
@@ -210,22 +167,14 @@ void save_paths(std::vector<Path> paths, File_saver& file_saver)
 }
 }
 
-void handle_path(const chunks::Path& path, File_saver& file_saver)
+void handle_path(Ucfb_reader path, File_saver& file_saver)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = path.size;
-
    std::vector<Path> paths;
 
-   while (head < end) {
-      const auto& entry = view_type_as<Path_entry>(path.bytes[head]);
+   while (path) {
+      const auto child = path.read_child_strict<"path"_mn>();
 
-      if (entry.mn == "path"_mn) {
-         paths.emplace_back(read_path_entry(entry));
-      }
-
-      head += entry.size + 8;
-      if (head % 4 != 0) head += (4 - (head % 4));
+      paths.emplace_back(read_path_entry(child));
    }
 
    save_paths(std::move(paths), file_saver);

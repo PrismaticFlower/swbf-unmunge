@@ -1,11 +1,10 @@
 
 #include "app_options.hpp"
-#include "chunk_headers.hpp"
 #include "chunk_processor.hpp"
 #include "file_saver.hpp"
 #include "mapped_file.hpp"
 #include "msh_builder.hpp"
-#include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
 
@@ -48,10 +47,10 @@ int main(int argc, char* argv[])
       tbb::task_group tasks;
       msh::Builders_map msh_builders;
 
-      const auto& root_chunk = view_type_as<chunks::Unknown>(*file.get_bytes());
+      Ucfb_reader root_reader{file.bytes(), file.size()};
 
-      tasks.run_and_wait([&] {
-         process_chunk(root_chunk, app_options, file_saver, tasks, msh_builders);
+      tasks.run_and_wait([&, root_reader] {
+         process_chunk(root_reader, app_options, file_saver, tasks, msh_builders);
       });
 
       msh::save_all(file_saver, msh_builders);

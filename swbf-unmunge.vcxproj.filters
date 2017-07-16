@@ -86,6 +86,12 @@
     <ClCompile Include="src\handle_planning_swbf1.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\ucfb_reader.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain_builder.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chunk_headers.hpp">
@@ -131,6 +137,18 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\app_options.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ucfb_reader.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glm_pod_wrappers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain_builder.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math_helpers.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

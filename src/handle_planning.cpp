@@ -1,9 +1,9 @@
 
-#include "chunk_headers.hpp"
+#include "bit_flags.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
-#include "type_pun.hpp"
+#include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
 
@@ -17,70 +17,32 @@ using namespace std::literals;
 
 namespace {
 
-#pragma pack(push, 1)
-
-struct Hub {
+struct Node_info {
    char name[16];
 
    float x;
    float y;
    float z;
    float radius;
-
-   Byte unknown_1[8];
-
-   std::uint8_t weight_counts[5];
-
-   Byte weight_info[];
 };
 
-static_assert(std::is_standard_layout_v<Hub>);
-static_assert(sizeof(Hub) == 45);
+static_assert(std::is_pod_v<Node_info>);
+static_assert(sizeof(Node_info) == 32);
 
-struct Arc {
-   char name[16];
-   std::uint8_t start;
-   std::uint8_t end;
-   std::uint32_t filter_flags;
-   std::uint32_t type_flags;
-};
-
-static_assert(std::is_standard_layout_v<Arc>);
-static_assert(sizeof(Arc) == 26);
-
-struct Node {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Node>);
-static_assert(sizeof(Node) == 8);
-
-struct Arcs {
-   Magic_number mn;
-   std::uint32_t size;
-
-   Arc entries[];
-};
-
-static_assert(std::is_standard_layout_v<Arcs>);
-static_assert(sizeof(Arcs) == 8);
-
-#pragma pack(pop)
+enum class Arc_type_flags : std::uint32_t { one_way = 1, jump = 2, jet_jump = 4 };
 
 struct Hub_info {
-   explicit Hub_info(const Hub& hub)
+   explicit Hub_info(const Node_info& node_info)
    {
-      this->name = hub.name;
-      x = hub.x;
-      y = hub.y;
-      z = hub.z * -1.0f;
-      radius = hub.radius;
+      name = std::string{node_info.name,
+                         cstring_length(node_info.name, sizeof(node_info.name))};
+      x = node_info.x;
+      y = node_info.y;
+      z = node_info.z * -1.0f;
+      radius = node_info.radius;
    }
 
-   std::string_view name;
+   std::string name;
 
    float x;
    float y;
@@ -107,21 +69,7 @@ struct Hub_info {
 };
 
 struct Connection_info {
-   explicit Connection_info(const Arc& arc)
-   {
-      this->name = arc.name;
-      start = arc.start;
-      end = arc.end;
-      filter_flags = arc.filter_flags;
-
-      enum Type_flags { One_way = 1, Jump = 2, Jet_jump = 4 };
-
-      one_way = ((arc.type_flags & One_way) != 0);
-      jump = ((arc.type_flags & Jump) != 0);
-      jet_jump = ((arc.type_flags & Jet_jump) != 0);
-   }
-
-   std::string_view name;
+   std::string name;
    std::size_t start;
    std::size_t end;
    std::uint32_t filter_flags;
@@ -157,43 +105,70 @@ struct Connection_info {
    }
 };
 
-Hub_info read_hub(const Hub& hub, std::uint32_t hub_count, std::uint32_t& head)
+Hub_info read_next_node(Ucfb_reader_strict<"NODE"_mn>& node, std::uint32_t hub_count)
 {
+   const auto info = node.read_trivial_unaligned<Node_info>();
+   node.consume_unaligned(8);
+   const auto weight_counts = node.read_array_unaligned<std::uint8_t>(5);
+
    std::uint32_t weight_count{0};
 
-   for (const auto count : hub.weight_counts) {
+   for (const auto count : weight_counts) {
       weight_count += count;
    }
 
-   head += sizeof(Hub);
-   head += weight_count * hub_count;
+   node.consume_unaligned(weight_count * hub_count);
 
-   return Hub_info{hub};
+   return Hub_info{info};
 }
 
-auto handle_node(const Node& node, std::uint32_t hub_count) -> std::vector<Hub_info>
+Connection_info read_next_arc(Ucfb_reader_strict<"ARCS"_mn>& arcs)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = node.size;
+   const auto name = arcs.read_array_unaligned<char>(16);
+   const auto start = arcs.read_trivial_unaligned<std::uint8_t>();
+   const auto end = arcs.read_trivial_unaligned<std::uint8_t>();
+   const auto filter_flags = arcs.read_trivial_unaligned<std::uint32_t>();
+   const auto type_flags = arcs.read_trivial_unaligned<Arc_type_flags>();
 
+   Connection_info info;
+
+   info.name = std::string{name.data(), cstring_length(name.data(), name.size())};
+   info.start = start;
+   info.end = end;
+   info.filter_flags = filter_flags;
+
+   info.one_way = are_flags_set(type_flags, Arc_type_flags::one_way);
+   info.jump = are_flags_set(type_flags, Arc_type_flags::jump);
+   info.jet_jump = are_flags_set(type_flags, Arc_type_flags::jet_jump);
+
+   return info;
+}
+
+auto handle_node(Ucfb_reader_strict<"NODE"_mn> node, std::uint32_t hub_count)
+   -> std::vector<Hub_info>
+{
    std::vector<Hub_info> hubs;
    hubs.reserve(hub_count);
 
-   while (head < end) {
-      hubs.emplace_back(read_hub(view_type_as<Hub>(node.bytes[head]), hub_count, head));
+   while (node) {
+      const auto hub = read_next_node(node, hub_count);
+
+      hubs.emplace_back(hub);
    }
 
    return hubs;
 }
 
-auto handle_arcs(const Arcs& arcs, std::uint32_t arc_count)
+auto handle_arcs(Ucfb_reader_strict<"ARCS"_mn> arcs, std::uint32_t arc_count)
    -> std::vector<Connection_info>
 {
    std::vector<Connection_info> connections;
    connections.reserve(arc_count);
 
    for (std::size_t i = 0; i < arc_count; ++i) {
-      connections.emplace_back(arcs.entries[i]);
+      const auto arc = read_next_arc(arcs);
+
+      connections.emplace_back(arc);
    }
 
    return connections;
@@ -225,32 +200,31 @@ void write_planning(std::string name, const std::vector<Hub_info> hubs,
 }
 }
 
-void handle_planning(const chunks::Planning& plan, File_saver& file_saver)
+void handle_planning(Ucfb_reader planning, File_saver& file_saver)
 {
-   std::uint32_t head = 0;
-   const std::uint32_t end = plan.size - 16;
-
    std::vector<Hub_info> hubs;
    std::vector<Connection_info> connections;
 
+   auto info = planning.read_child_strict<"INFO"_mn>();
+
+   const auto hub_count = info.read_trivial_unaligned<std::uint16_t>();
+   const auto arc_count = info.read_trivial_unaligned<std::uint16_t>();
+
    tbb::task_group tasks;
 
-   while (head < end) {
-      const auto& chunk = view_type_as<chunks::Unknown>(plan.bytes[head]);
+   while (planning) {
+      const auto child = planning.read_child();
 
-      if (chunk.mn == "NODE"_mn) {
-         tasks.run([&hubs, &chunk, hub_count{plan.info.hub_count} ] {
-            hubs = handle_node(view_type_as<Node>(chunk), hub_count);
+      if (child.magic_number() == "NODE"_mn) {
+         tasks.run([child, &hubs, hub_count] {
+            hubs = handle_node(Ucfb_reader_strict<"NODE"_mn>{child}, hub_count);
          });
       }
-      else if (chunk.mn == "ARCS"_mn) {
-         tasks.run([&connections, &chunk, arc_count{plan.info.arc_count} ] {
-            connections = handle_arcs(view_type_as<Arcs>(chunk), arc_count);
+      else if (child.magic_number() == "ARCS"_mn) {
+         tasks.run([child, &connections, arc_count] {
+            connections = handle_arcs(Ucfb_reader_strict<"ARCS"_mn>{child}, arc_count);
          });
       }
-
-      head += chunk.size + 8;
-      if (head % 4 != 0) head += (4 - (head % 4));
    }
 
    tasks.wait();

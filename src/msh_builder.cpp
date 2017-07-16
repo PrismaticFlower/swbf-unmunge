@@ -79,8 +79,8 @@ std::size_t count_strips_indices(const std::vector<std::vector<std::uint16_t>>& 
    return count;
 }
 
-std::vector<std::uint16_t>
-strips_to_msh_fmt(const std::vector<std::vector<std::uint16_t>>& strips)
+std::vector<std::uint16_t> strips_to_msh_fmt(
+   const std::vector<std::vector<std::uint16_t>>& strips)
 {
    const auto size = count_strips_indices(strips);
 
@@ -115,12 +115,8 @@ void fixup_texture_names(Material& material)
 {
    auto& textures = material.textures;
 
-   textures.erase(std::remove_if(std::begin(textures), std::end(textures),
-                                 [](std::string_view str) { return str.empty(); }),
-                  std::end(textures));
-
    for (auto& texture : textures) {
-      texture += ".tga"_sv;
+      if (!texture.empty()) texture += ".tga"_sv;
    }
 }
 
@@ -226,8 +222,8 @@ Modl_section create_section_from(const Collsion_mesh& collision, std::uint32_t i
    return section;
 }
 
-Modl_section
-create_section_from(const Collision_primitive& primitive, std::uint32_t index)
+Modl_section create_section_from(const Collision_primitive& primitive,
+                                 std::uint32_t index)
 {
    Modl_section section;
 
@@ -242,11 +238,10 @@ create_section_from(const Collision_primitive& primitive, std::uint32_t index)
    return section;
 }
 
-std::vector<Modl_section>
-create_modl_sections(std::vector<Bone> bones, std::vector<Model> models,
-                     std::vector<Shadow> shadows,
-                     std::vector<Collsion_mesh> collision_meshes,
-                     std::vector<Collision_primitive> collision_primitives)
+std::vector<Modl_section> create_modl_sections(
+   std::vector<Bone> bones, std::vector<Model> models, std::vector<Shadow> shadows,
+   std::vector<Collsion_mesh> collision_meshes,
+   std::vector<Collision_primitive> collision_primitives)
 {
    std::vector<Modl_section> sections;
    sections.reserve(bones.size() + models.size() + shadows.size());
@@ -445,13 +440,16 @@ Ucfb_builder create_matd_chunk(const Material& material, std::size_t index)
    atrb.write(material.type);
    atrb.write(material.params);
 
-   for (std::size_t i = 0; i < material.textures.size(); ++i) {
-      if (i > 9) break;
+   for (auto i = 0; i < material.textures.size(); ++i) {
+      static_assert(std::tuple_size_v<decltype(Material::textures)> <= 10,
+                    "Max texture count can not be above 10!");
 
       auto& tex = matd.emplace_child(
          create_magic_number('T', 'X', '0' + static_cast<char>(i), 'D'));
 
-      tex.write(material.textures[i]);
+      if (!material.textures[i].empty()) {
+         tex.write(material.textures[i]);
+      }
    }
 
    return matd;

@@ -2,7 +2,10 @@
 #include "mapped_file.hpp"
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
+
+#include <limits>
 
 namespace {
 
@@ -25,6 +28,14 @@ struct Raii_handle {
 
 Mapped_file::Mapped_file(fs::path path)
 {
+   const auto file_size = std::experimental::filesystem::file_size(path);
+
+   if (file_size > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::runtime_error{"File too large."};
+   }
+
+   _size = static_cast<std::uint32_t>(file_size);
+
    Raii_handle file = CreateFileW(path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ,
                                   NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -43,7 +54,12 @@ Mapped_file::Mapped_file(fs::path path)
       throw std::runtime_error{"Unable to create view of file mapping."};
 }
 
-const Byte* Mapped_file::get_bytes() noexcept
+const Byte* Mapped_file::bytes() noexcept
 {
    return _view.get();
+}
+
+std::uint32_t Mapped_file::size() noexcept
+{
+   return _size;
 }

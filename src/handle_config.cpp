@@ -1,114 +1,47 @@
 
-#include "chunk_headers.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
-#include "type_pun.hpp"
+#include "ucfb_reader.hpp"
+
+#include <gsl/gsl>
 
 #include <algorithm>
-#include <array>
-#include <stack>
-#include <string>
-#include <vector>
 
 namespace {
 
-#pragma pack(push, 1)
-struct Data_chunk {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t hash;
-};
-
-static_assert(std::is_standard_layout_v<Data_chunk>);
-static_assert(sizeof(Data_chunk) == 12);
-
-struct Str_data_chunk {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t hash;
-   std::uint8_t element_count;
-   std::uint32_t str_sizes_size;
-   Byte bytes[];
-};
-
-static_assert(std::is_standard_layout_v<Str_data_chunk>);
-static_assert(sizeof(Str_data_chunk) == 17);
-
-struct Hybrid_data_chunk {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t hash;
-   std::uint8_t element_count;
-   std::uint32_t str_offset;
-   float value;
-   std::uint32_t str_length;
-   char str[];
-};
-
-static_assert(std::is_standard_layout_v<Hybrid_data_chunk>);
-static_assert(sizeof(Hybrid_data_chunk) == 25);
-
-struct Hash_data_chunk {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t hash;
-   std::uint8_t element_count;
-   std::uint32_t value_hash;
-   float floats[];
-};
-
-static_assert(std::is_standard_layout_v<Hash_data_chunk>);
-static_assert(sizeof(Hash_data_chunk) == 17);
-
-struct Float_data_chunk {
-   Magic_number mn;
-   std::uint32_t size;
-   std::uint32_t hash;
-   std::uint8_t element_count;
-   float floats[];
-};
-
-static_assert(std::is_standard_layout_v<Float_data_chunk>);
-static_assert(sizeof(Float_data_chunk) == 13);
-
-#pragma pack(pop)
-
-using Scope_stack = std::stack<std::uint32_t, std::vector<std::uint32_t>>;
-
-void indent_line(std::size_t level, std::string& str)
+inline void remove_last_semicolen(std::string& buffer)
 {
-   str.append(level, '\t');
+   if (buffer.size() >= 2) {
+      if (*(buffer.cend() - 2) == ';') {
+         buffer.pop_back();
+         buffer.back() = '\n';
+      }
+   }
 }
 
-bool is_str_data(const Data_chunk& data)
+bool is_string_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
-   const auto& str_data = view_type_as<Str_data_chunk>(data);
+   data.consume(4);
 
-   if (str_data.element_count == 0) return false;
-   if (str_data.str_sizes_size / 4 != str_data.element_count) return false;
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
 
-   const auto* str_sizes = reinterpret_cast<const std::uint32_t*>(&str_data.bytes[0]);
+   if (element_count == 0) return false;
 
-   const std::size_t str_array_size = str_sizes[str_data.element_count - 1];
+   const auto str_sizes_size = data.read_trivial_unaligned<std::uint32_t>();
 
-   return (str_data.size == 9 + str_data.str_sizes_size + str_array_size);
+   if (str_sizes_size / 4 != element_count) return false;
+
+   const auto str_sizes = data.read_array_unaligned<std::uint32_t>(element_count);
+
+   const std::size_t str_array_size = str_sizes[element_count - 1];
+
+   return (data.size() == 9 + str_sizes_size + str_array_size);
 }
 
-bool is_hybrid_data(const Data_chunk& data)
+bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
-   const auto& hybrid_data = view_type_as<Hybrid_data_chunk>(data);
-
-   if (hybrid_data.element_count != 2) return false;
-
-   return (hybrid_data.size != (hybrid_data.element_count * sizeof(float) + 9));
-}
-
-bool is_hash_data(const Data_chunk& data)
-{
-   const auto& hash_data = view_type_as<Str_data_chunk>(data);
-
    const std::array<std::uint32_t, 7> hashes = {
       0x156b70a1, // GrassPatch
       0xaaea5743, // File
@@ -119,181 +52,232 @@ bool is_hash_data(const Data_chunk& data)
       0x6a6fb399  // LeafPatch
    };
 
-   return ((std::find(std::cbegin(hashes), std::cend(hashes), hash_data.hash) !=
+   const auto data_hash = data.read_trivial<std::uint32_t>();
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+
+   return ((std::find(std::cbegin(hashes), std::cend(hashes), data_hash) !=
             std::cend(hashes)) &&
-           hash_data.element_count > 0);
+           element_count > 0);
 }
 
-bool is_float_data(const Data_chunk& data)
+bool is_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
-   const auto& fl_data = view_type_as<Float_data_chunk>(data);
+   data.consume(4);
 
-   return ((fl_data.element_count > 0) &&
-           (fl_data.size == (fl_data.element_count * sizeof(float) + 9)));
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+
+   if (element_count != 2) return false;
+
+   return (data.size() != (element_count * sizeof(float) + 9));
 }
 
-std::string handle_str_data(const Str_data_chunk& data, std::uint32_t& parent_head)
+bool is_float_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
+   data.consume(4);
+
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+
+   return ((element_count > 0) && (data.size() == (element_count * sizeof(float) + 9)));
+}
+
+std::string read_string_data(Ucfb_reader_strict<"DATA"_mn> data,
+                             const std::size_t indention_level)
+{
+   const auto hash = data.read_trivial<std::uint32_t>();
+
    std::string line;
-   line = lookup_fnv_hash(data.hash);
+   line.append(indention_level, '\t');
+   line += lookup_fnv_hash(hash);
    line += '(';
 
-   std::uint32_t head = data.str_sizes_size;
-   std::uint32_t end = data.size - 9;
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+   const auto str_sizes_size = data.read_trivial_unaligned<std::uint32_t>();
+   const auto str_sizes = data.read_array_unaligned<std::uint32_t>(element_count);
 
-   while (head < end) {
-      std::string_view str;
-      str = reinterpret_cast<const char*>(&data.bytes[head]);
-      head += static_cast<std::uint32_t>(str.size()) + 1;
-
+   while (data) {
       line += '\"';
-      line += str;
+      line += data.read_string_unaligned();
       line += "\", "_sv;
    }
 
    line.resize(line.size() - 2);
-   line += ");"_sv;
-
-   parent_head += (data.size + 8);
+   line += ");\n"_sv;
 
    return line;
 }
 
-std::string handle_hybrid_data(const Hybrid_data_chunk& chunk, std::uint32_t& head)
+std::string read_hash_data(Ucfb_reader_strict<"DATA"_mn> data,
+                           const std::size_t indention_level)
 {
+   const auto hash = data.read_trivial<std::uint32_t>();
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+   const auto value_hash = data.read_trivial_unaligned<std::uint32_t>();
+
    std::string line;
-   line = lookup_fnv_hash(chunk.hash);
+   line.append(indention_level, '\t');
+   line += lookup_fnv_hash(hash);
    line += "(\""_sv;
-   line += std::string_view{chunk.str, chunk.str_length - 1};
-   line += "\", "_sv;
-   line += std::to_string(chunk.value);
-   line += ");"_sv;
-
-   head += (chunk.size + 8);
-
-   return line;
-}
-
-std::string handle_hash_data(const Hash_data_chunk& chunk, std::uint32_t& head)
-{
-   std::string line;
-   line = lookup_fnv_hash(chunk.hash);
-   line += "(\""_sv;
-   line += lookup_fnv_hash(chunk.value_hash);
+   line += lookup_fnv_hash(value_hash);
    line += "\", "_sv;
 
-   for (std::size_t i = 1; i < chunk.element_count; ++i) {
-      line += std::to_string(chunk.floats[i]);
+   for (std::size_t i = 1; i < element_count; ++i) {
+      line += std::to_string(data.read_trivial_unaligned<float>());
       line += ", "_sv;
    }
 
    line.resize(line.size() - 2);
 
-   line += ");"_sv;
-
-   head += (chunk.size + 8);
+   line += ");\n"_sv;
 
    return line;
 }
 
-std::string handle_float_data(const Float_data_chunk& chunk, std::uint32_t& head)
+std::string read_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data,
+                             const std::size_t indention_level)
 {
+   const auto hash = data.read_trivial<std::uint32_t>();
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+
+   // data.consume_unaligned(4);
+   const auto string_index = data.read_trivial_unaligned<std::uint32_t>();
+
+   const auto value = data.read_trivial_unaligned<float>();
+
+   const auto string_size = data.read_trivial_unaligned<std::uint32_t>();
+
    std::string line;
-   line = lookup_fnv_hash(chunk.hash);
+   line.append(indention_level, '\t');
+   line += lookup_fnv_hash(hash);
+   line += "(\""_sv;
+   line += data.read_string_unaligned();
+   line += "\", "_sv;
+   line += std::to_string(value);
+   line += ");\n"_sv;
+
+   return line;
+}
+
+std::string read_float_data(Ucfb_reader_strict<"DATA"_mn> data,
+                            const std::size_t indention_level)
+{
+   const auto hash = data.read_trivial<std::uint32_t>();
+   const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
+
+   std::string line;
+   line.append(indention_level, '\t');
+   line += lookup_fnv_hash(hash);
    line += '(';
 
-   for (std::size_t i = 0; i < chunk.element_count; ++i) {
-      line += std::to_string(chunk.floats[i]);
+   for (std::size_t i = 0; i < element_count; ++i) {
+      line += std::to_string(data.read_trivial_unaligned<float>());
       line += ", "_sv;
    }
 
    line.resize(line.size() - 2);
-   line += ");"_sv;
 
-   head += (chunk.size + 8);
+   line += ");\n"_sv;
 
    return line;
 }
 
-std::string handle_tag_data(const Float_data_chunk& chunk, std::uint32_t& head)
+std::string read_tag_data(Ucfb_reader_strict<"DATA"_mn> data,
+                          const std::size_t indention_level)
 {
+   const auto hash = data.read_trivial<std::uint32_t>();
+
    std::string line;
-   line = lookup_fnv_hash(chunk.hash);
-   line += "();"_sv;
-   head += (chunk.size + 8);
+   line.append(indention_level, '\t');
+   line += lookup_fnv_hash(hash);
+   line += "();\n"_sv;
 
    return line;
 }
 
-std::string handle_data(const Data_chunk& chunk, std::uint32_t& head,
-                        bool strings_are_hashed)
+std::string read_data(Ucfb_reader_strict<"DATA"_mn> data,
+                      const std::size_t indention_level, bool strings_are_hashed)
 {
-   if (is_str_data(chunk)) {
-      return handle_str_data(view_type_as<Str_data_chunk>(chunk), head);
+   if (is_string_data(data)) {
+      return read_string_data(data, indention_level);
    }
-   else if (strings_are_hashed && is_hash_data(chunk)) {
-      return handle_hash_data(view_type_as<Hash_data_chunk>(chunk), head);
+   else if (strings_are_hashed && is_hash_data(data)) {
+      return read_hash_data(data, indention_level);
    }
-   else if (is_hybrid_data(chunk)) {
-      return handle_hybrid_data(view_type_as<Hybrid_data_chunk>(chunk), head);
+   else if (is_hybrid_data(data)) {
+      return read_hybrid_data(data, indention_level);
    }
-   else if (is_float_data(chunk)) {
-      return handle_float_data(view_type_as<Float_data_chunk>(chunk), head);
+   else if (is_float_data(data)) {
+      return read_float_data(data, indention_level);
    }
    else {
-      return handle_tag_data(view_type_as<Float_data_chunk>(chunk), head);
+      return read_tag_data(data, indention_level);
    }
 }
-}
 
-void handle_config(const chunks::Config& chunk, File_saver& file_saver,
-                   std::string_view file_type, std::string_view dir,
-                   bool strings_are_hashed)
+std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
+                       const std::size_t indention_level, bool strings_are_hashed)
 {
-   Scope_stack scope_stack;
+   Expects(indention_level >= 1);
+
    std::string buffer;
-   buffer.reserve(1024);
+   buffer.reserve(4096);
 
-   std::uint32_t head = 0;
-   const std::uint32_t end = chunk.size - 12;
+   buffer.append(indention_level - 1, '\t');
+   buffer += "{\n"_sv;
 
-   while (head < end) {
-      const Data_chunk& child = view_type_as<Data_chunk>(chunk.bytes[head]);
+   while (scope) {
+      const auto child = scope.read_child();
 
-      if (child.mn == "DATA"_mn) {
-         const auto line = handle_data(child, head, strings_are_hashed);
-
-         indent_line(scope_stack.size(), buffer);
-         buffer.append(line);
-         buffer += '\n';
+      if (child.magic_number() == "DATA"_mn) {
+         buffer += read_data(Ucfb_reader_strict<"DATA"_mn>{child}, indention_level,
+                             strings_are_hashed);
       }
-      else if (child.mn == "SCOP"_mn) {
-         head += 8;
+      else if (child.magic_number() == "SCOP"_mn) {
+         remove_last_semicolen(buffer);
 
-         if (!buffer.empty()) {
-            buffer.resize(buffer.size() - 2);
-            buffer += '\n';
-         }
-
-         indent_line(scope_stack.size(), buffer);
-         buffer += "{\n"_sv;
-         scope_stack.push(head + child.size);
-      }
-
-      if (head % 4 != 0) head += (4 - (head % 4));
-
-      while (!scope_stack.empty() && head >= scope_stack.top()) {
-         scope_stack.pop();
-         indent_line(scope_stack.size(), buffer);
-         buffer.append("}\n", 2);
-
-         if (scope_stack.empty()) buffer += '\n';
+         buffer += read_scope(Ucfb_reader_strict<"SCOP"_mn>{child}, indention_level + 1,
+                              strings_are_hashed);
       }
    }
+
+   buffer.append(indention_level - 1, '\t');
+   buffer += "}\n"_sv;
+
+   return buffer;
+}
+
+std::string read_root_scope(Ucfb_reader config, bool strings_are_hashed)
+{
+   std::string buffer;
+   buffer.reserve(16384);
+
+   while (config) {
+      const auto child = config.read_child();
+
+      if (child.magic_number() == "DATA"_mn) {
+         buffer += read_data(Ucfb_reader_strict<"DATA"_mn>{child}, 0, strings_are_hashed);
+      }
+      else if (child.magic_number() == "SCOP"_mn) {
+         remove_last_semicolen(buffer);
+
+         buffer +=
+            read_scope(Ucfb_reader_strict<"SCOP"_mn>{child}, 1, strings_are_hashed);
+      }
+   }
+
+   return buffer;
+}
+}
+
+void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view file_type,
+                   std::string_view dir, bool strings_are_hashed)
+{
+   const auto name_hash =
+      config.read_child_strict<"NAME"_mn>().read_trivial<std::uint32_t>();
+
+   auto buffer = read_root_scope(config, strings_are_hashed);
 
    if (!buffer.empty()) {
-      file_saver.save_file(std::move(buffer),
-                           std::to_string(chunk.name_hash) += file_type,
+      file_saver.save_file(std::move(buffer), std::to_string(name_hash) += file_type,
                            std::string{dir});
    }
 }

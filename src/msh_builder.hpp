@@ -57,7 +57,7 @@ enum class Collision_flags : std::uint32_t {
 struct Material {
    glm::vec4 colour;
    float specular_value;
-   std::vector<std::string> textures;
+   std::array<std::string, 4> textures;
 
    Render_flags flags;
    Render_type type;
