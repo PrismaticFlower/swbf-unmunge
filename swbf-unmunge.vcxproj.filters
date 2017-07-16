@@ -148,6 +148,8 @@
     <ClInclude Include="src\terrain_builder.hpp">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\math_helpers.hpp" />
+    <ClInclude Include="src\math_helpers.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
