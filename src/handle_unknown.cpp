@@ -1,8 +1,9 @@
 
-#include "chunk_headers.hpp"
+#include "byte.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
+#include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
 #include <atomic>
@@ -26,20 +27,17 @@ std::string get_unique_chunk_name() noexcept
 }
 }
 
-void handle_unknown(Ucfb_reader chunk_reader, File_saver& file_saver,
+void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
                     std::optional<std::string> file_name)
 {
-   const auto& chunk = chunk_reader.view_as_chunk<chunks::Unknown>();
-
-   const std::uint32_t size = chunk.size + sizeof(chunk);
-
    std::string file;
-   file.resize(size + 8);
+   file.reserve(chunk.size() + 16);
 
-   reinterpret_cast<Magic_number&>(file[0]) = "ucfb"_mn;
-   reinterpret_cast<std::uint32_t&>(file[4]) = size;
-
-   std::memcpy(&file[8], &chunk, size);
+   file += "ucfb"_sv;
+   file += view_pod_as_string(static_cast<std::uint32_t>(chunk.size() + 8));
+   file += view_pod_as_string(chunk.magic_number());
+   file += view_pod_as_string(static_cast<std::uint32_t>(chunk.size()));
+   file += view_pod_span_as_string(chunk.read_array<Byte>(chunk.size()));
 
    file_saver.save_file(std::move(file), file_name ? *file_name : get_unique_chunk_name(),
                         "munged");
