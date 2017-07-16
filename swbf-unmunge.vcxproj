@@ -45,7 +45,6 @@
     <ClInclude Include="src\app_options.hpp" />
     <ClInclude Include="src\bit_flags.hpp" />
     <ClInclude Include="src\byte.hpp" />
-    <ClInclude Include="src\chunk_headers.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
     <ClInclude Include="src\glm_pod_wrappers.hpp" />

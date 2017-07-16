@@ -1,7 +1,6 @@
 #pragma once
 
 #include "byte.hpp"
-#include "chunk_headers.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
@@ -156,15 +155,6 @@ public:
    Magic_number magic_number() const noexcept;
 
    std::size_t size() const noexcept;
-
-   // Temporary function for use as a compatibility shim. This *will* be removed
-   // as soon as all code has been migrated away from using raw structs.
-   template<typename Type>
-   [[deprecated("Replace with ucfb_reader abstraction.")]] const Type& view_as_chunk()
-      const noexcept
-   {
-      return view_type_as<Type>(_data[-8]);
-   }
 
 private:
    // Special constructor for use by read_child, performs no error checking.

@@ -94,9 +94,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\chunk_headers.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\byte.hpp">
       <Filter>src</Filter>
     </ClInclude>
