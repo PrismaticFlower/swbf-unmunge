@@ -4,6 +4,7 @@
 #include "file_saver.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
+#include "synced_cout.hpp"
 #include "type_pun.hpp"
 
 #include "tbb/task_group.h"
@@ -275,7 +276,15 @@ void process_chunk(Ucfb_reader chunk, const App_options& app_options,
 
    if (processor) {
       tasks.run([&, chunk, processor] {
-         processor({chunk, app_options, file_saver, tasks, msh_builders});
+         try {
+            processor({chunk, app_options, file_saver, tasks, msh_builders});
+         }
+         catch (const std::exception& e) {
+            synced_cout::print("Exception occured while processing chunk.\n"
+                               "   Type: "s,
+                               view_pod_as_string(chunk.magic_number()), "\n   Size: "s,
+                               chunk.size(), "\n   Message: "s, e.what(), '\n');
+         }
       });
    }
    else {
