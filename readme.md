@@ -47,13 +47,14 @@ For everything else it will be saved as a `chunk_*.munged` that can be passed ba
 If you have Visual Studio 2017 all you need to do is use [vcpkg](https://github.com/Microsoft/vcpkg)
 to grab these libraries and you'll be good to go.
 
+* [gsl](https://github.com/Microsoft/gsl/)
 * [DirectXTex](https://github.com/Microsoft/DirectXTex/)
 * [glm](https://github.com/g-truc/glm)
 * [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
 
 Otherwise things are going to be a bit more complicated if you're wanting to build it
 for a platform that isn't Windows. Most of the code is clean standard C++ though, save a
-couple `#pragma` directives and the flexible array members in quite a few of the structs.
+couple `#pragma` directives.
 
 If you for some reason do want to build it on Linux or something feel free to get in
 touch I am happy to help point out what bits of the codebase are non-portable and what
