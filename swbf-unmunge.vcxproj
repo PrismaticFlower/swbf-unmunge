@@ -55,6 +55,7 @@
     <ClInclude Include="src\msh_builder.hpp" />
     <ClInclude Include="src\string_helpers.hpp" />
     <ClInclude Include="src\swbf_fnv_hashes.hpp" />
+    <ClInclude Include="src\synced_cout.hpp" />
     <ClInclude Include="src\terrain_builder.hpp" />
     <ClInclude Include="src\type_pun.hpp" />
     <ClInclude Include="src\ucfb_builder.hpp" />
