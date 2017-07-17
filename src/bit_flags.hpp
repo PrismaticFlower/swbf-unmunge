@@ -7,7 +7,7 @@ constexpr bool are_flags_set(const Flags_type value, const Flags_type flags)
 {
    using T = std::underlying_type_t<Flags_type>;
 
-   return (static_cast<T>(value) & static_cast<T>(flags)) != 0;
+   return (static_cast<T>(value) & static_cast<T>(flags)) == static_cast<T>(flags);
 }
 
 template<typename Flags_type>
