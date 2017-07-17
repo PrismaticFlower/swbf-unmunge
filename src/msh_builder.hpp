@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace msh {
@@ -41,6 +42,20 @@ enum class Render_type : std::uint8_t {
    bumpmap = 27
 };
 
+enum class Render_type_swbf1 : std::uint8_t {
+   normal = 0,
+   glow = 1,
+   scroll = 3,
+   specular = 4,
+   reflection = 6,
+   water = 10,
+   detail = 11,
+   refraction = 22,
+   camouflage = 23,
+   bumpmap = 27,
+   bumpmap_specular = 28
+};
+
 enum class Primitive_type : std::uint32_t { sphere = 0, cylinder = 2, cube = 4 };
 
 enum class Collision_flags : std::uint32_t {
@@ -55,13 +70,19 @@ enum class Collision_flags : std::uint32_t {
 };
 
 struct Material {
-   glm::vec4 colour;
-   float specular_value;
+   glm::vec4 colour{1.0f, 1.0f, 1.0f, 1.0f};
+   float specular_value{20.0f};
    std::array<std::string, 4> textures;
 
    Render_flags flags;
-   Render_type type;
-   std::array<std::uint8_t, 2> params;
+   union {
+      Render_type type;
+      Render_type_swbf1 type_swbf1;
+
+      static_assert(std::is_same_v<std::underlying_type_t<Render_type>,
+                                   std::underlying_type_t<Render_type_swbf1>>);
+   };
+   std::array<std::int8_t, 2> params;
 };
 
 struct Model {
