@@ -142,6 +142,8 @@ void write_path(const Path& path, std::string& buffer)
    for (const auto& node : path.nodes) {
       write_node(node, buffer);
    }
+
+   buffer += "\t}\n}\n\n"_sv;
 }
 
 void save_paths(std::vector<Path> paths, File_saver& file_saver)
