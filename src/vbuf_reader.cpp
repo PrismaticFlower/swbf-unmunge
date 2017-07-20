@@ -1,11 +1,17 @@
 
+#include "vbuf_helpers.hpp"
 #include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
+#include "math_helpers.hpp"
 #include "msh_builder.hpp"
+#include "string_helpers.hpp"
+#include "synced_cout.hpp"
 #include "ucfb_reader.hpp"
 
 #include <array>
 #include <cstdint>
+
+using namespace std::literals;
 
 namespace {
 
@@ -20,8 +26,12 @@ enum class Vbuf_types : std::uint32_t {
    // xyz (position) - skin - xyz (normal) - uv (texture coordinates)
    xyzsknuv = 0x0000226,
 
-   unknown_16 = 0x0000d222,
-   unknown_20 = 0x0000f226
+   unused_12 = 0x00005022,
+   unused_16 = 0x0000d222,
+   unused_20 = 0x0000f226,
+   unused_24 = 0x0000d262,
+   unused_28 = 0x0000780e,
+   unused_56 = 0x00000262
 };
 
 struct Vbuf_info {
@@ -62,12 +72,40 @@ struct Vbuf_xyzsknuv_entry {
 static_assert(std::is_pod_v<Vbuf_xyzsknuv_entry>);
 static_assert(sizeof(Vbuf_xyzsknuv_entry) == 36);
 
+constexpr bool is_known_vbuf(Vbuf_types type) noexcept
+{
+   switch (type) {
+   case Vbuf_types::xyznuv:
+      return true;
+   case Vbuf_types::xyzncuv:
+      return true;
+   case Vbuf_types::xyzncuv_2:
+      return true;
+   case Vbuf_types::xyzsknuv:
+      return true;
+   case Vbuf_types::unused_12:
+      return true;
+   case Vbuf_types::unused_16:
+      return true;
+   case Vbuf_types::unused_20:
+      return true;
+   case Vbuf_types::unused_24:
+      return true;
+   case Vbuf_types::unused_28:
+      return true;
+   case Vbuf_types::unused_56:
+      return true;
+   default:
+      return false;
+   }
+}
+
 glm::vec2 flip_texture_y(glm::vec2 tex_coord)
 {
    return {tex_coord.x, 1.0f - tex_coord.y};
 }
 
-void process_vbuf_impl(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& model)
+void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& model)
 {
    model.vertices.clear();
    model.vertices.reserve(entries.size());
@@ -83,7 +121,7 @@ void process_vbuf_impl(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& m
    }
 }
 
-void process_vbuf_impl(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& model)
+void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& model)
 {
    model.vertices.clear();
    model.vertices.reserve(entries.size());
@@ -102,7 +140,7 @@ void process_vbuf_impl(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& 
    }
 }
 
-void process_vbuf_impl(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& model)
+void read_vbuf_span(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& model)
 {
    model.vertices.clear();
    model.vertices.reserve(entries.size());
@@ -122,20 +160,24 @@ void process_vbuf_impl(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model&
 }
 }
 
-void process_vbuf(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model)
+void read_vbuf(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model)
 {
    const auto vbuf_info = vbuf.read_trivial<Vbuf_info>();
 
    if (vbuf_info.type == Vbuf_types::xyznuv) {
-      process_vbuf_impl(vbuf.read_array<Vbuf_xyznuv_entry>(vbuf_info.entry_count), model);
+      read_vbuf_span(vbuf.read_array<Vbuf_xyznuv_entry>(vbuf_info.entry_count), model);
    }
    else if (vbuf_info.type == Vbuf_types::xyzncuv ||
             vbuf_info.type == Vbuf_types::xyzncuv_2) {
-      process_vbuf_impl(vbuf.read_array<Vbuf_xyzncuv_entry>(vbuf_info.entry_count),
-                        model);
+      read_vbuf_span(vbuf.read_array<Vbuf_xyzncuv_entry>(vbuf_info.entry_count), model);
    }
    else if (vbuf_info.type == Vbuf_types::xyzsknuv) {
-      process_vbuf_impl(vbuf.read_array<Vbuf_xyzsknuv_entry>(vbuf_info.entry_count),
-                        model);
+      read_vbuf_span(vbuf.read_array<Vbuf_xyzsknuv_entry>(vbuf_info.entry_count), model);
+   }
+   else if (!is_known_vbuf(vbuf_info.type)) {
+      synced_cout::print("Unknown VBUF encountered."s, "\n   size : "s, vbuf.size(),
+                         "\n   entry count: "s, vbuf_info.entry_count,
+                         "\n   entry size: "s, vbuf_info.entry_size, "\n   entry type: "s,
+                         to_hexstring(static_cast<std::uint32_t>(vbuf_info.type)), '\n');
    }
 }

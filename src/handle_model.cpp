@@ -317,7 +317,7 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, msh::Builder& builde
          model.strips = read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
       }
       else if (child.magic_number() == "VBUF"_mn) {
-         process_vbuf(Ucfb_reader_strict<"VBUF"_mn>{child}, model);
+         read_vbuf(Ucfb_reader_strict<"VBUF"_mn>{child}, model);
       }
       else if (child.magic_number() == "BNAM"_mn) {
          model.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();

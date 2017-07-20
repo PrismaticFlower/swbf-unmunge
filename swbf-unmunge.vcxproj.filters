@@ -62,7 +62,7 @@
     <ClCompile Include="src\handle_skeleton.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\vbuf_helpers.cpp">
+    <ClCompile Include="src\vbuf_reader.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\msh_builder.cpp">
@@ -121,7 +121,7 @@
     <ClInclude Include="src\type_pun.hpp">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\vbuf_helpers.hpp">
+    <ClInclude Include="src\vbuf_reader.hpp">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\msh_builder.hpp">

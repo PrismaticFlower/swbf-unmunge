@@ -39,7 +39,7 @@
     <ClCompile Include="src\terrain_builder.cpp" />
     <ClCompile Include="src\ucfb_builder.cpp" />
     <ClCompile Include="src\ucfb_reader.cpp" />
-    <ClCompile Include="src\vbuf_helpers.cpp" />
+    <ClCompile Include="src\vbuf_reader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app_options.hpp" />
@@ -60,7 +60,7 @@
     <ClInclude Include="src\type_pun.hpp" />
     <ClInclude Include="src\ucfb_builder.hpp" />
     <ClInclude Include="src\ucfb_reader.hpp" />
-    <ClInclude Include="src\vbuf_helpers.hpp" />
+    <ClInclude Include="src\vbuf_reader.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
