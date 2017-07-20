@@ -60,12 +60,46 @@ struct Material_info {
 static_assert(std::is_pod_v<Material_info>);
 static_assert(sizeof(Material_info) == 24);
 
+struct Model_info {
+
+   std::array<glm::vec3, 2> vertex_box;
+   std::array<glm::vec3, 2> visibility_box;
+   std::uint32_t face_count{};
+};
+
 glm::vec4 cast_uint_colour(std::uint32_t colour)
 {
    const std::array<std::uint8_t, 4> array{(colour >> 0) & 0xFF, (colour >> 8) & 0xFF,
                                            (colour >> 16) & 0xFF, (colour >> 24) & 0xFF};
 
    return {array[0] / 255.0f, array[1] / 255.0f, array[2] / 255.0f, array[3] / 255.0f};
+}
+
+Model_info read_model_info(Ucfb_reader_strict<"INFO"_mn> info)
+{
+   const auto size = info.size();
+
+   if (size != 72 && size != 68) {
+      throw std::runtime_error{"Unknow model info encountered."};
+   }
+
+   // swbfii has an array of four ints vs the array of three for swbf1
+   if (size == 72) {
+      info.read_trivial<std::array<std::int32_t, 4>>();
+   }
+   else {
+      info.read_trivial<std::array<std::int32_t, 3>>();
+   }
+
+   const auto vertex_box = info.read_trivial<std::array<pod::Vec3, 2>>();
+   const auto vis_box = info.read_trivial<std::array<pod::Vec3, 2>>();
+
+   // read unknown int
+   info.read_trivial<std::int32_t>();
+
+   const auto face_count = info.read_trivial<std::uint32_t>();
+
+   return {{vertex_box[0], vertex_box[1]}, {vis_box[0], vis_box[1]}, face_count};
 }
 
 void read_texture_name(Ucfb_reader_strict<"TNAM"_mn> texture_name,
@@ -130,61 +164,6 @@ std::vector<std::uint8_t> read_bone_map(Ucfb_reader_strict<"BMAP"_mn> bone_map)
    result.resize(count);
 
    std::memcpy(result.data(), bones.data(), result.size());
-
-   return result;
-}
-
-std::vector<glm::vec3> read_shadow_vertices(Ucfb_reader_strict<"SHDV"_mn> shadow_vertices)
-{
-   const auto size = shadow_vertices.size();
-   const auto vertex_count = size / sizeof(pod::Vec3);
-
-   std::vector<glm::vec3> vertices_rt{size};
-
-   const auto vertices = shadow_vertices.read_array<pod::Vec3>(vertex_count);
-
-   std::memcpy(vertices_rt.data(), vertices.data(),
-               vertices_rt.size() * sizeof(glm::vec3));
-
-   return vertices_rt;
-}
-
-auto read_shadow_indices(Ucfb_reader_strict<"SHDI"_mn> shadow_indices)
-   -> std::vector<std::vector<std::uint16_t>>
-{
-   const auto index_count = shadow_indices.size() / sizeof(std::array<std::uint16_t, 4>);
-
-   static_assert(sizeof(std::array<std::uint16_t, 4>) == 8);
-
-   std::vector<std::vector<std::uint16_t>> strips;
-   strips.reserve(index_count);
-
-   const auto indices =
-      shadow_indices.read_array<std::array<std::uint16_t, 4>>(index_count);
-
-   for (const auto index : indices) {
-      strips.emplace_back(
-         std::initializer_list<std::uint16_t>{index[0], index[1], index[2]});
-   }
-
-   return strips;
-}
-
-std::vector<std::uint8_t> read_shadow_skin(Ucfb_reader_strict<"SKIN"_mn> skin)
-{
-   const auto count = skin.read_trivial<std::uint32_t>();
-   skin.consume(4);
-
-   std::vector<std::uint8_t> result;
-   result.reserve(count);
-
-   for (std::size_t i = 0; i < count; ++i) {
-      skin.consume_unaligned(2);
-
-      result.emplace_back(skin.read_trivial_unaligned<std::uint8_t>());
-
-      skin.consume_unaligned(2);
-   }
 
    return result;
 }
@@ -318,27 +297,6 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
    }
 }
 
-void read_cshadow(Ucfb_reader_strict<"CSHD"_mn> c_shadow, msh::Shadow& out)
-{
-   c_shadow.read_child_strict<"INFO"_mn>();
-   auto data = c_shadow.read_child_strict<"DATA"_mn>();
-   data.read_child_strict<"INFO"_mn>();
-
-   while (data) {
-      const auto& child = data.read_child();
-
-      if (child.magic_number() == "SHDV"_mn) {
-         out.vertices = read_shadow_vertices(Ucfb_reader_strict<"SHDV"_mn>{child});
-      }
-      else if (child.magic_number() == "SHDI"_mn) {
-         out.strips = read_shadow_indices(Ucfb_reader_strict<"SHDI"_mn>{child});
-      }
-      else if (child.magic_number() == "SKIN"_mn) {
-         out.skin = read_shadow_skin(Ucfb_reader_strict<"SKIN"_mn>{child});
-      }
-   }
-}
-
 void process_segment(Ucfb_reader_strict<"segm"_mn> segment, msh::Builder& builder)
 {
    msh::Model model{};
@@ -371,32 +329,16 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, msh::Builder& builde
 
    builder.add_model(std::move(model));
 }
-
-void process_shadow(Ucfb_reader_strict<"shdw"_mn> shadow, msh::Builder& builder)
-{
-   msh::Shadow msh_shadow{};
-
-   while (shadow) {
-      const auto child = shadow.read_child();
-
-      if (child.magic_number() == "CSHD"_mn) {
-         read_cshadow(Ucfb_reader_strict<"CSHD"_mn>{child}, msh_shadow);
-      }
-      else if (child.magic_number() == "BNAM"_mn) {
-         msh_shadow.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();
-      }
-      else if (child.magic_number() == "BMAP"_mn) {
-         msh_shadow.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
-      }
-   }
-
-   builder.add_shadow(std::move(msh_shadow));
-}
 }
 
 void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_group& tasks)
 {
    const std::string name{model.read_child_strict<"NAME"_mn>().read_string()};
+
+   model.read_child_strict_optional<"VRTX"_mn>();
+   model.read_child_strict<"NODE"_mn>();
+
+   const auto model_info = read_model_info(model.read_child_strict<"INFO"_mn>());
 
    auto& builder = builders[name];
 
@@ -406,11 +348,6 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
       if (child.magic_number() == "segm"_mn) {
          tasks.run([child, &builder] {
             process_segment(Ucfb_reader_strict<"segm"_mn>{child}, builder);
-         });
-      }
-      else if (child.magic_number() == "shdw"_mn) {
-         tasks.run([child, &builder] {
-            process_shadow(Ucfb_reader_strict<"shdw"_mn>{child}, builder);
          });
       }
    }
