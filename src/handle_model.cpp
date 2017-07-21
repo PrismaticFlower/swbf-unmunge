@@ -312,10 +312,10 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
    }
 }
 
-void process_segment(Ucfb_reader_strict<"segm"_mn> segment, msh::Builder& builder)
+void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view model_root,
+                     msh::Builder& builder)
 {
    msh::Model model{};
-
    while (segment) {
       const auto child = segment.read_child();
 
@@ -342,6 +342,10 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, msh::Builder& builde
       }
    }
 
+   if (model.parent.empty()) {
+      model.parent = model_root;
+   }
+
    builder.add_model(std::move(model));
 }
 }
@@ -351,8 +355,8 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
    const std::string name{model.read_child_strict<"NAME"_mn>().read_string()};
 
    model.read_child_strict_optional<"VRTX"_mn>();
-   model.read_child_strict<"NODE"_mn>();
 
+   const auto model_root = model.read_child_strict<"NODE"_mn>().read_string();
    const auto model_info = read_model_info(model.read_child_strict<"INFO"_mn>());
 
    auto& builder = builders[name];
@@ -363,8 +367,8 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
       const auto child = model.read_child();
 
       if (child.magic_number() == "segm"_mn) {
-         tasks.run([child, &builder] {
-            process_segment(Ucfb_reader_strict<"segm"_mn>{child}, builder);
+         tasks.run([child, model_root, &builder] {
+            process_segment(Ucfb_reader_strict<"segm"_mn>{child}, model_root, builder);
          });
       }
    }
