@@ -477,7 +477,7 @@ Ucfb_builder create_matl_chunk(std::vector<Modl_section>& sections)
    return matl;
 }
 
-Ucfb_builder create_sinf_chunk(glm::vec3 bbox_extent, std::string_view model_name)
+Ucfb_builder create_sinf_chunk(const Bbox msh_bbox, std::string_view model_name)
 {
    Ucfb_builder sinf{"SINF"_mn};
 
@@ -486,22 +486,24 @@ Ucfb_builder create_sinf_chunk(glm::vec3 bbox_extent, std::string_view model_nam
 
    auto& bbox = sinf.emplace_child("BBOX"_mn);
 
-   bbox.write_multiple(0.0f, 0.0f, 0.0f, 1.0f);
-   bbox.write_multiple(0.0f, 0.0f, 0.0f);
-   bbox.write_multiple(bbox_extent.x, bbox_extent.y, bbox_extent.z);
-   bbox.write(std::max({bbox_extent.x, bbox_extent.y, bbox_extent.z}) * 2.0f);
+   const auto& rotation = msh_bbox.rotation;
+
+   bbox.write_multiple(rotation.x, rotation.y, rotation.z, rotation.w);
+   bbox.write_multiple(msh_bbox.centre.x, msh_bbox.centre.y, msh_bbox.centre.z);
+   bbox.write_multiple(msh_bbox.size.x, msh_bbox.size.y, msh_bbox.size.z);
+   bbox.write(std::max({msh_bbox.size.x, msh_bbox.size.y, msh_bbox.size.z}) * 2.0f);
 
    return sinf;
 }
 
-std::string create_msh_file(std::vector<Modl_section> sections, glm::vec3 bbox_extent,
+std::string create_msh_file(std::vector<Modl_section> sections, const Bbox bbox,
                             std::string_view name)
 {
    Ucfb_builder hedr{"HEDR"_mn};
 
    auto& msh2 = hedr.emplace_child("MSH2"_mn);
 
-   msh2.add_child(create_sinf_chunk(bbox_extent, name));
+   msh2.add_child(create_sinf_chunk(bbox, name));
    msh2.add_child(create_matl_chunk(sections));
 
    for (const auto& section : sections) {
@@ -515,6 +517,18 @@ std::string create_msh_file(std::vector<Modl_section> sections, glm::vec3 bbox_e
 }
 
 namespace msh {
+
+Builder::Builder(const Builder& other) : Builder{}
+{
+   this->_bones = other._bones;
+   this->_models = other._models;
+   this->_shadows = other._shadows;
+   this->_collision_meshes = other._collision_meshes;
+   this->_collision_primitives = other._collision_primitives;
+
+   std::lock_guard<tbb::spin_mutex> bbox_lock{other._bbox_mutex};
+   this->_bbox = other._bbox;
+}
 
 void Builder::add_bone(Bone bone)
 {
@@ -541,9 +555,10 @@ void Builder::add_collision_primitive(Collision_primitive primitive)
    _collision_primitives.emplace_back(std::move(primitive));
 }
 
-void Builder::set_bbox_extent(glm::vec3 extent)
+void Builder::set_bbox(const Bbox& bbox) noexcept
 {
-   _bbox_extent = extent;
+   std::lock_guard<tbb::spin_mutex> bbox_lock{_bbox_mutex};
+   _bbox = bbox;
 }
 
 void Builder::save(const std::string& name, File_saver& file_saver) const
@@ -554,9 +569,15 @@ void Builder::save(const std::string& name, File_saver& file_saver) const
                            downgrade_concurrent_vector(_shadows),
                            downgrade_concurrent_vector(_collision_meshes),
                            downgrade_concurrent_vector(_collision_primitives)),
-      _bbox_extent, name);
+      get_bbox(), name);
 
    file_saver.save_file(std::move(msh_file), name + ".msh"s, "msh"s);
+}
+
+Bbox Builder::get_bbox() const noexcept
+{
+   std::lock_guard<tbb::spin_mutex> bbox_lock{_bbox_mutex};
+   return _bbox;
 }
 
 void save_all(File_saver& file_saver, const Builders_map& builders)

@@ -8,6 +8,7 @@
 
 #include "tbb/concurrent_unordered_map.h"
 #include "tbb/concurrent_vector.h"
+#include "tbb/spin_mutex.h"
 
 #include <array>
 #include <atomic>
@@ -67,6 +68,12 @@ enum class Collision_flags : std::uint32_t {
    flyer = 32,
 
    all = 63
+};
+
+struct Bbox {
+   glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
+   glm::vec3 centre{0.0f, 0.0f, 0.0f};
+   glm::vec3 size{0.0f, 0.0f, 0.0f};
 };
 
 struct Material {
@@ -135,6 +142,10 @@ struct Collision_primitive {
 
 class Builder {
 public:
+   Builder() = default;
+
+   Builder(const Builder& other);
+
    void add_bone(Bone bone);
 
    void add_model(Model model);
@@ -145,18 +156,21 @@ public:
 
    void add_collision_primitive(Collision_primitive primitive);
 
-   void set_bbox_extent(glm::vec3 extent);
+   void set_bbox(const Bbox& bbox) noexcept;
 
    void save(const std::string& name, File_saver& file_saver) const;
 
 private:
+   Bbox get_bbox() const noexcept;
+
    tbb::concurrent_vector<Bone> _bones;
    tbb::concurrent_vector<Model> _models;
    tbb::concurrent_vector<Shadow> _shadows;
    tbb::concurrent_vector<Collsion_mesh> _collision_meshes;
    tbb::concurrent_vector<Collision_primitive> _collision_primitives;
 
-   glm::vec3 _bbox_extent;
+   mutable tbb::spin_mutex _bbox_mutex;
+   Bbox _bbox;
 };
 
 using Builders_map = tbb::concurrent_unordered_map<std::string, Builder>;

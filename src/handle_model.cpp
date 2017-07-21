@@ -75,6 +75,21 @@ glm::vec4 cast_uint_colour(std::uint32_t colour)
    return {array[0] / 255.0f, array[1] / 255.0f, array[2] / 255.0f, array[3] / 255.0f};
 }
 
+msh::Bbox create_bbox(const Model_info& model_info) noexcept
+{
+   msh::Bbox bbox;
+
+   const auto& vertex_box = model_info.vertex_box;
+
+   const auto sum = vertex_box[0] + vertex_box[1];
+   bbox.centre = sum / 2.0f;
+
+   const auto absolute = glm::abs(vertex_box[0] - vertex_box[1]);
+   bbox.size = absolute / 2.0f;
+
+   return bbox;
+}
+
 Model_info read_model_info(Ucfb_reader_strict<"INFO"_mn> info)
 {
    const auto size = info.size();
@@ -341,6 +356,8 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
    const auto model_info = read_model_info(model.read_child_strict<"INFO"_mn>());
 
    auto& builder = builders[name];
+
+   builder.set_bbox(create_bbox(model_info));
 
    while (model) {
       const auto child = model.read_child();
