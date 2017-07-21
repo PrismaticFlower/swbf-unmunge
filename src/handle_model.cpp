@@ -7,7 +7,7 @@
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
 #include "ucfb_reader.hpp"
-#include "vbuf_helpers.hpp"
+#include "vbuf_reader.hpp"
 
 #include "tbb/task_group.h"
 

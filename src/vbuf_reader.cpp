@@ -1,8 +1,6 @@
 
-#include "vbuf_helpers.hpp"
 #include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
-#include "math_helpers.hpp"
 #include "msh_builder.hpp"
 #include "string_helpers.hpp"
 #include "synced_cout.hpp"
