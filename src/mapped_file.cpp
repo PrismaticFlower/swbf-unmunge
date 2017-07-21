@@ -28,7 +28,11 @@ struct Raii_handle {
 
 Mapped_file::Mapped_file(fs::path path)
 {
-   const auto file_size = std::experimental::filesystem::file_size(path);
+   if (!fs::exists(path) || fs::is_directory(path)) {
+      throw std::runtime_error{"File does not exist."};
+   }
+
+   const auto file_size = fs::file_size(path);
 
    if (file_size > std::numeric_limits<std::uint32_t>::max()) {
       throw std::runtime_error{"File too large."};
