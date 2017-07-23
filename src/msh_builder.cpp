@@ -4,6 +4,7 @@
 #include "byte.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
+#include "synced_cout.hpp"
 #include "ucfb_builder.hpp"
 
 #include "tbb/parallel_for_each.h"
@@ -58,16 +59,16 @@ struct Modl_section {
 
 auto create_bone_index(
    const std::unordered_map<std::string, std::uint32_t>& old_index_map,
-   const std::vector<Bone>& bones) -> std::vector<std::uint32_t>
+   const std::vector<Modl_section>& sections) -> std::vector<std::uint32_t>
 {
    std::vector<std::uint32_t> bone_indices;
-   bone_indices.resize(bones.size());
+   bone_indices.resize(sections.size() + 1);
 
-   for (std::uint32_t i = 0; i < bones.size(); ++i) {
-      const auto old_index = old_index_map.find(bones[i].name);
+   for (std::uint32_t i = 0; i < sections.size(); ++i) {
+      const auto old_index = old_index_map.find(sections[i].name);
 
       if (old_index == std::cend(old_index_map)) {
-         throw std::runtime_error{"Ill-formed skeleton."};
+         throw std::runtime_error{"Ill-formed mesh hierarchy."};
       }
 
       bone_indices[old_index->second] = i + 1;
@@ -89,32 +90,32 @@ std::vector<Type> downgrade_concurrent_vector(const tbb::concurrent_vector<Type>
    return to;
 }
 
-auto sort_bones(std::vector<Bone>& bones) -> std::vector<std::uint32_t>
+auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint32_t>
 {
    std::unordered_map<std::string, std::uint32_t> old_index_map;
 
-   for (std::uint32_t i = 0; i < bones.size(); ++i) {
-      old_index_map[bones[i].name] = i;
+   for (std::uint32_t i = 0; i < sections.size(); ++i) {
+      old_index_map[sections[i].name] = i;
    }
 
-   std::unordered_map<std::string, std::vector<Bone>> children_map;
+   std::unordered_map<std::string, std::vector<Modl_section>> children_map;
 
-   for (const auto& bone : bones) {
-      children_map[bone.parent].emplace_back(std::move(bone));
+   for (const auto& section : sections) {
+      children_map[section.parent].emplace_back(std::move(section));
    }
 
    auto root_bone = children_map.find(""s);
 
    if (root_bone == std::end(children_map)) {
-      throw std::runtime_error{"Can't find root bone for skeleton."};
+      throw std::runtime_error{"Can't find root bone for mesh hierarchy."};
    }
 
-   std::function<void(std::vector<Bone>&)> read_bone =
-      [&read_bone, &children_map, &bones](std::vector<Bone>& child_bones) {
+   std::function<void(std::vector<Modl_section>&)> read_bone =
+      [&read_bone, &children_map, &sections](std::vector<Modl_section>& child_bones) {
          for (auto& bone : child_bones) {
-            bones.emplace_back(std::move(bone));
+            sections.emplace_back(std::move(bone));
 
-            auto children = children_map.find(bones.back().name);
+            auto children = children_map.find(sections.back().name);
 
             if (children != std::end(children_map)) {
                read_bone(children->second);
@@ -122,10 +123,10 @@ auto sort_bones(std::vector<Bone>& bones) -> std::vector<std::uint32_t>
          }
       };
 
-   bones.clear();
+   sections.clear();
    read_bone(root_bone->second);
 
-   return create_bone_index(old_index_map, bones);
+   return create_bone_index(old_index_map, sections);
 }
 
 std::size_t count_strips_indices(const std::vector<std::vector<std::uint16_t>>& strips)
@@ -159,21 +160,28 @@ std::vector<std::uint16_t> strips_to_msh_fmt(
    return msh_strips;
 }
 
-std::vector<std::uint32_t> remap_bonemap(const std::vector<std::uint8_t>& bmap,
-                                         const std::vector<std::uint32_t>& bone_index)
+std::vector<std::uint32_t> convert_bonemap(const std::vector<std::uint8_t>& bmap)
 {
    std::vector<std::uint32_t> result;
    result.reserve(bmap.size());
 
-   for (const auto& b : bmap) {
-      if (b >= bone_index.size()) {
-         throw std::runtime_error{"Meshes bonemap is invalid!"};
-      }
-
-      result.push_back(bone_index[b]);
+   for (const auto b : bmap) {
+      result.push_back(b + 1);
    }
 
    return result;
+}
+
+void remap_bonemap(std::vector<std::uint32_t>& bmap,
+                   const std::vector<std::uint32_t>& bone_index)
+{
+   for (auto& b : bmap) {
+      if (b >= bone_index.size()) {
+         throw std::runtime_error{"Bone reference out fo range."};
+      }
+
+      b = bone_index[b];
+   }
 }
 
 void fixup_texture_names(Material& material)
@@ -216,8 +224,7 @@ Modl_section create_section_from(const Bone& bone, std::uint32_t index)
    return section;
 }
 
-Modl_section create_section_from(const Model& model, std::uint32_t index,
-                                 const std::vector<std::uint32_t>& bone_index)
+Modl_section create_section_from(const Model& model, std::uint32_t index)
 {
    Modl_section section;
 
@@ -244,14 +251,13 @@ Modl_section create_section_from(const Model& model, std::uint32_t index,
       section.type = Model_type::skin;
    }
    if (!model.bone_map.empty()) {
-      section.bone_map = remap_bonemap(model.bone_map, bone_index);
+      section.bone_map = convert_bonemap(model.bone_map);
    }
 
    return section;
 }
 
-Modl_section create_section_from(const Shadow& shadow, std::uint32_t index,
-                                 const std::vector<std::uint32_t>& bone_index)
+Modl_section create_section_from(const Shadow& shadow, std::uint32_t index)
 {
    Modl_section section;
 
@@ -268,7 +274,7 @@ Modl_section create_section_from(const Shadow& shadow, std::uint32_t index,
       section.type = Model_type::skin;
    }
    if (!shadow.bone_map.empty()) {
-      section.bone_map = remap_bonemap(shadow.bone_map, bone_index);
+      section.bone_map = convert_bonemap(shadow.bone_map);
    }
 
    return section;
@@ -315,27 +321,27 @@ std::vector<Modl_section> create_modl_sections(
 
    std::uint32_t model_index = 1;
 
-   const auto bone_index = sort_bones(bones);
-
-   const auto create_section_static = [&sections, &model_index](auto& item) {
+   const auto create_section = [&sections, &model_index](auto& item) {
       sections.emplace_back(create_section_from(item, model_index));
 
       model_index += 1;
    };
 
-   const auto create_section_mesh = [&sections, &model_index, &bone_index](auto& item) {
-      sections.emplace_back(create_section_from(item, model_index, bone_index));
-
-      model_index += 1;
-   };
-
-   std::for_each(std::begin(bones), std::end(bones), create_section_static);
-   std::for_each(std::begin(models), std::end(models), create_section_mesh);
-   std::for_each(std::begin(shadows), std::end(shadows), create_section_mesh);
+   std::for_each(std::begin(bones), std::end(bones), create_section);
+   std::for_each(std::begin(models), std::end(models), create_section);
+   std::for_each(std::begin(shadows), std::end(shadows), create_section);
    std::for_each(std::begin(collision_meshes), std::end(collision_meshes),
-                 create_section_static);
+                 create_section);
    std::for_each(std::begin(collision_primitives), std::end(collision_primitives),
-                 create_section_static);
+                 create_section);
+
+   const auto bone_index = sort_sections(sections);
+
+   for (auto& section : sections) {
+      if (section.bone_map) {
+         remap_bonemap(*section.bone_map, bone_index);
+      }
+   }
 
    return sections;
 }
@@ -559,6 +565,10 @@ Ucfb_builder create_sinf_chunk(const Bbox msh_bbox, std::string_view model_name)
    auto& name = sinf.emplace_child("NAME"_mn);
    name.write(model_name);
 
+   auto& fram = sinf.emplace_child("FRAM"_mn);
+
+   fram.write_multiple(0i32, 1i32, 29.97003f);
+
    auto& bbox = sinf.emplace_child("BBOX"_mn);
 
    const auto& rotation = msh_bbox.rotation;
@@ -658,7 +668,13 @@ Bbox Builder::get_bbox() const noexcept
 void save_all(File_saver& file_saver, const Builders_map& builders)
 {
    const auto functor = [&file_saver](const std::pair<std::string, Builder>& builder) {
-      builder.second.save(builder.first, file_saver);
+      try {
+         builder.second.save(builder.first, file_saver);
+      }
+      catch (const std::exception& e) {
+         synced_cout::print("Exception occured while saving ", builder.first,
+                            ".msh\n   Message: "s, e.what(), '\n');
+      }
    };
 
    tbb::parallel_for_each(builders, functor);
