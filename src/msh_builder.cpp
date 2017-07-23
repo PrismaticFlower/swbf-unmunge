@@ -129,6 +129,29 @@ auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint
    return create_bone_index(old_index_map, sections);
 }
 
+template<typename Type>
+void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone> bones)
+{
+   for (auto& mesh : meshes) {
+      if (!mesh.pretransformed || mesh.skin.empty()) continue;
+
+      if (mesh.skin.size() != mesh.vertices.size()) {
+         throw std::runtime_error{
+            "Count of segment's skin entries and vertex entries does not match"};
+      }
+
+      for (std::size_t i = 0; i < mesh.skin.size(); ++i) {
+         auto& vertex = mesh.vertices[i];
+
+         const auto bone_index = mesh.bone_map.at(mesh.skin[i]);
+         const auto& bone = bones.at(bone_index);
+
+         vertex = vertex * glm::inverse(bone.rotation);
+         vertex += bone.position;
+      }
+   }
+}
+
 std::size_t count_strips_indices(const std::vector<std::vector<std::uint16_t>>& strips)
 {
    std::size_t count = 0;
@@ -316,6 +339,9 @@ std::vector<Modl_section> create_modl_sections(
    std::vector<Collsion_mesh> collision_meshes,
    std::vector<Collision_primitive> collision_primitives)
 {
+   reverse_pretransformed(models, bones);
+   reverse_pretransformed(shadows, bones);
+
    std::vector<Modl_section> sections;
    sections.reserve(bones.size() + models.size() + shadows.size());
 

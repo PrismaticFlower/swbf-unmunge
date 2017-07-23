@@ -104,6 +104,7 @@ struct Model {
    std::vector<glm::vec2> texture_coords;
    std::vector<std::uint8_t> skin;
    std::vector<std::uint8_t> bone_map;
+   bool pretransformed = false;
 };
 
 struct Shadow {
@@ -113,6 +114,7 @@ struct Shadow {
    std::vector<glm::vec3> vertices;
    std::vector<std::uint8_t> skin;
    std::vector<std::uint8_t> bone_map;
+   bool pretransformed = false;
 };
 
 struct Bone {

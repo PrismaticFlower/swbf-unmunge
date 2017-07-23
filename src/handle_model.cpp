@@ -316,6 +316,7 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view mod
                      msh::Builder& builder)
 {
    msh::Model model{};
+
    while (segment) {
       const auto child = segment.read_child();
 
@@ -339,6 +340,7 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view mod
       }
       else if (child.magic_number() == "BMAP"_mn) {
          model.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
+         model.pretransformed = true;
       }
    }
 
