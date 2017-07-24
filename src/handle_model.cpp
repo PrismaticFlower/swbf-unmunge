@@ -90,6 +90,17 @@ msh::Bbox create_bbox(const Model_info& model_info) noexcept
    return bbox;
 }
 
+auto read_model_name(Ucfb_reader_strict<"NAME"_mn> name) -> std::pair<std::string, bool>
+{
+   const auto name_view = name.read_string();
+
+   if (name_view.substr(name_view.length() - 4, 4) == "LOWD"_sv) {
+      return {std::string{name_view.substr(0, name_view.length() - 4)}, true};
+   }
+
+   return {std::string{name_view}, false};
+}
+
 Model_info read_model_info(Ucfb_reader_strict<"INFO"_mn> info)
 {
    const auto size = info.size();
@@ -313,9 +324,10 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
 }
 
 void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view model_root,
-                     msh::Builder& builder)
+                     bool low_resolution, msh::Builder& builder)
 {
    msh::Model model{};
+   model.low_resolution = low_resolution;
 
    while (segment) {
       const auto child = segment.read_child();
@@ -354,7 +366,10 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view mod
 
 void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_group& tasks)
 {
-   const std::string name{model.read_child_strict<"NAME"_mn>().read_string()};
+   std::string name;
+   bool low_resolution = false;
+
+   std::tie(name, low_resolution) = read_model_name(model.read_child_strict<"NAME"_mn>());
 
    model.read_child_strict_optional<"VRTX"_mn>();
 
@@ -369,8 +384,9 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
       const auto child = model.read_child();
 
       if (child.magic_number() == "segm"_mn) {
-         tasks.run([child, model_root, &builder] {
-            process_segment(Ucfb_reader_strict<"segm"_mn>{child}, model_root, builder);
+         tasks.run([child, model_root, low_resolution, &builder] {
+            process_segment(Ucfb_reader_strict<"segm"_mn>{child}, model_root,
+                            low_resolution, builder);
          });
       }
    }

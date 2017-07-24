@@ -105,6 +105,7 @@ struct Model {
    std::vector<std::uint8_t> skin;
    std::vector<std::uint8_t> bone_map;
    bool pretransformed = false;
+   bool low_resolution = false;
 };
 
 struct Shadow {

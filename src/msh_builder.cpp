@@ -104,16 +104,13 @@ auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint
       children_map[section.parent].emplace_back(std::move(section));
    }
 
-   auto root_bone = children_map.find(""s);
-
-   if (root_bone == std::end(children_map)) {
-      throw std::runtime_error{"Can't find root bone for mesh hierarchy."};
-   }
+   auto& root_bone = children_map.at(""s);
 
    std::function<void(std::vector<Modl_section>&)> read_bone =
       [&read_bone, &children_map, &sections](std::vector<Modl_section>& child_bones) {
-         for (auto& bone : child_bones) {
-            sections.emplace_back(std::move(bone));
+         while (!child_bones.empty()) {
+            sections.emplace_back(std::move(child_bones.back()));
+            child_bones.pop_back();
 
             auto children = children_map.find(sections.back().name);
 
@@ -124,7 +121,7 @@ auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint
       };
 
    sections.clear();
-   read_bone(root_bone->second);
+   read_bone(root_bone);
 
    return create_bone_index(old_index_map, sections);
 }
@@ -253,7 +250,11 @@ Modl_section create_section_from(const Model& model, std::uint32_t index)
 
    section.type = Model_type::fixed;
    section.index = index;
-   section.name = "mesh_"s + std::to_string(index);
+   section.name = "mesh_"s;
+
+   if (model.low_resolution) section.name += "lowrez_"_sv;
+   section.name += std::to_string(index);
+
    section.parent = model.parent;
 
    section.material = model.material;
