@@ -73,22 +73,22 @@ WorldExtents()
 }
 )"_sv};
 
-void write_key_value(bool indent, std::string_view key, std::string_view value,
-                     std::string& buffer)
+void write_key_value(bool indent, bool quoted, std::string_view key,
+                     std::string_view value, std::string& buffer)
 {
    if (indent) buffer += '\t';
 
-   if (string_is_number(value)) {
-      buffer += key;
-      buffer += "("_sv;
-      buffer += value;
-      buffer += ");\n"_sv;
-   }
-   else {
+   if (quoted) {
       buffer += key;
       buffer += "(\""_sv;
       buffer += value;
       buffer += "\");\n"_sv;
+   }
+   else {
+      buffer += key;
+      buffer += "("_sv;
+      buffer += value;
+      buffer += ");\n"_sv;
    }
 }
 
@@ -174,7 +174,7 @@ std::pair<glm::quat, glm::vec3> convert_xframe(const Xframe& xframe)
    auto position = xframe.position;
    position.z *= -1.0f;
 
-   auto quat = glm::quat_cast(glm::mat3{xframe.matrix});
+   auto quat = glm::quat{glm::transpose(glm::mat3{xframe.matrix})};
    quat *= glm::quat{0.0f, 0.0f, 1.0f, 0.0f};
 
    return {quat, position};
@@ -189,15 +189,20 @@ std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const glm::ve
       {size.x, 0.0f, -size.z},
    }};
 
-   corners[0] = glm::mat3{xframe.matrix} * corners[0];
-   corners[1] = glm::mat3{xframe.matrix} * corners[1];
-   corners[2] = glm::mat3{xframe.matrix} * corners[2];
-   corners[3] = glm::mat3{xframe.matrix} * corners[3];
+   const glm::mat3 flipper{{1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}, {0.f, 0.f, -1.f}};
+   const auto rotation = glm::transpose(glm::mat3{xframe.matrix});
 
-   corners[0] += glm::vec3{xframe.position};
-   corners[1] += glm::vec3{xframe.position};
-   corners[2] += glm::vec3{xframe.position};
-   corners[3] += glm::vec3{xframe.position};
+   corners[0] = rotation * corners[0] * flipper;
+   corners[1] = rotation * corners[1] * flipper;
+   corners[2] = rotation * corners[2] * flipper;
+   corners[3] = rotation * corners[3] * flipper;
+
+   const glm::vec3 position = xframe.position;
+
+   corners[0] += position;
+   corners[1] += position;
+   corners[2] += position;
+   corners[3] += position;
 
    return corners;
 }
@@ -207,7 +212,19 @@ void read_property(Ucfb_reader_strict<"PROP"_mn> property, std::string& buffer)
    const auto hash = property.read_trivial<std::uint32_t>();
    const auto value = property.read_string();
 
-   write_key_value(true, lookup_fnv_hash(hash), value, buffer);
+   write_key_value(true, !string_is_number(value), lookup_fnv_hash(hash), value, buffer);
+}
+
+template<typename Quoted_filter>
+void read_property(Ucfb_reader_strict<"PROP"_mn> property, std::string& buffer,
+                   const Quoted_filter& filter)
+{
+   const auto hash = property.read_trivial<std::uint32_t>();
+   const auto value = property.read_string();
+
+   const bool quoted = filter(hash);
+
+   write_key_value(true, quoted, lookup_fnv_hash(hash), value, buffer);
 }
 
 void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
@@ -411,7 +428,9 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
    while (instance) {
       auto property = instance.read_child_strict<"PROP"_mn>();
 
-      read_property(property, buffer);
+      read_property(property, buffer, [](std::uint32_t hash) {
+         return (hash != "Team"_fnv && hash != "Layer"_fnv);
+      });
    }
 
    buffer += "}\n\n"_sv;
@@ -445,11 +464,11 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
    buffer += '\n';
 
    if (!terrain_name.empty())
-      write_key_value(false, "TerrainName"_sv, terrain_name + ".ter"s, buffer);
+      write_key_value(false, true, "TerrainName"_sv, terrain_name + ".ter"s, buffer);
    if (!sky_name.empty())
-      write_key_value(false, "SkyName"_sv, sky_name + ".sky"s, buffer);
+      write_key_value(false, true, "SkyName"_sv, sky_name + ".sky"s, buffer);
 
-   write_key_value(false, "LightName"_sv, name + ".lgt"s, buffer);
+   write_key_value(false, true, "LightName"_sv, name + ".lgt"s, buffer);
    buffer += '\n';
 
    for (const auto& instance : instances) {
