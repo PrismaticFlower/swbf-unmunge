@@ -270,13 +270,8 @@ void read_patches(Ucfb_reader_strict<"PCHS"_mn> patches, Terrain_info terrain_in
 
    patches.read_child_strict<"COMN"_mn>();
 
-   std::size_t patch_index = 0;
-
-   while (patches) {
-      read_patch(patches.read_child_strict<"PTCH"_mn>(), index_table[patch_index],
-                 builder);
-
-      ++patch_index;
+   for (std::size_t i = 0; i < index_table.size(); ++i) {
+      read_patch(patches.read_child_strict<"PTCH"_mn>(), index_table[i], builder);
    }
 }
 
