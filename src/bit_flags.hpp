@@ -17,7 +17,7 @@ constexpr Flags_type set_flags(const Flags_type value, const Flags_type flags)
 
    const T result = static_cast<T>(value) | static_cast<T>(flags);
 
-   return static_cast<Flags_type>(value);
+   return static_cast<Flags_type>(result);
 }
 
 template<typename Flags_type>
@@ -27,7 +27,7 @@ constexpr Flags_type clear_flags(const Flags_type value, const Flags_type flags)
 
    const T result = static_cast<T>(value) & ~(static_cast<T>(flags));
 
-   return static_cast<Flags_type>(value);
+   return static_cast<Flags_type>(result);
 }
 
 template<typename Flags_type>
@@ -37,5 +37,5 @@ constexpr Flags_type toggle_flags(const Flags_type value, const Flags_type flags
 
    const T result = static_cast<T>(value) ^ static_cast<T>(flags);
 
-   return static_cast<Flags_type>(value);
+   return static_cast<Flags_type>(result);
 }
