@@ -12,6 +12,8 @@
 #include "tbb/task_group.h"
 
 #include <array>
+#include <functional>
+#include <limits>
 #include <tuple>
 #include <vector>
 
@@ -49,6 +51,21 @@ enum class Material_flags_swbf1 : std::uint32_t {
    refraction = 16384
 };
 
+enum class Material_flags_ps2 {
+   normal = 1, // set when model is NOT emissive
+   hardedged = 2,
+   singlesided = 4,
+   glow = 16,
+   additive = 64,
+   specular = 136,
+   env_map = 256,
+   normal_1 = 65536,
+   doublesided = 65541,
+   scrolling = 16777216,
+   animated = 67108864,
+   energy = 33554432,
+};
+
 struct Material_info {
    Material_flags flags;
    std::uint32_t unknown_1;
@@ -59,6 +76,17 @@ struct Material_info {
 
 static_assert(std::is_pod_v<Material_info>);
 static_assert(sizeof(Material_info) == 24);
+
+struct Material_info_ps2 {
+   Material_flags_ps2 flags;
+   std::uint32_t unknown_1;
+   std::uint32_t colour;
+   std::uint32_t specular_intensity;
+   std::uint32_t params[2];
+};
+
+static_assert(std::is_pod_v<Material_info_ps2>);
+static_assert(sizeof(Material_info_ps2) == 24);
 
 struct Model_info {
 
@@ -165,6 +193,27 @@ auto read_vertex_strip(gsl::span<const std::uint16_t> indices, std::int64_t& pos
    return strip;
 }
 
+auto read_vertex_strip_ps2(gsl::span<const std::uint16_t> indices, std::int64_t& pos)
+   -> std::vector<std::uint16_t>
+{
+   if (pos + 1 >= indices.size()) throw std::out_of_range{"Index buffer invalid"};
+
+   std::vector<std::uint16_t> strip;
+   strip.reserve(32);
+
+   strip.push_back(indices[pos] & ~(0x8000ui16));
+   strip.push_back(indices[pos + 1] & ~(0x8000ui16));
+   pos += 2;
+
+   for (; pos < indices.size(); ++pos) {
+      if ((indices[pos] & 0x8000ui16) == 0x8000ui16) break;
+
+      strip.push_back(indices[pos]);
+   }
+
+   return strip;
+}
+
 auto read_index_buffer(Ucfb_reader_strict<"IBUF"_mn> index_buffer)
    -> std::vector<std::vector<std::uint16_t>>
 {
@@ -179,6 +228,118 @@ auto read_index_buffer(Ucfb_reader_strict<"IBUF"_mn> index_buffer)
    }
 
    return strips;
+}
+
+auto read_strip_buffer(Ucfb_reader_strict<"STRP"_mn> strip_buffer,
+                       const std::uint32_t index_count)
+   -> std::vector<std::vector<std::uint16_t>>
+
+{
+   std::vector<std::vector<std::uint16_t>> strips;
+   strips.reserve(32);
+
+   const auto indices = strip_buffer.read_array<std::uint16_t>(index_count);
+
+   for (std::int64_t i = 0; i < indices.size();) {
+      strips.emplace_back(read_vertex_strip_ps2(indices, i));
+   }
+
+   return strips;
+}
+
+auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions,
+                           const std::uint32_t vertex_count,
+                           const std::array<glm::vec3, 2>& vertex_box)
+   -> std::vector<glm::vec3>
+{
+   static_assert(sizeof(std::array<std::uint16_t, 3>) == 6);
+
+   const auto compressed_vertices =
+      positions.read_array<std::array<std::uint16_t, 3>>(vertex_count);
+
+   std::vector<glm::vec3> vertices;
+   vertices.reserve(vertex_count);
+
+   constexpr std::array<float, 2> old_range = {0.0f, 65535.0f};
+   const std::array<std::array<float, 2>, 3> new_ranges{
+      {{vertex_box[0].x, vertex_box[1].x},
+       {vertex_box[0].y, vertex_box[1].y},
+       {vertex_box[0].z, vertex_box[1].z}}};
+
+   for (const auto& compressed : compressed_vertices) {
+      glm::vec3 vert;
+      vert.x = range_convert(static_cast<float>(compressed[0]), old_range, new_ranges[0]);
+      vert.y = range_convert(static_cast<float>(compressed[1]), old_range, new_ranges[1]);
+      vert.z = range_convert(static_cast<float>(compressed[2]), old_range, new_ranges[2]);
+
+      vertices.emplace_back(vert);
+   }
+
+   return vertices;
+}
+
+auto read_normals_buffer(Ucfb_reader_strict<"NORM"_mn> normals,
+                         const std::uint32_t vertex_count) -> std::vector<glm::vec3>
+{
+   static_assert(sizeof(std::array<std::int8_t, 3>) == 3);
+
+   const auto compressed_normals =
+      normals.read_array<std::array<std::int8_t, 3>>(vertex_count);
+
+   std::vector<glm::vec3> uncompressed_normals;
+   uncompressed_normals.reserve(vertex_count);
+
+   for (const auto& compressed : compressed_normals) {
+      constexpr std::array<float, 2> old_range = {0.0f, 65535.0f};
+      constexpr std::array<float, 2> new_range = {-128.0f, 127.0f};
+
+      glm::vec3 nrml;
+      nrml.x = range_convert(static_cast<float>(compressed[0]), old_range, new_range);
+      nrml.y = range_convert(static_cast<float>(compressed[1]), old_range, new_range);
+      nrml.z = range_convert(static_cast<float>(compressed[2]), old_range, new_range);
+
+      uncompressed_normals.emplace_back(nrml);
+   }
+
+   return uncompressed_normals;
+}
+
+auto read_uv_buffer(Ucfb_reader_strict<"TEX0"_mn> uv_buffer,
+                    const std::uint32_t vertex_count) -> std::vector<glm::vec2>
+{
+   static_assert(sizeof(std::array<std::int16_t, 2>) == 4);
+
+   const auto compressed_coords =
+      uv_buffer.read_array<std::array<std::int16_t, 2>>(vertex_count);
+
+   std::vector<glm::vec2> uv_coords;
+   uv_coords.reserve(vertex_count);
+
+   for (const auto& compressed : compressed_coords) {
+      constexpr std::array<float, 2> old_range = {-2048.0f, 2048.0f};
+      constexpr std::array<float, 2> new_range = {-1.0f, 1.0f};
+
+      glm::vec2 uv;
+      uv.x = range_convert(static_cast<float>(compressed[0]), old_range, new_range);
+      uv.y = range_convert(static_cast<float>(compressed[1]), old_range, new_range);
+
+      uv_coords.emplace_back(uv);
+   }
+
+   return uv_coords;
+}
+
+auto read_bone_buffer(Ucfb_reader_strict<"BONE"_mn> bone_buffer,
+                      const std::uint32_t vertex_count) -> std::vector<std::uint8_t>
+{
+   std::vector<std::uint8_t> skin;
+   skin.reserve(vertex_count);
+
+   const auto compressed_coords = bone_buffer.read_array<std::uint8_t>(vertex_count);
+
+   skin.assign(std::cbegin(compressed_coords), std::cend(compressed_coords));
+
+   return skin;
 }
 
 std::vector<std::uint8_t> read_bone_map(Ucfb_reader_strict<"BMAP"_mn> bone_map)
@@ -323,8 +484,9 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
    }
 }
 
-void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view model_root,
-                     bool low_resolution, msh::Builder& builder)
+void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment,
+                        std::string_view model_root, bool low_resolution, Model_info,
+                        msh::Builder& builder)
 {
    msh::Model model{};
    model.low_resolution = low_resolution;
@@ -362,9 +524,72 @@ void process_segment(Ucfb_reader_strict<"segm"_mn> segment, std::string_view mod
 
    builder.add_model(std::move(model));
 }
+
+void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment,
+                         std::string_view model_root, bool low_resolution,
+                         Model_info model_info, msh::Builder& builder)
+{
+   msh::Model model{};
+   model.low_resolution = low_resolution;
+
+   auto info = segment.read_child_strict<"INFO"_mn>();
+   const auto vertex_count = info.read_trivial<std::uint32_t>();
+   const auto index_count = info.read_trivial<std::uint32_t>();
+
+   while (segment) {
+      const auto child = segment.read_child();
+
+      if (child.magic_number() == "MTRL"_mn) {
+         read_material(Ucfb_reader_strict<"MTRL"_mn>{child}, model.material);
+      }
+      else if (child.magic_number() == "RTYP"_mn) {
+         auto rtyp = Ucfb_reader_strict<"RTYP"_mn>{child};
+
+         model.material.type =
+            static_cast<msh::Render_type>(rtyp.read_trivial<std::uint32_t>());
+      }
+      else if (child.magic_number() == "TNAM"_mn) {
+         read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
+      }
+      else if (child.magic_number() == "STRP"_mn) {
+         model.strips =
+            read_strip_buffer(Ucfb_reader_strict<"STRP"_mn>{child}, index_count);
+      }
+      else if (child.magic_number() == "POSI"_mn) {
+         model.vertices = read_positions_buffer(Ucfb_reader_strict<"POSI"_mn>{child},
+                                                vertex_count, model_info.vertex_box);
+      }
+      else if (child.magic_number() == "NORM"_mn) {
+         model.normals =
+            read_normals_buffer(Ucfb_reader_strict<"NORM"_mn>{child}, vertex_count);
+      }
+      else if (child.magic_number() == "TEX0"_mn) {
+         model.texture_coords =
+            read_uv_buffer(Ucfb_reader_strict<"TEX0"_mn>{child}, vertex_count);
+      }
+      else if (child.magic_number() == "BMAP"_mn) {
+         model.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
+         model.pretransformed = true;
+      }
+      else if (child.magic_number() == "BONE"_mn) {
+         model.skin =
+            read_bone_buffer(Ucfb_reader_strict<"BONE"_mn>{child}, vertex_count);
+      }
+      else if (child.magic_number() == "BNAM"_mn) {
+         model.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();
+      }
+   }
+
+   if (model.parent.empty()) {
+      model.parent = model_root;
+   }
+
+   builder.add_model(std::move(model));
 }
 
-void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_group& tasks)
+template<typename Segm_processor>
+void handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model,
+                       msh::Builders_map& builders)
 {
    std::string name;
    bool low_resolution = false;
@@ -384,10 +609,20 @@ void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_grou
       const auto child = model.read_child();
 
       if (child.magic_number() == "segm"_mn) {
-         tasks.run([child, model_root, low_resolution, &builder] {
-            process_segment(Ucfb_reader_strict<"segm"_mn>{child}, model_root,
-                            low_resolution, builder);
-         });
+         std::invoke(std::forward<Segm_processor>(segm_processor),
+                     Ucfb_reader_strict<"segm"_mn>{child}, model_root, low_resolution,
+                     model_info, builder);
       }
    }
+}
+}
+
+void handle_model(Ucfb_reader model, msh::Builders_map& builders)
+{
+   handle_model_impl(process_segment_pc, model, builders);
+}
+
+void handle_model_ps2(Ucfb_reader model, msh::Builders_map& builders)
+{
+   handle_model_impl(process_segment_ps2, model, builders);
 }

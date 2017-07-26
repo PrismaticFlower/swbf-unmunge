@@ -44,7 +44,9 @@ void handle_localization(Ucfb_reader localization, tbb::task_group& tasks,
 
 void handle_terrain(Ucfb_reader terrain, File_saver& file_saver);
 
-void handle_model(Ucfb_reader model, msh::Builders_map& builders, tbb::task_group& tasks);
+void handle_model(Ucfb_reader model, msh::Builders_map& builders);
+
+void handle_model_ps2(Ucfb_reader model, msh::Builders_map& builders);
 
 void handle_skeleton(Ucfb_reader skeleton, msh::Builders_map& builders);
 
