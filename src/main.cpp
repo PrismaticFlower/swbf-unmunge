@@ -39,7 +39,8 @@ void process_file(const App_options& options, fs::path path) noexcept
       msh::save_all(file_saver, msh_builders);
    }
    catch (std::exception& e) {
-      synced_cout::print("Error: "s, e.what(), '\n');
+      synced_cout::print("Error: Exception occured while processing file.\n   File: "s,
+                         path.string(), '\n', "   Message: "s, e.what(), '\n');
    }
 }
 
@@ -60,7 +61,7 @@ int main(int argc, char* argv[])
    const auto& input_files = app_options.input_files();
 
    if (input_files.empty()) {
-      std::cout << "No input file specified."s;
+      std::cout << "Error: No input file specified.\n"s;
 
       return 0;
    }

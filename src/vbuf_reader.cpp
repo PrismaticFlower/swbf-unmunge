@@ -173,8 +173,8 @@ void read_vbuf(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model)
       read_vbuf_span(vbuf.read_array<Vbuf_xyzsknuv_entry>(vbuf_info.entry_count), model);
    }
    else if (!is_known_vbuf(vbuf_info.type)) {
-      synced_cout::print("Unknown VBUF encountered."s, "\n   size : "s, vbuf.size(),
-                         "\n   entry count: "s, vbuf_info.entry_count,
+      synced_cout::print("Warning: Unknown VBUF encountered."s, "\n   size : "s,
+                         vbuf.size(), "\n   entry count: "s, vbuf_info.entry_count,
                          "\n   entry size: "s, vbuf_info.entry_size, "\n   entry type: "s,
                          to_hexstring(static_cast<std::uint32_t>(vbuf_info.type)), '\n');
    }

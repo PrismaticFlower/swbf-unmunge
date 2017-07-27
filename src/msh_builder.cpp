@@ -699,7 +699,7 @@ void save_all(File_saver& file_saver, const Builders_map& builders)
          builder.second.save(builder.first, file_saver);
       }
       catch (const std::exception& e) {
-         synced_cout::print("Exception occured while saving ", builder.first,
+         synced_cout::print("Error: Exception occured while saving ", builder.first,
                             ".msh\n   Message: "s, e.what(), '\n');
       }
    };

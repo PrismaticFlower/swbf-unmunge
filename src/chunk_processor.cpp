@@ -277,7 +277,7 @@ void process_chunk(Ucfb_reader chunk, const App_options& app_options,
          processor({chunk, app_options, file_saver, msh_builders});
       }
       catch (const std::exception& e) {
-         synced_cout::print("Exception occured while processing chunk.\n"
+         synced_cout::print("Error: Exception occured while processing chunk.\n"
                             "   Type: "s,
                             view_pod_as_string(chunk.magic_number()), "\n   Size: "s,
                             chunk.size(), "\n   Message: "s, e.what(), '\n');
