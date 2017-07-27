@@ -125,6 +125,9 @@ constexpr auto image_opt_description{
 constexpr auto input_plat_opt_description{
    R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
 
+constexpr auto verbose_opt_description{
+   R"(Enable verbose output.)"_sv};
+
 App_options::App_options()
 {
    using Istr = std::istream;
@@ -139,9 +142,8 @@ App_options::App_options()
       {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
        image_opt_description},
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
-       input_plat_opt_description}
-
-   };
+       input_plat_opt_description},
+      {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description}};
 }
 
 App_options::App_options(int argc, char* argv[]) : App_options()
@@ -177,6 +179,11 @@ Image_format App_options::image_save_format() const noexcept
 Input_platform App_options::input_platform() const noexcept
 {
    return _input_platform;
+}
+
+bool App_options::verbose() const noexcept
+{
+   return _verbose;
 }
 
 void App_options::print_arguments(std::ostream& ostream) noexcept

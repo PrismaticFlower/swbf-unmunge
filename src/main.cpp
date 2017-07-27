@@ -28,7 +28,8 @@ void process_file(const App_options& options, fs::path path) noexcept
 {
    try {
       Mapped_file file{path};
-      File_saver file_saver{fs::path{path}.replace_extension("") += '/'};
+      File_saver file_saver{fs::path{path}.replace_extension("") += '/',
+                            options.verbose()};
       msh::Builders_map msh_builders;
 
       Ucfb_reader root_reader{file.bytes()};

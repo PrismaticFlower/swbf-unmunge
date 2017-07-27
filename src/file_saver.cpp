@@ -1,4 +1,5 @@
 #include "file_saver.hpp"
+#include "synced_cout.hpp"
 
 #include <gsl/gsl>
 
@@ -13,9 +14,10 @@
 #include <Windows.h>
 
 namespace fs = std::experimental::filesystem;
+using namespace std::literals;
 
-File_saver::File_saver(const std::experimental::filesystem::path& path) noexcept
-   : _path{path.string()}
+File_saver::File_saver(const fs::path& path, bool verbose) noexcept
+   : _path{path.string()}, _verbose{verbose}
 {
    fs::create_directory(_path);
 }
@@ -41,6 +43,10 @@ void File_saver::save_file(std::string_view contents, std::string_view directory
    path += preferred_separator;
    path += name;
    path += extension;
+
+   if (_verbose) {
+      synced_cout::print("Info: Saving file \""s, path, '\"', '\n');
+   }
 
    HANDLE file;
    const auto closer = gsl::finally([&file] { CloseHandle(file); });

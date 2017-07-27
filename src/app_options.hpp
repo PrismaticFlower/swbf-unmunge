@@ -28,6 +28,8 @@ public:
 
    Input_platform input_platform() const noexcept;
 
+   bool verbose() const noexcept;
+
    void print_arguments(std::ostream& ostream) noexcept;
 
 private:
@@ -49,4 +51,5 @@ private:
    Game_version _game_version;
    Image_format _img_save_format = Image_format::tga;
    Input_platform _input_platform;
+   bool _verbose = false;
 };
