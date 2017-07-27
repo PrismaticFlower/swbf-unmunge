@@ -4,6 +4,7 @@
 #include "file_saver.hpp"
 #include "mapped_file.hpp"
 #include "msh_builder.hpp"
+#include "synced_cout.hpp"
 #include "ucfb_reader.hpp"
 
 #include "tbb/parallel_for_each.h"
@@ -37,7 +38,7 @@ void process_file(const App_options& options, fs::path path) noexcept
       msh::save_all(file_saver, msh_builders);
    }
    catch (std::exception& e) {
-      std::cerr << "Error: " << e.what() << '\n';
+      synced_cout::print("Error: "s, e.what(), '\n');
    }
 }
 
