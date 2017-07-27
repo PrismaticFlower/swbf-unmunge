@@ -193,19 +193,21 @@ void ensure_basic_format(DirectX::ScratchImage& image)
    }
 }
 
-void save_dds_image(std::string name, DirectX::ScratchImage image, File_saver& file_saver)
+void save_dds_image(std::string_view name, DirectX::ScratchImage image,
+                    File_saver& file_saver)
 {
    DirectX::Blob blob;
 
    DirectX::SaveToDDSMemory(*image.GetImage(0, 0, 0), DirectX::DDS_FLAGS_NONE, blob);
 
-   std::string buffer{static_cast<const char*>(blob.GetBufferPointer()),
-                      blob.GetBufferSize()};
+   const std::string_view buffer{static_cast<const char*>(blob.GetBufferPointer()),
+                                 blob.GetBufferSize()};
 
-   file_saver.save_file(std::move(buffer), name + ".dds"s, "textures");
+   file_saver.save_file(buffer, "textures"_sv, name, ".dds"_sv);
 }
 
-void save_tga_image(std::string name, DirectX::ScratchImage image, File_saver& file_saver)
+void save_tga_image(std::string_view name, DirectX::ScratchImage image,
+                    File_saver& file_saver)
 {
    ensure_basic_format(image);
 
@@ -213,13 +215,14 @@ void save_tga_image(std::string name, DirectX::ScratchImage image, File_saver& f
 
    DirectX::SaveToTGAMemory(*image.GetImage(0, 0, 0), blob);
 
-   std::string buffer{static_cast<const char*>(blob.GetBufferPointer()),
-                      blob.GetBufferSize()};
+   const std::string_view buffer{static_cast<const char*>(blob.GetBufferPointer()),
+                                 blob.GetBufferSize()};
 
-   file_saver.save_file(std::move(buffer), name + ".tga"s, "textures");
+   file_saver.save_file(buffer, "textures"_sv, name, ".tga"_sv);
 }
 
-void save_png_image(std::string name, DirectX::ScratchImage image, File_saver& file_saver)
+void save_png_image(std::string_view name, DirectX::ScratchImage image,
+                    File_saver& file_saver)
 {
    ensure_basic_format(image);
 
@@ -228,23 +231,23 @@ void save_png_image(std::string name, DirectX::ScratchImage image, File_saver& f
    DirectX::SaveToWICMemory(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
                             DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), blob);
 
-   std::string buffer{static_cast<const char*>(blob.GetBufferPointer()),
-                      blob.GetBufferSize()};
+   const std::string_view buffer{static_cast<const char*>(blob.GetBufferPointer()),
+                                 blob.GetBufferSize()};
 
-   file_saver.save_file(std::move(buffer), name + ".png"s, "textures");
+   file_saver.save_file(buffer, "textures"_sv, name, ".png"_sv);
 }
 
 void save_image(std::string_view name, DirectX::ScratchImage image,
                 File_saver& file_saver, Image_format save_format)
 {
    if (save_format == Image_format::tga) {
-      save_tga_image(std::string{name}, std::move(image), file_saver);
+      save_tga_image(name, std::move(image), file_saver);
    }
    else if (save_format == Image_format::png) {
-      save_png_image(std::string{name}, std::move(image), file_saver);
+      save_png_image(name, std::move(image), file_saver);
    }
    else if (save_format == Image_format::dds) {
-      save_dds_image(std::string{name}, std::move(image), file_saver);
+      save_dds_image(name, std::move(image), file_saver);
    }
 }
 }

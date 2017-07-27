@@ -1,23 +1,23 @@
 
 #include "chunk_processor.hpp"
-#include "type_pun.hpp"
-#include "ucfb_reader.hpp"
 
-#include "tbb/task_group.h"
+#include "tbb/parallel_for_each.h"
 
-#include <cstdint>
+#include <vector>
 
 void handle_ucfb(Ucfb_reader chunk, const App_options& app_options,
-                 File_saver& file_saver, tbb::task_group& tasks,
-                 msh::Builders_map& msh_builders)
+                 File_saver& file_saver, msh::Builders_map& msh_builders)
 {
-   while (chunk) {
-      const auto child = chunk.read_child();
 
-      const auto task = [child, &app_options, &file_saver, &tasks, &msh_builders] {
-         process_chunk(child, app_options, file_saver, tasks, msh_builders);
-      };
+   std::vector<Ucfb_reader> children;
+   children.reserve(32);
 
-      tasks.run(task);
-   }
+   while (chunk) children.emplace_back(chunk.read_child());
+
+   const auto processor = [&app_options, &file_saver,
+                           &msh_builders](const Ucfb_reader& child) {
+      process_chunk(child, app_options, file_saver, msh_builders);
+   };
+
+   tbb::parallel_for_each(children, processor);
 }

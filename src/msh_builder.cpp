@@ -683,7 +683,7 @@ void Builder::save(const std::string& name, File_saver& file_saver) const
                            downgrade_concurrent_vector(_collision_primitives)),
       get_bbox(), name);
 
-   file_saver.save_file(std::move(msh_file), name + ".msh"s, "msh"s);
+   file_saver.save_file(msh_file, "msh"_sv, name, ".msh"_sv);
 }
 
 Bbox Builder::get_bbox() const noexcept

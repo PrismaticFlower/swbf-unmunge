@@ -90,6 +90,5 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
       write_property({lookup_fnv_hash(property.first), property.second}, file_buffer);
    }
 
-   file_saver.save_file(std::move(file_buffer), std::string{odf_name} += ".odf"_sv,
-                        "odf"s);
+   file_saver.save_file(file_buffer, "odf"_sv, odf_name, ".odf"_sv);
 }

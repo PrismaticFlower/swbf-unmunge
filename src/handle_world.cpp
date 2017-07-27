@@ -450,7 +450,7 @@ void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
       read_region(region, buffer);
    }
 
-   file_saver.save_file(std::move(buffer), std::string{name} += ".rgn"_sv, "world"s);
+   file_saver.save_file(buffer, "world"_sv, name, ".rgn"_sv);
 }
 
 void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
@@ -475,11 +475,11 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
       read_instance(instance, buffer);
    }
 
-   std::string extension = ".wld"s;
+   std::string_view extension = ".wld"_sv;
 
-   if (terrain_name.empty() || sky_name.empty()) extension = ".lyr"s;
+   if (terrain_name.empty() || sky_name.empty()) extension = ".lyr"_sv;
 
-   file_saver.save_file(std::move(buffer), name + extension, "world"s);
+   file_saver.save_file(buffer, "world"_sv, name, extension);
 }
 
 void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers,
@@ -495,7 +495,7 @@ void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers
       read_barrier(barrier, buffer);
    }
 
-   file_saver.save_file(std::move(buffer), std::string{name} += ".bar"_sv, "world"s);
+   file_saver.save_file(buffer, "world"_sv, name, ".bar"_sv);
 }
 
 void process_hint_entries(std::vector<Ucfb_reader_strict<"Hint"_mn>> hints,
@@ -508,7 +508,7 @@ void process_hint_entries(std::vector<Ucfb_reader_strict<"Hint"_mn>> hints,
       read_hint(hint, buffer);
    }
 
-   file_saver.save_file(std::move(buffer), std::string{name} += ".hnt"_sv, "world"s);
+   file_saver.save_file(buffer, "world"_sv, name, ".hnt"_sv);
 }
 
 void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_view name,
@@ -529,11 +529,11 @@ void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_vie
       }
    }
 
-   file_saver.save_file(std::move(buffer), std::string{name} += ".anm"_sv, "world"s);
+   file_saver.save_file(buffer, "world"_sv, name, ".anm"_sv);
 }
 }
 
-void handle_world(Ucfb_reader world, tbb::task_group& tasks, File_saver& file_saver)
+void handle_world(Ucfb_reader world, File_saver& file_saver)
 {
    const auto name = world.read_child_strict<"NAME"_mn>().read_string();
 
@@ -579,6 +579,8 @@ void handle_world(Ucfb_reader world, tbb::task_group& tasks, File_saver& file_sa
       }
    }
 
+   tbb::task_group tasks;
+
    tasks.run([ region_entries{std::move(region_entries)}, name, &file_saver ] {
       process_region_entries(region_entries, name, file_saver);
    });
@@ -605,4 +607,6 @@ void handle_world(Ucfb_reader world, tbb::task_group& tasks, File_saver& file_sa
          process_animation_entries(animation_entries, name, file_saver);
       });
    }
+
+   tasks.wait();
 }

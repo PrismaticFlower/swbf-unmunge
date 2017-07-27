@@ -1,82 +1,76 @@
 #include "file_saver.hpp"
 
+#include <gsl/gsl>
+
 #include <algorithm>
-#include <fstream>
+#include <cstdio>
+#include <limits>
+#include <memory>
+#include <mutex>
+
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
 
 namespace fs = std::experimental::filesystem;
 
-File_saver::File_saver(std::experimental::filesystem::path path) noexcept
+File_saver::File_saver(const std::experimental::filesystem::path& path) noexcept
+   : _path{path.string()}
 {
-   _path = std::move(path);
-   _thread = std::thread{[this] { run(); }};
-
    fs::create_directory(_path);
 }
 
-File_saver::~File_saver()
+void File_saver::save_file(std::string_view contents, std::string_view directory,
+                           std::string_view name, std::string_view extension)
 {
-   {
-      std::lock_guard<std::mutex> lock{_running_mutex};
-
-      _running = false;
+   if (contents.size() > std::numeric_limits<DWORD>::max()) {
+      throw std::runtime_error{"File is too large to save."};
    }
 
-   _cond_var.notify_one();
+   create_dir(directory);
 
-   _thread.join();
-}
+   std::string path;
+   path.reserve(_path.length() + 1 + directory.length() + 1 + name.length() +
+                extension.length());
 
-void File_saver::save_file(std::string contents, std::string name,
-                           std::string directory) noexcept
-{
-   Path_info path_info;
-   path_info.name = std::move(name);
-   path_info.directory = std::move(directory);
+   constexpr auto preferred_separator =
+      static_cast<char>(std::experimental::filesystem::path::preferred_separator);
 
-   _file_queue.emplace(std::make_pair(std::move(contents), std::move(path_info)));
+   path += _path;
+   path += directory;
+   path += preferred_separator;
+   path += name;
+   path += extension;
 
-   _cond_var.notify_one();
-}
+   HANDLE file;
+   const auto closer = gsl::finally([&file] { CloseHandle(file); });
 
-void File_saver::run() noexcept
-{
-   while (true) {
-      std::unique_lock<std::mutex> lock{_running_mutex};
+   file = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                      FILE_ATTRIBUTE_NORMAL, NULL);
 
-      _cond_var.wait(lock, [this] { return (!_running || !_file_queue.empty()); });
-
-      File_info info;
-
-      while (_file_queue.try_pop(info)) save(std::move(info));
-
-      if (!_running) break;
-   }
-}
-
-void File_saver::save(File_info info) noexcept
-{
-   create_dir(info.second.directory);
-
-   fs::path path = _path;
-
-   path /= info.second.directory;
-   path /= info.second.name;
-
-   std::ofstream file{path, std::ios::binary | std::ios::out};
-
-   file.write(info.first.data(), info.first.size());
+   WriteFile(file, contents.data(), static_cast<DWORD>(contents.size()), nullptr,
+             nullptr);
 }
 
 void File_saver::create_dir(std::string_view directory) noexcept
 {
-   const auto dir_result =
-      std::find(std::cbegin(_created_dirs), std::cend(_created_dirs), directory);
+   decltype(_created_dirs)::const_iterator dir_result;
+
+   {
+      const auto releaser = gsl::finally([this] { _dirs_mutex.unlock(); });
+      _dirs_mutex.lock_read();
+
+      dir_result =
+         std::find(std::cbegin(_created_dirs), std::cend(_created_dirs), directory);
+   }
 
    if (dir_result == std::cend(_created_dirs)) {
       std::string str_dir{directory};
 
       fs::path path{_path};
       path /= str_dir;
+
+      std::lock_guard<tbb::spin_rw_mutex> writer_lock{_dirs_mutex};
 
       fs::create_directory(path);
 

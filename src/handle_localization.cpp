@@ -155,21 +155,22 @@ void dump_localization(Ucfb_reader_strict<"Locl"_mn> localization, File_saver& f
       buffer += '\n';
    }
 
-   file_saver.save_file(std::move(buffer), std::string{name}, "localization"s);
+   file_saver.save_file(buffer, "localization"_sv, name, ".txt"_sv);
 }
 }
 
-void handle_localization(Ucfb_reader localization, tbb::task_group& tasks,
-                         File_saver& file_saver)
+void handle_localization(Ucfb_reader localization, File_saver& file_saver)
 {
+   tbb::task_group tasks;
+
    tasks.run([localization, &file_saver]() {
       auto localization_copy = localization;
       const auto name = localization_copy.read_child_strict<"NAME"_mn>().read_string();
 
-      handle_unknown(localization, file_saver, std::string{name});
+      handle_unknown(localization, file_saver, std::string{name}, "loc"s);
    });
 
-   tasks.run([localization, &file_saver] {
+   tasks.run_and_wait([localization, &file_saver] {
       dump_localization(Ucfb_reader_strict<"Locl"_mn>{localization}, file_saver);
    });
 }

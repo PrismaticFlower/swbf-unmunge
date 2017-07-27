@@ -21,14 +21,14 @@ std::string get_unique_chunk_name() noexcept
    std::string result{"chunk_"s};
 
    result += std::to_string(chunk_count.fetch_add(1));
-   result += ".munged"_sv;
 
    return result;
 }
 }
 
 void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
-                    std::optional<std::string> file_name)
+                    std::optional<std::string> file_name,
+                    std::optional<std::string> file_extension)
 {
    std::string file;
    file.reserve(chunk.size() + 16);
@@ -39,6 +39,6 @@ void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
    file += view_pod_as_string(static_cast<std::uint32_t>(chunk.size()));
    file += view_pod_span_as_string(chunk.read_array<Byte>(chunk.size()));
 
-   file_saver.save_file(std::move(file), file_name ? *file_name : get_unique_chunk_name(),
-                        "munged");
+   file_saver.save_file(file, "munged", file_name ? *file_name : get_unique_chunk_name(),
+                        file_extension ? *file_extension : ".munged"_sv);
 }

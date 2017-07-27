@@ -200,7 +200,7 @@ void Terrain_builder::save(std::string_view name, File_saver& file_saver) const
    // patch infomap
    buffer += view_pod_span_as_string(gsl::make_span(_patch_infomap));
 
-   file_saver.save_file(std::move(buffer), std::string{name} + ".ter"s, "world");
+   file_saver.save_file(buffer, "world"_sv, name, ".ter"_sv);
 }
 
 std::size_t Terrain_builder::lookup_point_index(Point point) const noexcept

@@ -6,8 +6,6 @@
 #include "msh_builder.hpp"
 #include "ucfb_reader.hpp"
 
-#include "tbb/task_group.h"
-
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
@@ -46,14 +44,11 @@ int main(int argc, char* argv[])
 
       Mapped_file file{file_path};
       File_saver file_saver{fs::path{file_path}.replace_extension("") += '/'};
-      tbb::task_group tasks;
       msh::Builders_map msh_builders;
 
       Ucfb_reader root_reader{file.bytes()};
 
-      tasks.run_and_wait([&, root_reader] {
-         process_chunk(root_reader, app_options, file_saver, tasks, msh_builders);
-      });
+      process_chunk(root_reader, app_options, file_saver, msh_builders);
 
       msh::save_all(file_saver, msh_builders);
 

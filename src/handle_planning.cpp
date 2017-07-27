@@ -174,7 +174,7 @@ auto handle_arcs(Ucfb_reader_strict<"ARCS"_mn> arcs, std::uint32_t arc_count)
    return connections;
 }
 
-void write_planning(std::string name, const std::vector<Hub_info> hubs,
+void write_planning(std::string_view name, const std::vector<Hub_info> hubs,
                     const std::vector<Connection_info> connections,
                     File_saver& file_saver)
 {
@@ -195,8 +195,7 @@ void write_planning(std::string name, const std::vector<Hub_info> hubs,
       buffer += "// Failed reading planning info //"_sv;
    }
 
-   name.append(".pln"_sv);
-   file_saver.save_file(std::move(buffer), name, "world");
+   file_saver.save_file(buffer, "world"_sv, name, ".pln"_sv);
 }
 }
 

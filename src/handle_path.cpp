@@ -163,9 +163,8 @@ void save_paths(std::vector<Path> paths, File_saver& file_saver)
    static std::atomic_int path_count{0};
 
    std::string file_name = std::to_string(path_count.fetch_add(1));
-   file_name += ".pth"_sv;
 
-   file_saver.save_file(std::move(buffer), std::move(file_name), "world"s);
+   file_saver.save_file(buffer, "world"s, file_name, ".pth"_sv);
 }
 }
 

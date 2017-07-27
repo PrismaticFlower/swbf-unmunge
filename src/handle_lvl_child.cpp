@@ -1,21 +1,24 @@
 #include "chunk_processor.hpp"
 
-#include "tbb/task_group.h"
+#include "tbb/parallel_for_each.h"
+
+#include <vector>
 
 void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
-                      File_saver& file_saver, tbb::task_group& tasks,
-                      msh::Builders_map& msh_builders)
+                      File_saver& file_saver, msh::Builders_map& msh_builders)
 {
    lvl_child.consume(4); // lvl name hash
    lvl_child.consume(4); // lvl size left
 
-   while (lvl_child) {
-      const auto child = lvl_child.read_child();
+   std::vector<Ucfb_reader> children;
+   children.reserve(32);
 
-      const auto task = [child, &app_options, &file_saver, &tasks, &msh_builders] {
-         process_chunk(child, app_options, file_saver, tasks, msh_builders);
-      };
+   while (lvl_child) children.emplace_back(lvl_child.read_child());
 
-      tasks.run(task);
-   }
+   const auto processor = [&app_options, &file_saver,
+                           &msh_builders](const Ucfb_reader& child) {
+      process_chunk(child, app_options, file_saver, msh_builders);
+   };
+
+   tbb::parallel_for_each(children, processor);
 }

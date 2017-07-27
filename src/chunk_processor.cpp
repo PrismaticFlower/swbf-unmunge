@@ -22,7 +22,6 @@ struct Args_pack {
    Ucfb_reader chunk;
    const App_options& app_options;
    File_saver& file_saver;
-   tbb::task_group& tasks;
    msh::Builders_map& msh_builders;
 };
 
@@ -125,14 +124,13 @@ const auto chunk_processors = Chunk_processor_map{
    {"ucfb"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_ucfb(args.chunk, args.app_options, args.file_saver, args.tasks,
-                    args.msh_builders);
+        handle_ucfb(args.chunk, args.app_options, args.file_saver, args.msh_builders);
      }}},
 
    {"lvl_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_lvl_child(args.chunk, args.app_options, args.file_saver, args.tasks,
+        handle_lvl_child(args.chunk, args.app_options, args.file_saver,
                          args.msh_builders);
      }}},
 
@@ -227,7 +225,7 @@ const auto chunk_processors = Chunk_processor_map{
    // World chunks
    {"wrld"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_world(args.chunk, args.tasks, args.file_saver); }}},
+     [](Args_pack args) { handle_world(args.chunk, args.file_saver); }}},
    {"plan"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) { handle_planning(args.chunk, args.file_saver); }}},
@@ -260,9 +258,7 @@ const auto chunk_processors = Chunk_processor_map{
    // Misc chunks
    {"Locl"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_localization(args.chunk, args.tasks, args.file_saver);
-     }}},
+     [](Args_pack args) { handle_localization(args.chunk, args.file_saver); }}},
 
    // Ignored Chunks, for which we want no output at all.
    {"gmod"_mn, {Input_platform::pc, Game_version::swbf_ii, ignore_chunk}},
@@ -271,26 +267,23 @@ const auto chunk_processors = Chunk_processor_map{
 }
 
 void process_chunk(Ucfb_reader chunk, const App_options& app_options,
-                   File_saver& file_saver, tbb::task_group& tasks,
-                   msh::Builders_map& msh_builders)
+                   File_saver& file_saver, msh::Builders_map& msh_builders)
 {
    const auto processor = chunk_processors.lookup(
       chunk.magic_number(), app_options.input_platform(), app_options.game_version());
 
    if (processor) {
-      tasks.run([&, chunk, processor] {
-         try {
-            processor({chunk, app_options, file_saver, tasks, msh_builders});
-         }
-         catch (const std::exception& e) {
-            synced_cout::print("Exception occured while processing chunk.\n"
-                               "   Type: "s,
-                               view_pod_as_string(chunk.magic_number()), "\n   Size: "s,
-                               chunk.size(), "\n   Message: "s, e.what(), '\n');
-         }
-      });
+      try {
+         processor({chunk, app_options, file_saver, msh_builders});
+      }
+      catch (const std::exception& e) {
+         synced_cout::print("Exception occured while processing chunk.\n"
+                            "   Type: "s,
+                            view_pod_as_string(chunk.magic_number()), "\n   Size: "s,
+                            chunk.size(), "\n   Message: "s, e.what(), '\n');
+      }
    }
    else {
-      tasks.run([&, chunk] { handle_unknown(chunk, file_saver); });
+      handle_unknown(chunk, file_saver);
    }
 }

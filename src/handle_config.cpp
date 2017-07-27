@@ -277,7 +277,6 @@ void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view 
    auto buffer = read_root_scope(config, strings_are_hashed);
 
    if (!buffer.empty()) {
-      file_saver.save_file(std::move(buffer), std::to_string(name_hash) += file_type,
-                           std::string{dir});
+      file_saver.save_file(buffer, dir, std::to_string(name_hash), file_type);
    }
 }
