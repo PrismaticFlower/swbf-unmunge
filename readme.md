@@ -13,10 +13,13 @@ age of the games it's targetting I have doubts about that.
 swbf-unmunge <options>
 
 Options:
- -file <filepath> Set the input file to operate on.
+ -file <filepath> Specify an input file to operate on.
+ -files <files> Specify a list of input files to operate, delimited by ';'.
+   Example: "-files foo.lvl;bar.lvl"
  -version <version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.
  -imgfmt <format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.
- -platform <format> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.
+ -platform <platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.
+ -verbose Enable verbose output.
 ```
 
 So as an example.
@@ -34,7 +37,7 @@ File Type | Notes
 Object Definitions | Recovered nearly perfectly.
 Config Files (*.fx, *,sky, etc) | Depending on the file type, recovered perfectly or for certain types poorly. In all cases the name of the file is not recovered.
 Textures | Recovered nearly perfectly.
-World Info | Most world info is recovered in a good quality fashion. There may be issues with the positioning of objects and the like however.
+World Info | Most world info is recovered in a very good quality fashion. 
 Path Planning | All info is recovered except dynamic pathing groups and path weights.
 Terrain | Height, colour, most texture info and some limited water info is recovered. Terrain cuts and foliage are still not recovered.
 Models | Recovered mostly. The recovered collision mesh for models is rejected by the munger and other things like material information may be wrong.
