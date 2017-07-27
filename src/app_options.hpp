@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <functional>
 #include <iosfwd>
 #include <string>
@@ -21,7 +20,7 @@ public:
 
    App_options(const int argc, char* argv[]);
 
-   auto input_file() const noexcept -> const std::experimental::filesystem::path&;
+   auto input_files() const noexcept -> const std::vector<std::string>&;
 
    Game_version game_version() const noexcept;
 
@@ -46,7 +45,7 @@ private:
 
    std::vector<Option> _options;
 
-   std::experimental::filesystem::path _file_path;
+   std::vector<std::string> _input_files;
    Game_version _game_version;
    Image_format _img_save_format = Image_format::tga;
    Input_platform _input_platform;

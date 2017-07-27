@@ -21,12 +21,31 @@ std::stringstream create_arg_stream(int argc, char* argv[])
    return arg_stream;
 }
 
-auto read_filesystem_path(std::istream& istream)
+std::string read_file_path(std::istream& istream)
 {
    std::string str;
    istream >> std::quoted(str);
 
-   return std::experimental::filesystem::path{str};
+   return str;
+}
+
+auto append_file_list(std::istream& istream, std::vector<std::string>& out)
+{
+   std::string list;
+   istream >> std::quoted(list);
+
+   std::string_view view{list};
+
+   constexpr auto delimiter = ';';
+
+   for (auto offset = view.find(delimiter); (offset != 0 && offset != view.npos);
+        offset = view.find(delimiter)) {
+      out.emplace_back(view.substr(0, offset));
+
+      view.remove_prefix(offset + 1);
+   }
+
+   if (!view.empty()) out.emplace_back(view);
 }
 
 std::istream& operator>>(std::istream& istream, Game_version& game_version)
@@ -90,30 +109,37 @@ std::istream& operator>>(std::istream& istream, Input_platform& platform)
 }
 }
 
-const auto fileinput_opt_description{
-   R"(<filepath> Set the input file to operate on.)"_sv};
+constexpr auto fileinput_opt_description{
+   R"(<filepath> Specify an input file to operate on.)"_sv};
 
-const auto game_ver_opt_description{
+constexpr auto files_opt_description{
+   R"(<files> Specify a list of input files to operate, delimited by ';'.
+   Example: "-files foo.lvl;bar.lvl")"_sv};
+
+constexpr auto game_ver_opt_description{
    R"(<version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"_sv};
 
-const auto image_opt_description{
+constexpr auto image_opt_description{
    R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
 
-const auto input_plat_opt_description{
+constexpr auto input_plat_opt_description{
    R"(<format> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
 
 App_options::App_options()
 {
    using Istr = std::istream;
 
-   _options = {{"-file"s, [this](Istr& istr) { _file_path = read_filesystem_path(istr); },
-                fileinput_opt_description},
-               {"-version"s, [this](Istr& istr) { istr >> _game_version; },
-                game_ver_opt_description},
-               {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
-                image_opt_description},
-               {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
-                input_plat_opt_description}
+   _options = {
+      {"-file"s, [this](Istr& istr) { _input_files.emplace_back(read_file_path(istr)); },
+       fileinput_opt_description},
+      {"-files"s, [this](Istr& istr) { append_file_list(istr, _input_files); },
+       files_opt_description},
+      {"-version"s, [this](Istr& istr) { istr >> _game_version; },
+       game_ver_opt_description},
+      {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
+       image_opt_description},
+      {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
+       input_plat_opt_description}
 
    };
 }
@@ -133,10 +159,9 @@ App_options::App_options(int argc, char* argv[]) : App_options()
    }
 }
 
-auto App_options::input_file() const noexcept
-   -> const std::experimental::filesystem::path&
+auto App_options::input_files() const noexcept -> const std::vector<std::string>&
 {
-   return _file_path;
+   return _input_files;
 }
 
 Game_version App_options::game_version() const noexcept
