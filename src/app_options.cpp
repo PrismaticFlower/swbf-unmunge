@@ -123,7 +123,7 @@ constexpr auto image_opt_description{
    R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
 
 constexpr auto input_plat_opt_description{
-   R"(<format> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
+   R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
 
 App_options::App_options()
 {
