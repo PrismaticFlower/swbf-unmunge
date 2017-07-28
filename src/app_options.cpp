@@ -119,6 +119,9 @@ constexpr auto files_opt_description{
 constexpr auto game_ver_opt_description{
    R"(<version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"_sv};
 
+constexpr auto gameout_ver_opt_description{
+   R"(<version> Set the game version the output files will target. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"_sv};
+
 constexpr auto image_opt_description{
    R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
 
@@ -139,6 +142,8 @@ App_options::App_options()
        files_opt_description},
       {"-version"s, [this](Istr& istr) { istr >> _game_version; },
        game_ver_opt_description},
+      {"-outversion"s, [this](Istr& istr) { istr >> _output_game_version; },
+       gameout_ver_opt_description},
       {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
        image_opt_description},
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
@@ -169,6 +174,11 @@ auto App_options::input_files() const noexcept -> const std::vector<std::string>
 Game_version App_options::game_version() const noexcept
 {
    return _game_version;
+}
+
+Game_version App_options::output_game_version() const noexcept
+{
+   return _output_game_version;
 }
 
 Image_format App_options::image_save_format() const noexcept

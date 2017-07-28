@@ -24,6 +24,8 @@ public:
 
    Game_version game_version() const noexcept;
 
+   Game_version output_game_version() const noexcept;
+
    Image_format image_save_format() const noexcept;
 
    Input_platform input_platform() const noexcept;
@@ -49,6 +51,7 @@ private:
 
    std::vector<std::string> _input_files;
    Game_version _game_version;
+   Game_version _output_game_version;
    Image_format _img_save_format = Image_format::tga;
    Input_platform _input_platform;
    bool _verbose = false;
