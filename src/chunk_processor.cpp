@@ -123,15 +123,12 @@ const auto chunk_processors = Chunk_processor_map{
    // Parent Chunks
    {"ucfb"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) {
-        handle_ucfb(args.chunk, args.app_options, args.file_saver, args.msh_builders);
-     }}},
+     [](Args_pack args) { handle_ucfb(args.chunk, args.app_options, args.file_saver); }}},
 
    {"lvl_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_lvl_child(args.chunk, args.app_options, args.file_saver,
-                         args.msh_builders);
+        handle_lvl_child(args.chunk, args.app_options, args.file_saver);
      }}},
 
    // Class Chunks

@@ -14,10 +14,10 @@ void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
                     std::optional<std::string> file_extension = {});
 
 void handle_ucfb(Ucfb_reader chunk, const App_options& app_options,
-                 File_saver& file_saver, msh::Builders_map& msh_builders);
+                 File_saver& file_saver);
 
 void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
-                      File_saver& file_saver, msh::Builders_map& msh_builders);
+                      File_saver& file_saver);
 
 void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view type);
 
