@@ -50,9 +50,9 @@ private:
    std::vector<Option> _options;
 
    std::vector<std::string> _input_files;
-   Game_version _game_version;
-   Game_version _output_game_version;
+   Game_version _game_version = Game_version::swbf_ii;
+   Game_version _output_game_version = Game_version::swbf_ii;
    Image_format _img_save_format = Image_format::tga;
-   Input_platform _input_platform;
+   Input_platform _input_platform = Input_platform::pc;
    bool _verbose = false;
 };
