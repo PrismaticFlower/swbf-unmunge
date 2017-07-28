@@ -173,6 +173,8 @@ Model cloth_to_model(const Cloth& cloth, const std::vector<Bone>& bones)
    Model model{};
    model.parent = cloth.parent;
    model.material = create_cloth_material(cloth.texture_name);
+   model.rotation = cloth.rotation;
+   model.position = cloth.position;
 
    model.vertices = cloth.vertices;
    model.normals = create_cloth_normals(cloth.vertices, cloth.indices);

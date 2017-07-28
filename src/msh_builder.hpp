@@ -97,6 +97,9 @@ struct Material {
 struct Model {
    std::optional<std::string> parent;
 
+   glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
+   glm::vec3 position;
+
    Material material;
 
    std::vector<std::vector<std::uint16_t>> strips;

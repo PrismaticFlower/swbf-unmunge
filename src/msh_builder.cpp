@@ -278,6 +278,9 @@ Modl_section create_section_from(const Model& model, std::string_view root_name,
 
    section.parent = model.parent.value_or(std::string{root_name});
 
+   section.rotation = model.rotation;
+   section.translation = model.position;
+
    section.material = model.material;
    fixup_texture_names(*section.material);
 
