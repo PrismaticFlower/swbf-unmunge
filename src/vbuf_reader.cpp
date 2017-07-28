@@ -98,11 +98,6 @@ constexpr bool is_known_vbuf(Vbuf_types type) noexcept
    }
 }
 
-glm::vec2 flip_texture_y(glm::vec2 tex_coord)
-{
-   return {tex_coord.x, 1.0f - tex_coord.y};
-}
-
 void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& model)
 {
    model.vertices.clear();
@@ -115,7 +110,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& mode
    for (const auto& entry : entries) {
       model.vertices.push_back(entry.position);
       model.normals.push_back(entry.normal);
-      model.texture_coords.push_back(flip_texture_y(entry.uv));
+      model.texture_coords.push_back(entry.uv);
    }
 }
 
@@ -134,7 +129,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& mod
       model.vertices.push_back(entry.position);
       model.normals.push_back(entry.normal);
       model.colours.push_back(entry.rgba);
-      model.texture_coords.push_back(flip_texture_y(entry.uv));
+      model.texture_coords.push_back(entry.uv);
    }
 }
 
@@ -153,7 +148,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& mo
       model.vertices.push_back(entry.position);
       model.skin.push_back(entry.skin[0]);
       model.normals.push_back(entry.normal);
-      model.texture_coords.push_back(flip_texture_y(entry.uv));
+      model.texture_coords.push_back(entry.uv);
    }
 }
 }
