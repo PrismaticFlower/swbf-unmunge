@@ -8,10 +8,11 @@
 using namespace std::literals;
 
 Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_scale,
-                                 const std::uint16_t grid_size)
+                                 const std::uint16_t grid_size,
+                                 const std::uint32_t default_colour)
    : _grid_unit_size{grid_unit_size}, _height_granularity{height_scale},
      _grid_size{grid_size}, _heightmap(grid_size * grid_size, 0i16),
-     _colourmap(grid_size * grid_size, 0xffffffffui32),
+     _colourmap(grid_size * grid_size, default_colour),
      _texturemap(grid_size * grid_size, Texture_values{}),
      _patch_infomap((grid_size / 4) * (grid_size / 4), {Render_types::normal, 0})
 {
@@ -102,6 +103,11 @@ void Terrain_builder::set_patch_water(const Point patch, const bool water)
    auto& patch_info = _patch_infomap[index];
 
    patch_info.water_layer = water ? 1 : 0;
+}
+
+void Terrain_builder::set_munge_flags(const Terrain_flags flags) noexcept
+{
+   _terrain_flags = flags;
 }
 
 void Terrain_builder::save(Game_version version, std::string_view name,
@@ -220,4 +226,14 @@ std::size_t Terrain_builder::lookup_patch_index(Point patch) const noexcept
    if (patch[1] >= patch_grid_size) patch[1] %= patch_grid_size;
 
    return patch[0] + patch_grid_size * patch[1];
+}
+
+void save_void_terrain(Game_version version, std::string_view name,
+                       File_saver& file_saver)
+{
+   Terrain_builder builder{8.0f, 0.01f, 128, 0x0};
+
+   builder.set_munge_flags(Terrain_flags::munge_none);
+
+   builder.save(version, name, file_saver);
 }

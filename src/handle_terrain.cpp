@@ -331,6 +331,8 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
 {
    const auto name = terrain.read_child_strict<"NAME"_mn>().read_string();
 
+   if (!terrain) return save_void_terrain(output_version, name, file_saver);
+
    const auto info = terrain.read_child_strict<"INFO"_mn>().read_trivial<Terrain_info>();
 
    Terrain_builder builder{info.grid_unit_size, info.height_scale, info.grid_size};

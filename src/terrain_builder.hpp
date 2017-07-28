@@ -13,6 +13,7 @@
 #include <vector>
 
 enum class Terrain_flags : std::uint8_t {
+   munge_none = 0,
    munge_terrain = 1,
    munge_water = 2,
    munge_foliage = 4,
@@ -26,7 +27,8 @@ public:
    using Point = std::array<std::uint16_t, 2>;
 
    Terrain_builder(const float grid_unit_size, const float height_scale,
-                   const std::uint16_t grid_size);
+                   const std::uint16_t grid_size,
+                   const std::uint32_t default_colour = 0xffffffffu);
 
    void set_textures(const std::array<std::string, max_textures>& textures);
 
@@ -47,6 +49,8 @@ public:
                           const std::uint8_t value) noexcept;
 
    void set_patch_water(const Point patch, const bool water);
+
+   void set_munge_flags(const Terrain_flags flags) noexcept;
 
    void save(Game_version version, std::string_view name, File_saver& file_saver) const;
 
@@ -104,3 +108,6 @@ private:
 
    std::array<Water_settings, max_water_layers> _water_settings{};
 };
+
+void save_void_terrain(Game_version version, std::string_view name,
+                       File_saver& file_saver);
