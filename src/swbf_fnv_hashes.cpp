@@ -1,10 +1,13 @@
 
 #include "swbf_fnv_hashes.hpp"
+#include "synced_cout.hpp"
 
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <utility>
+
+using namespace std::literals;
 
 namespace {
 
@@ -2729,6 +2732,8 @@ std::string lookup_fnv_hash(const std::uint32_t hash)
    const auto result = swbf_hashes.find(hash);
 
    if (result != std::cend(swbf_hashes)) return std::string{result->second};
+
+   synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, hash, '\n');
 
    return std::to_string(hash);
 }
