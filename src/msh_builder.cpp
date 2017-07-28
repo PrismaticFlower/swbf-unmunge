@@ -141,10 +141,16 @@ void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone> b
          auto& vertex = mesh.vertices[i];
 
          const auto bone_index = mesh.bone_map.at(mesh.skin[i]);
-         const auto& bone = bones.at(bone_index);
+         auto bone = bones.begin() + bone_index;
 
-         vertex = vertex * glm::inverse(bone.rotation);
-         vertex += bone.position;
+         while (bone < std::end(bones)) {
+            vertex = vertex * glm::inverse(bone->rotation);
+            vertex += bone->position;
+
+            bone = std::find_if(
+               std::begin(bones), std::end(bones),
+               [bone](const Bone& other) { return (other.name == bone->parent); });
+         }
       }
    }
 }
