@@ -1,4 +1,5 @@
 
+#include "app_options.hpp"
 #include "byte.hpp"
 #include "file_saver.hpp"
 #include "glm_pod_wrappers.hpp"
@@ -325,7 +326,8 @@ void read_water(Ucfb_reader_strict<"WATR"_mn> water, Terrain_info terrain_info,
 }
 }
 
-void handle_terrain(Ucfb_reader terrain, File_saver& file_saver)
+void handle_terrain(Ucfb_reader terrain, Game_version output_version,
+                    File_saver& file_saver)
 {
    const auto name = terrain.read_child_strict<"NAME"_mn>().read_string();
 
@@ -359,5 +361,5 @@ void handle_terrain(Ucfb_reader terrain, File_saver& file_saver)
       }
    }
 
-   builder.save(name, file_saver);
+   builder.save(output_version, name, file_saver);
 }

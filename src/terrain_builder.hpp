@@ -1,5 +1,7 @@
 #pragma once
 
+#include "app_options.hpp"
+#include "bit_flags.hpp"
 #include "file_saver.hpp"
 
 #define GLM_FORCE_CXX98
@@ -9,6 +11,13 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+
+enum class Terrain_flags : std::uint8_t {
+   munge_terrain = 1,
+   munge_water = 2,
+   munge_foliage = 4,
+   munge_all = 7
+};
 
 class Terrain_builder {
 public:
@@ -39,7 +48,7 @@ public:
 
    void set_patch_water(const Point patch, const bool water);
 
-   void save(std::string_view name, File_saver& file_saver) const;
+   void save(Game_version version, std::string_view name, File_saver& file_saver) const;
 
 private:
    using Texture_values = std::array<std::uint8_t, max_textures>;
@@ -80,6 +89,7 @@ private:
    const float _grid_unit_size = 8.0f;
    const float _height_granularity = 0.01f;
    const std::uint_fast16_t _grid_size = 128;
+   Terrain_flags _terrain_flags = Terrain_flags::munge_all;
 
    std::vector<std::int16_t> _heightmap;
    std::vector<std::uint32_t> _colourmap;

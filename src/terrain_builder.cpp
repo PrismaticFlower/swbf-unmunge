@@ -7,9 +7,6 @@
 
 using namespace std::literals;
 
-namespace {
-}
-
 Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_scale,
                                  const std::uint16_t grid_size)
    : _grid_unit_size{grid_unit_size}, _height_granularity{height_scale},
@@ -107,7 +104,8 @@ void Terrain_builder::set_patch_water(const Point patch, const bool water)
    patch_info.water_layer = water ? 1 : 0;
 }
 
-void Terrain_builder::save(std::string_view name, File_saver& file_saver) const
+void Terrain_builder::save(Game_version version, std::string_view name,
+                           File_saver& file_saver) const
 {
    constexpr auto header_size = 2821;
 
@@ -122,7 +120,10 @@ void Terrain_builder::save(std::string_view name, File_saver& file_saver) const
    buffer += "TERR"_sv;
 
    // version number
-   buffer += view_pod_as_string(22i32);
+   if (version == Game_version::swbf_ii)
+      buffer += view_pod_as_string(22i32);
+   else
+      buffer += view_pod_as_string(21i32);
 
    // grid extent
    const auto extent = static_cast<std::int16_t>(_grid_size / 2);
@@ -162,8 +163,8 @@ void Terrain_builder::save(std::string_view name, File_saver& file_saver) const
    // grids per foliage
    buffer += view_pod_as_string(2i32);
 
-   // unknown
-   buffer += '\0';
+   // munge flags
+   if (version == Game_version::swbf_ii) buffer += view_type_as<char>(_terrain_flags);
 
    // texture names
    static_assert(sizeof(_textures) == 1024);

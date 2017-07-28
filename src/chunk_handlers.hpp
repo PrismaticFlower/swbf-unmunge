@@ -37,7 +37,8 @@ void handle_path(Ucfb_reader path, File_saver& file_saver);
 
 void handle_localization(Ucfb_reader localization, File_saver& file_saver);
 
-void handle_terrain(Ucfb_reader terrain, File_saver& file_saver);
+void handle_terrain(Ucfb_reader terrain, Game_version output_version,
+                    File_saver& file_saver);
 
 void handle_model(Ucfb_reader model, msh::Builders_map& builders);
 

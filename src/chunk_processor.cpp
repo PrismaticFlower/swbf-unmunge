@@ -234,7 +234,10 @@ const auto chunk_processors = Chunk_processor_map{
      [](Args_pack args) { handle_path(args.chunk, args.file_saver); }}},
    {"tern"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_terrain(args.chunk, args.file_saver); }}},
+     [](Args_pack args) {
+        handle_terrain(args.chunk, args.app_options.output_game_version(),
+                       args.file_saver);
+     }}},
    // Model chunks
    {"skel"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
