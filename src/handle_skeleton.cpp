@@ -20,7 +20,7 @@ static_assert(sizeof(Xframe) == 48);
 
 auto read_xframe(const Xframe& xframe) -> std::pair<glm::vec3, glm::quat>
 {
-   return {xframe.position, glm::quat_cast(glm::mat3{xframe.matrix})};
+   return {xframe.position, glm::mat3{xframe.matrix}};
 }
 
 template<Magic_number magic_number>
