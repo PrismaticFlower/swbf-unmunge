@@ -2514,6 +2514,7 @@ const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes{
    "UseDirectionalDeaths"_fnvp,
    "UseDirectionalJumps"_fnvp,
    "UseHSV"_fnvp,
+   "UseTexture"_fnvp,
    "UseVCollForFlyers"_fnvp,
    "VAlign"_fnvp,
    "Value"_fnvp,
