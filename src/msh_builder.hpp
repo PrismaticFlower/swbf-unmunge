@@ -60,14 +60,13 @@ enum class Render_type_swbf1 : std::uint8_t {
 enum class Primitive_type : std::uint32_t { sphere = 0, cylinder = 2, cube = 4 };
 
 enum class Collision_flags : std::uint32_t {
+   all = 0,
    soldier = 1,
    vehicle = 2,
    building = 4,
    terrain = 8,
    ordnance = 16,
-   flyer = 32,
-
-   all = 63
+   flyer = 32
 };
 
 struct Bbox {
@@ -127,6 +126,7 @@ struct Bone {
 
 struct Collsion_mesh {
    std::string parent;
+   Collision_flags flags = Collision_flags::all;
 
    std::vector<glm::vec3> vertices;
    std::vector<std::vector<std::uint16_t>> strips;

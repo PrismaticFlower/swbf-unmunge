@@ -219,9 +219,11 @@ void fixup_texture_names(Material& material)
    }
 }
 
-std::string create_coll_prim_name(Collision_flags flags, std::uint32_t index)
+std::string create_coll_flags_name(Collision_flags flags)
 {
-   std::string name{"p_-"};
+   if (flags == Collision_flags::all) return ""s;
+
+   std::string name{"-"};
 
    if (are_flags_set(flags, Collision_flags::soldier)) name += 's';
    if (are_flags_set(flags, Collision_flags::vehicle)) name += 'v';
@@ -230,8 +232,7 @@ std::string create_coll_prim_name(Collision_flags flags, std::uint32_t index)
    if (are_flags_set(flags, Collision_flags::ordnance)) name += 'o';
    if (are_flags_set(flags, Collision_flags::flyer)) name += 'f';
 
-   name += "-coll"_sv;
-   name += std::to_string(index);
+   name += "-_"_sv;
 
    return name;
 }
@@ -316,7 +317,8 @@ Modl_section create_section_from(const Collsion_mesh& collision, std::uint32_t i
 
    section.type = Model_type::fixed;
    section.index = index;
-   section.name = "collision_"s + std::to_string(index);
+   section.name =
+      "collision_"s + create_coll_flags_name(collision.flags) + std::to_string(index);
    section.parent = collision.parent;
 
    section.strips = strips_to_msh_fmt(collision.strips);
@@ -332,7 +334,7 @@ Modl_section create_section_from(const Collision_primitive& primitive,
 
    section.type = Model_type::null;
    section.index = index;
-   section.name = create_coll_prim_name(primitive.flags, index);
+   section.name = "p_"s + create_coll_flags_name(primitive.flags) + std::to_string(index);
    section.parent = primitive.parent;
    section.translation = primitive.position;
    section.rotation = primitive.rotation;

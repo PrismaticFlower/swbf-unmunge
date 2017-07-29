@@ -59,7 +59,13 @@ void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
 {
    const std::string name{collision.read_child_strict<"NAME"_mn>().read_string()};
 
-   collision.read_child_strict_optional<"MASK"_mn>();
+   auto mask = collision.read_child_strict_optional<"MASK"_mn>();
+
+   msh::Collision_flags flags = msh::Collision_flags::all;
+
+   if (mask) {
+      flags = static_cast<msh::Collision_flags>(mask->read_trivial<std::uint8_t>());
+   }
 
    const auto parent = collision.read_child_strict<"NODE"_mn>().read_string();
 
@@ -69,6 +75,7 @@ void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
    msh::Collsion_mesh collision_mesh;
    collision_mesh.parent = parent;
    collision_mesh.strips.reserve(info.leaf_count);
+   collision_mesh.flags = flags;
 
    collision_mesh.vertices =
       read_positions(collision.read_child_strict<"POSI"_mn>(), info.vertex_count);
