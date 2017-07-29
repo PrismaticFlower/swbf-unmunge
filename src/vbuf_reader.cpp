@@ -29,6 +29,7 @@ enum class Vbuf_types : std::uint32_t {
    unused_16 = 0x0000d222,
    unused_20_a = 0x0000d2a2,
    unused_20_b = 0x0000f226,
+   unused_20_c = 0x0000d322,
    unused_24 = 0x0000d262,
    unused_28_a = 0x0000780e,
    unused_28_b = 0x0000d2e2,
@@ -95,6 +96,8 @@ constexpr bool is_known_vbuf(Vbuf_types type) noexcept
    case Vbuf_types::unused_20_a:
       return true;
    case Vbuf_types::unused_20_b:
+      return true;
+   case Vbuf_types::unused_20_c:
       return true;
    case Vbuf_types::unused_24:
       return true;
