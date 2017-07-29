@@ -59,19 +59,19 @@ struct Modl_section {
 
 auto create_bone_index(
    const std::unordered_map<std::string, std::uint32_t>& old_index_map,
-   const std::vector<Modl_section>& sections) -> std::vector<std::uint32_t>
+   const std::vector<Modl_section>& sections)
+   -> std::unordered_map<std::uint32_t, std::uint32_t>
 {
-   std::vector<std::uint32_t> bone_indices;
-   bone_indices.resize(sections.size() + 1);
+   std::unordered_map<std::uint32_t, std::uint32_t> bone_indices;
 
-   for (std::uint32_t i = 0; i < sections.size(); ++i) {
-      const auto old_index = old_index_map.find(sections[i].name);
+   for (const auto& section : sections) {
+      const auto old_index = old_index_map.find(section.name);
 
       if (old_index == std::cend(old_index_map)) {
          throw std::runtime_error{"Ill-formed mesh hierarchy."};
       }
 
-      bone_indices[old_index->second] = i + 1;
+      bone_indices[old_index->second] = section.index;
    }
 
    return bone_indices;
@@ -102,12 +102,13 @@ const Bone& find_root_bone(const std::vector<Bone>& bones)
    return *root;
 }
 
-auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint32_t>
+auto sort_sections(std::vector<Modl_section>& sections)
+   -> std::unordered_map<std::uint32_t, std::uint32_t>
 {
    std::unordered_map<std::string, std::uint32_t> old_index_map;
 
-   for (std::uint32_t i = 0; i < sections.size(); ++i) {
-      old_index_map[sections[i].name] = i;
+   for (const auto& section : sections) {
+      old_index_map[section.name] = section.index;
    }
 
    std::unordered_map<std::string, std::vector<Modl_section>> children_map;
@@ -123,6 +124,8 @@ auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint
          while (!child_bones.empty()) {
             sections.emplace_back(std::move(child_bones.back()));
             child_bones.pop_back();
+
+            sections.back().index = static_cast<std::uint32_t>(sections.size());
 
             auto children = children_map.find(sections.back().name);
 
@@ -211,14 +214,10 @@ std::vector<std::uint32_t> convert_bonemap(const std::vector<std::uint8_t>& bmap
 }
 
 void remap_bonemap(std::vector<std::uint32_t>& bmap,
-                   const std::vector<std::uint32_t>& bone_index)
+                   const std::unordered_map<std::uint32_t, std::uint32_t>& bone_index)
 {
    for (auto& b : bmap) {
-      if (b >= bone_index.size()) {
-         throw std::runtime_error{"Bone reference out fo range."};
-      }
-
-      b = bone_index[b];
+      b = bone_index.at(b);
    }
 }
 
