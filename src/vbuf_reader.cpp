@@ -24,12 +24,19 @@ enum class Vbuf_types : std::uint32_t {
    // xyz (position) - skin - xyz (normal) - uv (texture coordinates)
    xyzsknuv = 0x0000226,
 
+   // "compressed" formats
    unused_12 = 0x00005022,
    unused_16 = 0x0000d222,
-   unused_20 = 0x0000f226,
+   unused_20_a = 0x0000d2a2,
+   unused_20_b = 0x0000f226,
    unused_24 = 0x0000d262,
-   unused_28 = 0x0000780e,
-   unused_56 = 0x00000262
+   unused_28_a = 0x0000780e,
+   unused_28_b = 0x0000d2e2,
+
+   // uncompressed formats for which an alternate, shorter representation can be
+   // used to reverse the mesh instead
+   unused_56 = 0x00000262,
+   unused_60 = 0x000002e2,
 };
 
 struct Vbuf_info {
@@ -85,13 +92,19 @@ constexpr bool is_known_vbuf(Vbuf_types type) noexcept
       return true;
    case Vbuf_types::unused_16:
       return true;
-   case Vbuf_types::unused_20:
+   case Vbuf_types::unused_20_a:
+      return true;
+   case Vbuf_types::unused_20_b:
       return true;
    case Vbuf_types::unused_24:
       return true;
-   case Vbuf_types::unused_28:
+   case Vbuf_types::unused_28_a:
+      return true;
+   case Vbuf_types::unused_28_b:
       return true;
    case Vbuf_types::unused_56:
+      return true;
+   case Vbuf_types::unused_60:
       return true;
    default:
       return false;
