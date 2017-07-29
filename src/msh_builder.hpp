@@ -13,6 +13,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -92,7 +93,7 @@ struct Material {
 };
 
 struct Model {
-   std::string parent;
+   std::optional<std::string> parent;
 
    Material material;
 
@@ -108,7 +109,7 @@ struct Model {
 };
 
 struct Shadow {
-   std::string parent;
+   std::optional<std::string> parent;
 
    std::vector<std::vector<std::uint16_t>> strips;
    std::vector<glm::vec3> vertices;
@@ -125,7 +126,7 @@ struct Bone {
 };
 
 struct Collsion_mesh {
-   std::string parent;
+   std::optional<std::string> parent;
    Collision_flags flags = Collision_flags::all;
 
    std::vector<glm::vec3> vertices;

@@ -90,6 +90,18 @@ std::vector<Type> downgrade_concurrent_vector(const tbb::concurrent_vector<Type>
    return to;
 }
 
+const Bone& find_root_bone(const std::vector<Bone>& bones)
+{
+   const auto root = std::find_if(std::cbegin(bones), std::cend(bones),
+                                  [](const Bone& bone) { return bone.parent.empty(); });
+
+   if (root == std::cend(bones)) {
+      throw std::runtime_error{"Unable to find root bone."};
+   }
+
+   return *root;
+}
+
 auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint32_t>
 {
    std::unordered_map<std::string, std::uint32_t> old_index_map;
@@ -127,7 +139,7 @@ auto sort_sections(std::vector<Modl_section>& sections) -> std::vector<std::uint
 }
 
 template<typename Type>
-void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone> bones)
+void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone>& bones)
 {
    for (auto& mesh : meshes) {
       if (!mesh.pretransformed || mesh.skin.empty()) continue;
@@ -237,7 +249,7 @@ std::string create_coll_flags_name(Collision_flags flags)
    return name;
 }
 
-Modl_section create_section_from(const Bone& bone, std::uint32_t index)
+Modl_section create_section_from(const Bone& bone, std::string_view, std::uint32_t index)
 {
    Modl_section section;
 
@@ -251,7 +263,8 @@ Modl_section create_section_from(const Bone& bone, std::uint32_t index)
    return section;
 }
 
-Modl_section create_section_from(const Model& model, std::uint32_t index)
+Modl_section create_section_from(const Model& model, std::string_view root_name,
+                                 std::uint32_t index)
 {
    Modl_section section;
 
@@ -262,7 +275,7 @@ Modl_section create_section_from(const Model& model, std::uint32_t index)
    if (model.low_resolution) section.name += "lowrez_"_sv;
    section.name += std::to_string(index);
 
-   section.parent = model.parent;
+   section.parent = model.parent.value_or(std::string{root_name});
 
    section.material = model.material;
    fixup_texture_names(*section.material);
@@ -288,14 +301,15 @@ Modl_section create_section_from(const Model& model, std::uint32_t index)
    return section;
 }
 
-Modl_section create_section_from(const Shadow& shadow, std::uint32_t index)
+Modl_section create_section_from(const Shadow& shadow, std::string_view root_name,
+                                 std::uint32_t index)
 {
    Modl_section section;
 
    section.type = Model_type::fixed;
    section.index = index;
    section.name = "sv_"s + std::to_string(index);
-   section.parent = shadow.parent;
+   section.parent = shadow.parent.value_or(std::string{root_name});
 
    section.strips = strips_to_msh_fmt(shadow.strips);
    section.vertices = shadow.vertices;
@@ -311,7 +325,8 @@ Modl_section create_section_from(const Shadow& shadow, std::uint32_t index)
    return section;
 }
 
-Modl_section create_section_from(const Collsion_mesh& collision, std::uint32_t index)
+Modl_section create_section_from(const Collsion_mesh& collision,
+                                 std::string_view root_name, std::uint32_t index)
 {
    Modl_section section;
 
@@ -319,7 +334,7 @@ Modl_section create_section_from(const Collsion_mesh& collision, std::uint32_t i
    section.index = index;
    section.name =
       "collision_"s + create_coll_flags_name(collision.flags) + std::to_string(index);
-   section.parent = collision.parent;
+   section.parent = collision.parent.value_or(std::string{root_name});
 
    section.strips = strips_to_msh_fmt(collision.strips);
    section.vertices = collision.vertices;
@@ -327,7 +342,7 @@ Modl_section create_section_from(const Collsion_mesh& collision, std::uint32_t i
    return section;
 }
 
-Modl_section create_section_from(const Collision_primitive& primitive,
+Modl_section create_section_from(const Collision_primitive& primitive, std::string_view,
                                  std::uint32_t index)
 {
    Modl_section section;
@@ -354,10 +369,11 @@ std::vector<Modl_section> create_modl_sections(
    std::vector<Modl_section> sections;
    sections.reserve(bones.size() + models.size() + shadows.size());
 
+   const auto root_name = find_root_bone(bones).name;
    std::uint32_t model_index = 1;
 
-   const auto create_section = [&sections, &model_index](auto& item) {
-      sections.emplace_back(create_section_from(item, model_index));
+   const auto create_section = [&sections, &model_index, &root_name](auto& item) {
+      sections.emplace_back(create_section_from(item, root_name, model_index));
 
       model_index += 1;
    };

@@ -484,9 +484,8 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
    }
 }
 
-void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment,
-                        std::string_view model_root, bool low_resolution, Model_info,
-                        msh::Builder& builder)
+void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolution,
+                        Model_info, msh::Builder& builder)
 {
    msh::Model model{};
    model.low_resolution = low_resolution;
@@ -518,15 +517,10 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment,
       }
    }
 
-   if (model.parent.empty()) {
-      model.parent = model_root;
-   }
-
    builder.add_model(std::move(model));
 }
 
-void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment,
-                         std::string_view model_root, bool low_resolution,
+void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolution,
                          Model_info model_info, msh::Builder& builder)
 {
    msh::Model model{};
@@ -580,10 +574,6 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment,
       }
    }
 
-   if (model.parent.empty()) {
-      model.parent = model_root;
-   }
-
    builder.add_model(std::move(model));
 }
 
@@ -598,7 +588,7 @@ void handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model,
 
    model.read_child_strict_optional<"VRTX"_mn>();
 
-   const auto model_root = model.read_child_strict<"NODE"_mn>().read_string();
+   model.read_child_strict<"NODE"_mn>();
    const auto model_info = read_model_info(model.read_child_strict<"INFO"_mn>());
 
    auto& builder = builders[name];
@@ -610,8 +600,8 @@ void handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model,
 
       if (child.magic_number() == "segm"_mn) {
          std::invoke(std::forward<Segm_processor>(segm_processor),
-                     Ucfb_reader_strict<"segm"_mn>{child}, model_root, low_resolution,
-                     model_info, builder);
+                     Ucfb_reader_strict<"segm"_mn>{child}, low_resolution, model_info,
+                     builder);
       }
    }
 }
