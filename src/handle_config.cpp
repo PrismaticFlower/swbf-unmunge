@@ -8,8 +8,22 @@
 #include <gsl/gsl>
 
 #include <algorithm>
+#include <cmath>
 
 namespace {
+
+constexpr auto precision_cutoff = 0.00001f;
+
+inline std::string cast_number_value(const float number)
+{
+   const auto fraction = std::remainder(number, 1.0f);
+   const auto absolute_fraction = std::abs(fraction);
+
+   if (absolute_fraction <= precision_cutoff)
+      return std::to_string(static_cast<std::int64_t>(number));
+
+   return std::to_string(number);
+}
 
 inline void remove_last_semicolen(std::string& buffer)
 {
@@ -121,7 +135,7 @@ std::string read_hash_data(Ucfb_reader_strict<"DATA"_mn> data,
    line += "\", "_sv;
 
    for (std::size_t i = 1; i < element_count; ++i) {
-      line += std::to_string(data.read_trivial_unaligned<float>());
+      line += cast_number_value(data.read_trivial_unaligned<float>());
       line += ", "_sv;
    }
 
@@ -151,7 +165,7 @@ std::string read_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data,
    line += "(\""_sv;
    line += data.read_string_unaligned();
    line += "\", "_sv;
-   line += std::to_string(value);
+   line += cast_number_value(value);
    line += ");\n"_sv;
 
    return line;
@@ -169,7 +183,7 @@ std::string read_float_data(Ucfb_reader_strict<"DATA"_mn> data,
    line += '(';
 
    for (std::size_t i = 0; i < element_count; ++i) {
-      line += std::to_string(data.read_trivial_unaligned<float>());
+      line += cast_number_value(data.read_trivial_unaligned<float>());
       line += ", "_sv;
    }
 
