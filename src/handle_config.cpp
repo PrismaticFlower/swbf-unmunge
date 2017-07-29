@@ -19,7 +19,7 @@ inline std::string cast_number_value(const float number)
    const auto fraction = std::remainder(number, 1.0f);
    const auto absolute_fraction = std::abs(fraction);
 
-   if (absolute_fraction <= precision_cutoff)
+   if (absolute_fraction < precision_cutoff)
       return std::to_string(static_cast<std::int64_t>(number));
 
    return std::to_string(number);
