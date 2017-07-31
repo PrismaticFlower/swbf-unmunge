@@ -254,7 +254,9 @@ const auto chunk_processors = Chunk_processor_map{
    {"prim"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) { handle_primitives(args.chunk, args.msh_builders); }}},
-
+   {"CLTH"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) { handle_cloth(args.chunk, args.msh_builders); }}},
    // Misc chunks
    {"Locl"_mn,
     {Input_platform::pc, Game_version::swbf_ii,

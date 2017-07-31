@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app_options.cpp" />
+    <ClCompile Include="src\handle_cloth.cpp" />
     <ClCompile Include="src\handle_collision.cpp" />
     <ClCompile Include="src\handle_localization.cpp" />
     <ClCompile Include="src\handle_model.cpp" />

@@ -92,6 +92,9 @@
     <ClCompile Include="src\terrain_builder.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\handle_cloth.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">

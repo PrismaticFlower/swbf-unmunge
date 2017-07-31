@@ -54,6 +54,7 @@ struct Modl_section {
    std::optional<std::vector<glm::vec2>> texture_coords;
    std::optional<std::vector<std::uint8_t>> skin;
    std::optional<std::vector<std::uint32_t>> bone_map;
+   std::optional<Cloth> cloth;
    std::optional<Modl_collision> collision;
 };
 
@@ -357,10 +358,27 @@ Modl_section create_section_from(const Collision_primitive& primitive, std::stri
    return section;
 }
 
+Modl_section create_section_from(const Cloth& cloth, std::string_view,
+                                 std::uint32_t index)
+{
+   Modl_section section;
+
+   section.type = Model_type::fixed;
+   section.index = index;
+   section.name = cloth.name;
+   section.parent = cloth.parent;
+   section.translation = cloth.position;
+   section.rotation = cloth.rotation;
+   section.cloth = cloth;
+   section.cloth->texture_name += ".tga"s;
+
+   return section;
+}
+
 std::vector<Modl_section> create_modl_sections(
    std::vector<Bone> bones, std::vector<Model> models, std::vector<Shadow> shadows,
    std::vector<Collsion_mesh> collision_meshes,
-   std::vector<Collision_primitive> collision_primitives)
+   std::vector<Collision_primitive> collision_primitives, std::vector<Cloth> cloths)
 {
    reverse_pretransformed(models, bones);
    reverse_pretransformed(shadows, bones);
@@ -384,6 +402,7 @@ std::vector<Modl_section> create_modl_sections(
                  create_section);
    std::for_each(std::begin(collision_primitives), std::end(collision_primitives),
                  create_section);
+   std::for_each(std::begin(cloths), std::end(cloths), create_section);
 
    const auto bone_index = sort_sections(sections);
 
@@ -396,16 +415,30 @@ std::vector<Modl_section> create_modl_sections(
    return sections;
 }
 
-Ucfb_builder create_posl_chunk(const std::vector<glm::vec3>& vertices)
+template<Magic_number magic_number>
+Ucfb_builder create_pos_chunk(const std::vector<glm::vec3>& vertices)
 {
-   Ucfb_builder posl{"POSL"_mn};
-   posl.write(static_cast<std::uint32_t>(vertices.size()));
+   Ucfb_builder pos{magic_number};
+   pos.write(static_cast<std::uint32_t>(vertices.size()));
 
    for (const auto& v : vertices) {
-      posl.write_multiple(v.x, v.y, v.z);
+      pos.write_multiple(v.x, v.y, v.z);
    }
 
-   return posl;
+   return pos;
+}
+
+template<Magic_number magic_number>
+Ucfb_builder create_uv_chunk(const std::vector<glm::vec2>& texture_coords)
+{
+   Ucfb_builder uvl{magic_number};
+   uvl.write(static_cast<std::uint32_t>(texture_coords.size()));
+
+   for (const auto& uv : texture_coords) {
+      uvl.write_multiple(uv.x, uv.y);
+   }
+
+   return uvl;
 }
 
 Ucfb_builder create_wght_chunk(const std::vector<std::uint8_t>& skin)
@@ -445,18 +478,6 @@ Ucfb_builder create_clrl_chunk(const std::vector<std::array<std::uint8_t, 4>>& c
    return clrl;
 }
 
-Ucfb_builder create_uv0l_chunk(const std::vector<glm::vec2>& texture_coords)
-{
-   Ucfb_builder clrl{"UV0L"_mn};
-   clrl.write(static_cast<std::uint32_t>(texture_coords.size()));
-
-   for (const auto& uv : texture_coords) {
-      clrl.write_multiple(uv.x, uv.y);
-   }
-
-   return clrl;
-}
-
 Ucfb_builder create_strp_chunk(const std::vector<std::uint16_t>& strips)
 {
    Ucfb_builder strp{"STRP"_mn};
@@ -477,14 +498,105 @@ Ucfb_builder create_segm_chunk(const Modl_section& section)
 
    segm.emplace_child("MATI"_mn).write(section.mat_index);
 
-   if (section.vertices) segm.add_child(create_posl_chunk(*section.vertices));
+   if (section.vertices) segm.add_child(create_pos_chunk<"POSL"_mn>(*section.vertices));
    if (section.skin) segm.add_child(create_wght_chunk(*section.skin));
    if (section.normals) segm.add_child(create_nrml_chunk(*section.normals));
    if (section.colours) segm.add_child(create_clrl_chunk(*section.colours));
-   if (section.texture_coords) segm.add_child(create_uv0l_chunk(*section.texture_coords));
+   if (section.texture_coords)
+      segm.add_child(create_uv_chunk<"UV0L"_mn>(*section.texture_coords));
    if (section.strips) segm.add_child(create_strp_chunk(*section.strips));
 
    return segm;
+}
+
+Ucfb_builder create_fidx_chunk(const std::vector<std::uint32_t>& fixed_points)
+{
+   Ucfb_builder fidx{"FIDX"_mn};
+   fidx.write(static_cast<std::uint32_t>(fixed_points.size()));
+
+   for (const auto& point : fixed_points) {
+      fidx.write(point);
+   }
+
+   return fidx;
+}
+
+Ucfb_builder create_fwgt_chunk(const std::vector<std::string>& fixed_weights)
+{
+   Ucfb_builder fwgt{"FWGT"_mn};
+   fwgt.write(static_cast<std::uint32_t>(fixed_weights.size()));
+
+   for (const auto& name : fixed_weights) {
+      fwgt.write(name, true, false);
+   }
+
+   fwgt.pad_till_aligned();
+
+   return fwgt;
+}
+
+Ucfb_builder create_cmsh_chunk(const std::vector<glm::uvec3>& indices)
+{
+   Ucfb_builder cmsh{"CMSH"_mn};
+   cmsh.write(static_cast<std::uint32_t>(indices.size()));
+
+   for (const auto& i : indices) {
+      cmsh.write_multiple(i.x, i.y, i.z);
+   }
+
+   return cmsh;
+}
+
+template<Magic_number magic_number>
+Ucfb_builder create_constraint_chunk(
+   const std::vector<std::array<std::uint16_t, 2>>& constraints)
+{
+   Ucfb_builder con{magic_number};
+   con.write(static_cast<std::uint32_t>(constraints.size()));
+
+   for (const auto& c : constraints) {
+      con.write_multiple(c[0], c[1]);
+   }
+
+   return con;
+}
+
+Ucfb_builder create_coll_chunk(const std::vector<Cloth_collision>& collision)
+{
+   Ucfb_builder coll{"COLL"_mn};
+   coll.write(static_cast<std::uint32_t>(collision.size()));
+
+   std::size_t i = 0;
+
+   for (const auto& node : collision) {
+      coll.write(node.parent + "cloth_"s + std::to_string(i), false, true);
+      coll.write(node.parent, true, false);
+      coll.write(node.type);
+      coll.write_multiple(node.size.x, node.size.y, node.size.z);
+
+      ++i;
+   }
+
+   return coll;
+}
+
+Ucfb_builder create_clth_chunk(const Cloth& cloth_info)
+{
+   Ucfb_builder clth{"CLTH"_mn};
+
+   clth.emplace_child("CTEX"_mn).write(cloth_info.texture_name);
+
+   clth.add_child(create_pos_chunk<"CPOS"_mn>(cloth_info.vertices));
+   clth.add_child(create_uv_chunk<"CUV0"_mn>(cloth_info.texture_coords));
+   clth.add_child(create_fidx_chunk(cloth_info.fixed_points));
+   clth.add_child(create_fwgt_chunk(cloth_info.fixed_weights));
+   clth.add_child(create_cmsh_chunk(cloth_info.indices));
+   clth.add_child(create_constraint_chunk<"SPRS"_mn>(cloth_info.stretch_constraints));
+   clth.add_child(create_constraint_chunk<"CPRS"_mn>(cloth_info.cross_constraints));
+   clth.add_child(create_constraint_chunk<"BPRS"_mn>(cloth_info.bend_constraints));
+   clth.add_child(create_coll_chunk(cloth_info.collision));
+
+   return clth;
 }
 
 Ucfb_builder create_envl_chunk(const std::vector<std::uint32_t>& bone_map)
@@ -506,7 +618,11 @@ Ucfb_builder create_geom_chunk(const Modl_section& section)
    auto& bbox = geom.emplace_child("BBOX"_mn);
    bbox.write_multiple(0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
-   geom.add_child(create_segm_chunk(section));
+   if (!section.cloth)
+      geom.add_child(create_segm_chunk(section));
+   else
+      geom.add_child(create_clth_chunk(*section.cloth));
+
    if (section.bone_map) geom.add_child(create_envl_chunk(*section.bone_map));
 
    return geom;
@@ -660,6 +776,7 @@ Builder::Builder(const Builder& other) : Builder{}
    this->_shadows = other._shadows;
    this->_collision_meshes = other._collision_meshes;
    this->_collision_primitives = other._collision_primitives;
+   this->_cloths = other._cloths;
 
    std::lock_guard<tbb::spin_mutex> bbox_lock{other._bbox_mutex};
    this->_bbox = other._bbox;
@@ -690,6 +807,11 @@ void Builder::add_collision_primitive(Collision_primitive primitive)
    _collision_primitives.emplace_back(std::move(primitive));
 }
 
+void Builder::add_cloth(Cloth cloth)
+{
+   _cloths.emplace_back(std::move(cloth));
+}
+
 void Builder::set_bbox(const Bbox& bbox) noexcept
 {
    std::lock_guard<tbb::spin_mutex> bbox_lock{_bbox_mutex};
@@ -703,7 +825,8 @@ void Builder::save(const std::string& name, File_saver& file_saver) const
                            downgrade_concurrent_vector(_models),
                            downgrade_concurrent_vector(_shadows),
                            downgrade_concurrent_vector(_collision_meshes),
-                           downgrade_concurrent_vector(_collision_primitives)),
+                           downgrade_concurrent_vector(_collision_primitives),
+                           downgrade_concurrent_vector(_cloths)),
       get_bbox(), name);
 
    file_saver.save_file(msh_file, "msh"_sv, name, ".msh"_sv);

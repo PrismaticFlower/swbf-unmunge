@@ -49,3 +49,5 @@ void handle_skeleton(Ucfb_reader skeleton, msh::Builders_map& builders);
 void handle_collision(Ucfb_reader collision, msh::Builders_map& builders);
 
 void handle_primitives(Ucfb_reader primitives, msh::Builders_map& builders);
+
+void handle_cloth(Ucfb_reader cloth, msh::Builders_map& builders);

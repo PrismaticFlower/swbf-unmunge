@@ -70,6 +70,8 @@ enum class Collision_flags : std::uint32_t {
    flyer = 32
 };
 
+enum class Cloth_collision_type : std::uint32_t { sphere = 0, cylinder = 1, cube = 2 };
+
 struct Bbox {
    glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
    glm::vec3 centre{0.0f, 0.0f, 0.0f};
@@ -144,6 +146,35 @@ struct Collision_primitive {
    glm::vec3 size{0.0f, 0.0f, 0.0f};
 };
 
+struct Cloth_collision;
+
+struct Cloth {
+   std::string name;
+   std::string parent;
+
+   glm::quat rotation;
+   glm::vec3 position;
+
+   std::string texture_name;
+
+   std::vector<glm::vec3> vertices;
+   std::vector<glm::vec2> texture_coords;
+   std::vector<std::uint32_t> fixed_points;
+   std::vector<std::string> fixed_weights;
+   std::vector<glm::uvec3> indices;
+   std::vector<std::array<std::uint16_t, 2>> stretch_constraints;
+   std::vector<std::array<std::uint16_t, 2>> cross_constraints;
+   std::vector<std::array<std::uint16_t, 2>> bend_constraints;
+
+   std::vector<Cloth_collision> collision;
+};
+
+struct Cloth_collision {
+   std::string parent;
+   Cloth_collision_type type = Cloth_collision_type::sphere;
+   glm::vec3 size{0.0f, 0.0f, 0.0f};
+};
+
 class Builder {
 public:
    Builder() = default;
@@ -160,6 +191,8 @@ public:
 
    void add_collision_primitive(Collision_primitive primitive);
 
+   void add_cloth(Cloth cloth);
+
    void set_bbox(const Bbox& bbox) noexcept;
 
    void save(const std::string& name, File_saver& file_saver) const;
@@ -172,6 +205,7 @@ private:
    tbb::concurrent_vector<Shadow> _shadows;
    tbb::concurrent_vector<Collsion_mesh> _collision_meshes;
    tbb::concurrent_vector<Collision_primitive> _collision_primitives;
+   tbb::concurrent_vector<Cloth> _cloths;
 
    mutable tbb::spin_mutex _bbox_mutex;
    Bbox _bbox;
