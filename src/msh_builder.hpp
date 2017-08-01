@@ -96,6 +96,7 @@ struct Material {
 
 struct Model {
    std::optional<std::string> parent;
+   std::optional<std::string> name;
 
    glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
    glm::vec3 position;

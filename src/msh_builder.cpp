@@ -271,10 +271,16 @@ Modl_section create_section_from(const Model& model, std::string_view root_name,
 
    section.type = Model_type::fixed;
    section.index = index;
-   section.name = "mesh_"s;
 
-   if (model.low_resolution) section.name += "lowrez_"_sv;
-   section.name += std::to_string(index);
+   if (!model.name) {
+      section.name = "mesh_"s;
+
+      if (model.low_resolution) section.name += "lowrez_"_sv;
+      section.name += std::to_string(index);
+   }
+   else {
+      section.name = model.name.value();
+   }
 
    section.parent = model.parent.value_or(std::string{root_name});
 

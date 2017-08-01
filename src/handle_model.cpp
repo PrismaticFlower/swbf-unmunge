@@ -499,6 +499,9 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, bool low_resoluti
       else if (child.magic_number() == "RTYP"_mn) {
          read_render_type(Ucfb_reader_strict<"RTYP"_mn>{child}, model.material);
       }
+      else if (child.magic_number() == "MNAM"_mn) {
+         model.name = Ucfb_reader_strict<"MNAM"_mn>{child}.read_string();
+      }
       else if (child.magic_number() == "TNAM"_mn) {
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
       }
@@ -541,6 +544,9 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolut
 
          model.material.type =
             static_cast<msh::Render_type>(rtyp.read_trivial<std::uint32_t>());
+      }
+      else if (child.magic_number() == "MNAM"_mn) {
+         model.name = Ucfb_reader_strict<"MNAM"_mn>{child}.read_string();
       }
       else if (child.magic_number() == "TNAM"_mn) {
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
