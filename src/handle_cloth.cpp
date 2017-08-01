@@ -1,6 +1,3 @@
-
-#define GLM_FORCE_CXX98
-
 #include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"

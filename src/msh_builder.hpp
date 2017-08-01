@@ -2,7 +2,6 @@
 
 #include "file_saver.hpp"
 
-#define GLM_FORCE_CXX98
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 

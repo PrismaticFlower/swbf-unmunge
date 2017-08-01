@@ -6,9 +6,6 @@
 #include "swbf_fnv_hashes.hpp"
 #include "ucfb_reader.hpp"
 
-#define GLM_FORCE_SWIZZLE
-#define GLM_FORCE_CXX98
-
 #include "glm/gtc/quaternion.hpp"
 #include "glm/mat3x3.hpp"
 #include "glm/vec3.hpp"

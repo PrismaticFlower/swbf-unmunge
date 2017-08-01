@@ -4,9 +4,6 @@
 #include "string_helpers.hpp"
 #include "ucfb_reader.hpp"
 
-#define GLM_FORCE_CXX98
-#define GLM_FORCE_SWIZZLE
-
 #include "glm_pod_wrappers.hpp"
 
 #include "glm/vec3.hpp"

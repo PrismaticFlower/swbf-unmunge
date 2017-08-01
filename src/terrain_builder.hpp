@@ -4,7 +4,6 @@
 #include "bit_flags.hpp"
 #include "file_saver.hpp"
 
-#define GLM_FORCE_CXX98
 #include "glm/vec2.hpp"
 
 #include <array>

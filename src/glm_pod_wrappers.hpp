@@ -2,7 +2,6 @@
 
 #include <type_traits>
 
-#define GLM_FORCE_CXX98
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 

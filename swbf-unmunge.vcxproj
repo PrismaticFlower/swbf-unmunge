@@ -112,7 +112,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_FORCE_CXX98;GLM_FORCE_SWIZZLE</PreprocessorDefinitions>
       <TreatWarningAsError>false</TreatWarningAsError>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
@@ -130,7 +130,7 @@
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_FORCE_CXX98;GLM_FORCE_SWIZZLE</PreprocessorDefinitions>
       <TreatWarningAsError>false</TreatWarningAsError>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
