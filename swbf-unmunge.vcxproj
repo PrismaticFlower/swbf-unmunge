@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app_options.cpp" />
+    <ClCompile Include="src\cloth_converter.cpp" />
     <ClCompile Include="src\handle_cloth.cpp" />
     <ClCompile Include="src\handle_collision.cpp" />
     <ClCompile Include="src\handle_localization.cpp" />
@@ -47,6 +48,7 @@
     <ClInclude Include="src\bit_flags.hpp" />
     <ClInclude Include="src\byte.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />
+    <ClInclude Include="src\cloth_converter.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
     <ClInclude Include="src\glm_pod_wrappers.hpp" />
     <ClInclude Include="src\magic_number.hpp" />

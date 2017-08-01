@@ -36,7 +36,7 @@ void process_file(const App_options& options, fs::path path) noexcept
 
       process_chunk(root_reader, options, file_saver, msh_builders);
 
-      msh::save_all(file_saver, msh_builders);
+      msh::save_all(file_saver, msh_builders, options.output_game_version());
    }
    catch (std::exception& e) {
       synced_cout::print("Error: Exception occured while processing file.\n   File: "s,

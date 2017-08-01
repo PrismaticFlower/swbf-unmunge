@@ -24,5 +24,5 @@ void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
 
    tbb::parallel_for_each(children, processor);
 
-   msh::save_all(file_saver, msh_builders);
+   msh::save_all(file_saver, msh_builders, app_options.output_game_version());
 }

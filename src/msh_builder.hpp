@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app_options.hpp"
 #include "file_saver.hpp"
 
 #include "glm/glm.hpp"
@@ -194,7 +195,8 @@ public:
 
    void set_bbox(const Bbox& bbox) noexcept;
 
-   void save(const std::string& name, File_saver& file_saver) const;
+   void save(const std::string& name, File_saver& file_saver,
+             const Game_version version) const;
 
 private:
    Bbox get_bbox() const noexcept;
@@ -212,5 +214,6 @@ private:
 
 using Builders_map = tbb::concurrent_unordered_map<std::string, Builder>;
 
-void save_all(File_saver& file_saver, const Builders_map& builders);
+void save_all(File_saver& file_saver, const Builders_map& builders,
+              const Game_version version);
 }

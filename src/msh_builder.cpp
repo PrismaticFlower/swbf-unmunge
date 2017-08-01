@@ -2,6 +2,7 @@
 #include "msh_builder.hpp"
 #include "bit_flags.hpp"
 #include "byte.hpp"
+#include "cloth_converter.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "synced_cout.hpp"
@@ -818,15 +819,28 @@ void Builder::set_bbox(const Bbox& bbox) noexcept
    _bbox = bbox;
 }
 
-void Builder::save(const std::string& name, File_saver& file_saver) const
+void Builder::save(const std::string& name, File_saver& file_saver,
+                   const Game_version version) const
 {
+   auto bones = downgrade_concurrent_vector(_bones);
+   auto models = downgrade_concurrent_vector(_models);
+   auto shadows = downgrade_concurrent_vector(_shadows);
+   auto cloths = downgrade_concurrent_vector(_cloths);
+   auto collision_meshes = downgrade_concurrent_vector(_collision_meshes);
+   auto collision_primitives = downgrade_concurrent_vector(_collision_primitives);
+
+   if (version == Game_version::swbf) {
+      for (const auto& cloth : cloths) {
+         models.emplace_back(cloth_to_model(cloth, bones));
+      }
+
+      cloths.clear();
+   }
+
    auto msh_file = create_msh_file(
-      create_modl_sections(downgrade_concurrent_vector(_bones),
-                           downgrade_concurrent_vector(_models),
-                           downgrade_concurrent_vector(_shadows),
-                           downgrade_concurrent_vector(_collision_meshes),
-                           downgrade_concurrent_vector(_collision_primitives),
-                           downgrade_concurrent_vector(_cloths)),
+      create_modl_sections(std::move(bones), std::move(models), std::move(shadows),
+                           std::move(collision_meshes), std::move(collision_primitives),
+                           std::move(cloths)),
       get_bbox(), name);
 
    file_saver.save_file(msh_file, "msh"_sv, name, ".msh"_sv);
@@ -838,11 +852,13 @@ Bbox Builder::get_bbox() const noexcept
    return _bbox;
 }
 
-void save_all(File_saver& file_saver, const Builders_map& builders)
+void save_all(File_saver& file_saver, const Builders_map& builders,
+              const Game_version version)
 {
-   const auto functor = [&file_saver](const std::pair<std::string, Builder>& builder) {
+   const auto functor = [&file_saver,
+                         version](const std::pair<std::string, Builder>& builder) {
       try {
-         builder.second.save(builder.first, file_saver);
+         builder.second.save(builder.first, file_saver, version);
       }
       catch (const std::exception& e) {
          synced_cout::print("Error: Exception occured while saving ", builder.first,

@@ -95,6 +95,9 @@
     <ClCompile Include="src\handle_cloth.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\cloth_converter.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">
@@ -152,6 +155,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\synced_cout.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cloth_converter.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
