@@ -7,6 +7,7 @@
 #include "ucfb_reader.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 
 using namespace std::literals;
@@ -114,6 +115,17 @@ constexpr bool is_known_vbuf(Vbuf_types type) noexcept
    }
 }
 
+glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
+{
+   float v = coords.y;
+
+   if (v > 1.0f) {
+      v = std::fmod(v, 1.0f);
+   }
+
+   return {coords.x, 1.0f - v};
+}
+
 void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& model)
 {
    model.vertices.clear();
@@ -126,7 +138,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& mode
    for (const auto& entry : entries) {
       model.vertices.push_back(entry.position);
       model.normals.push_back(entry.normal);
-      model.texture_coords.push_back(entry.uv);
+      model.texture_coords.push_back(flip_texture_v(entry.uv));
    }
 }
 
@@ -164,7 +176,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& mo
       model.vertices.push_back(entry.position);
       model.skin.push_back(entry.skin[0]);
       model.normals.push_back(entry.normal);
-      model.texture_coords.push_back(entry.uv);
+      model.texture_coords.push_back(flip_texture_v(entry.uv));
    }
 }
 }

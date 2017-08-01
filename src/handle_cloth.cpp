@@ -8,6 +8,7 @@
 #include <gsl/gsl>
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 #include <tuple>
 #include <type_traits>
@@ -25,6 +26,17 @@ struct Collision_info {
 static_assert(std::is_pod_v<Collision_info>);
 static_assert(sizeof(Collision_info) == 64);
 
+glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
+{
+   float v = coords.y;
+
+   if (v > 1.0f) {
+      v = std::fmod(v, 1.0f);
+   }
+
+   return {coords.x, 1.0f - v};
+}
+
 auto read_xframe(Ucfb_reader_strict<"XFRM"_mn> xframe) -> std::pair<glm::quat, glm::vec3>
 {
    const glm::mat3 matrix = xframe.read_trivial<pod::Mat3>();
@@ -40,7 +52,14 @@ auto read_vertices(gsl::span<const pod::Vec3> vertices) -> std::vector<glm::vec3
 
 auto read_tex_coords(gsl::span<const pod::Vec2> texture_coords) -> std::vector<glm::vec2>
 {
-   return {texture_coords.begin(), texture_coords.end()};
+   std::vector<glm::vec2> coords;
+   coords.reserve(texture_coords.size());
+
+   for (const auto& uv : texture_coords) {
+      coords.emplace_back(flip_texture_v(uv));
+   }
+
+   return coords;
 }
 
 auto generate_fixed_points(std::uint32_t count) -> std::vector<std::uint32_t>
