@@ -34,11 +34,13 @@ enum class Vbuf_types : std::uint32_t {
    unused_24 = 0x0000d262,
    unused_28_a = 0x0000780e,
    unused_28_b = 0x0000d2e2,
+   unused_28_c = 0x0000f266,
 
    // uncompressed formats for which an alternate, shorter representation can be
    // used to reverse the mesh instead
    unused_56 = 0x00000262,
-   unused_60 = 0x000002e2,
+   unused_60_a = 0x000002e2,
+   unused_60_b = 0x00000266,
 };
 
 struct Vbuf_info {
@@ -106,9 +108,13 @@ constexpr bool is_known_vbuf(Vbuf_types type) noexcept
       return true;
    case Vbuf_types::unused_28_b:
       return true;
+   case Vbuf_types::unused_28_c:
+      return true;
    case Vbuf_types::unused_56:
       return true;
-   case Vbuf_types::unused_60:
+   case Vbuf_types::unused_60_a:
+      return true;
+   case Vbuf_types::unused_60_b:
       return true;
    default:
       return false;
