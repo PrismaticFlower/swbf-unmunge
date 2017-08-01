@@ -51,3 +51,12 @@ void handle_collision(Ucfb_reader collision, msh::Builders_map& builders);
 void handle_primitives(Ucfb_reader primitives, msh::Builders_map& builders);
 
 void handle_cloth(Ucfb_reader cloth, msh::Builders_map& builders);
+
+void handle_script(Ucfb_reader script, File_saver& file_saver);
+
+void handle_shader(Ucfb_reader shader, File_saver& file_saver);
+
+void handle_font(Ucfb_reader font, File_saver& file_saver);
+
+void handle_binary(Ucfb_reader binary, File_saver& file_saver,
+                   std::string_view extension);

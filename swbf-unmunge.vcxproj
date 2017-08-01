@@ -16,6 +16,7 @@
     <ClCompile Include="src\handle_cloth.cpp" />
     <ClCompile Include="src\handle_collision.cpp" />
     <ClCompile Include="src\handle_localization.cpp" />
+    <ClCompile Include="src\handle_misc.cpp" />
     <ClCompile Include="src\handle_model.cpp" />
     <ClCompile Include="src\handle_planning_swbf1.cpp" />
     <ClCompile Include="src\handle_primitives.cpp" />

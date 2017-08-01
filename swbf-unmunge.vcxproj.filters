@@ -98,6 +98,9 @@
     <ClCompile Include="src\cloth_converter.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\handle_misc.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">
