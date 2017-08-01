@@ -27,8 +27,8 @@ std::string get_unique_chunk_name() noexcept
 }
 
 void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
-                    std::optional<std::string> file_name,
-                    std::optional<std::string> file_extension)
+                    std::optional<std::string_view> file_name,
+                    std::optional<std::string_view> file_extension)
 {
    std::string file;
    file.reserve(chunk.size() + 16);
