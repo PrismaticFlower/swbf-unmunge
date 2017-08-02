@@ -28,6 +28,22 @@ constexpr std::wstring_view operator""_sv(const wchar_t* str, std::size_t size)
    return {str, size};
 }
 
+template<typename Char_type, typename Function,
+         typename Char_traits = std::char_traits<Char_type>>
+inline void for_each_substr(
+   typename std::common_type<std::basic_string_view<Char_type, Char_traits>>::type string,
+   const Char_type delimiter, Function function)
+{
+   for (auto offset = string.find(delimiter); (offset != string.npos);
+        offset = string.find(delimiter)) {
+      function(string.substr(0, offset));
+
+      string.remove_prefix(offset + 1);
+   }
+
+   if (!string.empty()) function(string);
+}
+
 inline bool string_is_number(std::string_view string) noexcept
 {
    const auto is_char_digit = [](const char& c) { return (c >= '0' && c <= '9'); };

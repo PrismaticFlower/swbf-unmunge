@@ -1,5 +1,7 @@
 #pragma once
 
+#include "string_helpers.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -34,16 +36,30 @@ inline std::string serialize_magic_number(const Magic_number magic_number)
 {
    const auto number = static_cast<std::uint32_t>(magic_number);
 
-   std::string serialized;
+   std::stringstream serialized;
 
-   serialized += 'x';
-   serialized += std::to_string((number >> 0u) & 0xFFu);
-   serialized += 'x';
-   serialized += std::to_string((number >> 8u) & 0xFFu);
-   serialized += 'x';
-   serialized += std::to_string((number >> 16u) & 0xFFu);
-   serialized += 'x';
-   serialized += std::to_string((number >> 24u) & 0xFFu);
+   serialized << std::hex;
 
-   return serialized;
+   serialized << ((number >> 0u) & 0xFFu) << '-' << ((number >> 8u) & 0xFFu) << '-'
+              << ((number >> 16u) & 0xFFu) << '-' << ((number >> 24u) & 0xFFu);
+
+   return serialized.str();
+}
+
+inline Magic_number deserialize_magic_number(std::string_view serialized) noexcept
+{
+   std::array<char, 4> chars{};
+   std::array<char, 4>::size_type i = 0;
+
+   const auto body = [&chars, &i](auto string) {
+      if (i > chars.size()) return;
+
+      chars[i] = static_cast<char>(std::stol(std::string{string}, nullptr, 16));
+
+      ++i;
+   };
+
+   for_each_substr(serialized, '-', body);
+
+   return create_magic_number(chars);
 }
