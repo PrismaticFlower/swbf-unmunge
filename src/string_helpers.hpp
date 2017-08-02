@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+#include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 constexpr std::string_view operator""_sv(const char* str, std::size_t size)
@@ -42,40 +44,16 @@ inline bool string_is_number(std::string_view string) noexcept
    return true;
 }
 
-inline std::string to_hexstring(std::uint32_t integer) noexcept
+template<typename Integral>
+inline std::string to_hexstring(const Integral integer) noexcept
 {
-   const auto get_byte = [](std::uint32_t integer,
-                            std::uint32_t index) noexcept->std::uint8_t
-   {
-      return (integer >> (index * 8)) & 0xFF;
-      ;
-   };
+   static_assert(std::is_integral_v<Integral>,
+                 "Function can only be used with integral types!");
 
-   const std::uint8_t bytes[4] = {get_byte(integer, 3), get_byte(integer, 2),
-                                  get_byte(integer, 1), get_byte(integer, 0)};
+   std::ostringstream stream;
+   stream << std::hex << std::showbase << integer;
 
-   std::string result{"0x"_sv};
-   result.reserve(10);
-
-   const char table[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
-   const auto split_byte = [](std::uint8_t byte) noexcept
-   {
-      std::uint8_t first = (byte >> 4) & 0x0F;
-      std::uint8_t second = byte & 0x0F;
-
-      return std::make_pair(first, second);
-   };
-
-   for (const auto& byte : bytes) {
-      const auto byte_pair = split_byte(byte);
-
-      result.push_back(table[byte_pair.first]);
-      result.push_back(table[byte_pair.second]);
-   }
-
-   return result;
+   return stream.str();
 }
 
 inline void copy_to_cstring(std::string_view from, char* const to, const std::size_t size)
