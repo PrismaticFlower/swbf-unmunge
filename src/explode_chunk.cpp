@@ -8,6 +8,8 @@
 
 namespace {
 
+constexpr auto index_factor = 10u;
+
 inline bool is_usable_chunk_name(const Magic_number magic_number) noexcept
 {
    constexpr auto safe_chars =
@@ -39,7 +41,7 @@ inline bool is_possible_child(Ucfb_reader chunk)
 inline std::string get_chunk_name(const Ucfb_reader& chunk, const std::size_t index)
 {
    std::string name;
-   name += std::to_string(index);
+   name += std::to_string(index * index_factor);
 
    name += ' ';
 
@@ -49,10 +51,6 @@ inline std::string get_chunk_name(const Ucfb_reader& chunk, const std::size_t in
    else {
       name += serialize_magic_number(chunk.magic_number());
    }
-
-   name += ' ';
-
-   name += to_hexstring(chunk.size());
 
    return name;
 }
