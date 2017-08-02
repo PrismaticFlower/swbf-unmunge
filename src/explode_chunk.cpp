@@ -68,10 +68,8 @@ void write_data_chunk(Ucfb_reader chunk, File_saver& file_saver, const std::size
    const auto data = chunk.read_array_unaligned<char>(chunk.size());
 
    std::string buffer;
-   buffer.reserve(data.size() + 8);
-   buffer += view_pod_as_string(chunk.magic_number());
-   buffer += view_pod_as_string(static_cast<std::uint32_t>(chunk.size()));
-   buffer += view_pod_span_as_string(data);
+   buffer.reserve(data.size());
+   buffer.append(data.data(), data.size());
 
    file_saver.save_file(buffer, "", name, ".chunk");
 }
