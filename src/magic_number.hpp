@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 enum class Magic_number : std::uint32_t {};
 
@@ -27,4 +28,22 @@ constexpr Magic_number create_magic_number(const std::array<char, 4> chars)
 constexpr Magic_number operator""_mn(const char* chars, const std::size_t) noexcept
 {
    return create_magic_number(chars[0], chars[1], chars[2], chars[3]);
+}
+
+inline std::string serialize_magic_number(const Magic_number magic_number)
+{
+   const auto number = static_cast<std::uint32_t>(magic_number);
+
+   std::string serialized;
+
+   serialized += 'x';
+   serialized += std::to_string((number >> 0u) & 0xFFu);
+   serialized += 'x';
+   serialized += std::to_string((number >> 8u) & 0xFFu);
+   serialized += 'x';
+   serialized += std::to_string((number >> 16u) & 0xFFu);
+   serialized += 'x';
+   serialized += std::to_string((number >> 24u) & 0xFFu);
+
+   return serialized;
 }

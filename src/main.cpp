@@ -1,6 +1,7 @@
 
 #include "app_options.hpp"
 #include "chunk_processor.hpp"
+#include "explode_chunk.hpp"
 #include "file_saver.hpp"
 #include "mapped_file.hpp"
 #include "msh_builder.hpp"
@@ -12,6 +13,7 @@
 #include <cstddef>
 #include <exception>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 
@@ -24,7 +26,7 @@ const auto usage = R"(Usage: swbf-unmunge <options>
 
 Options:)"s;
 
-void process_file(const App_options& options, fs::path path) noexcept
+void extract_file(const App_options& options, fs::path path) noexcept
 {
    try {
       Mapped_file file{path};
@@ -42,6 +44,32 @@ void process_file(const App_options& options, fs::path path) noexcept
       synced_cout::print("Error: Exception occured while processing file.\n   File: "s,
                          path.string(), '\n', "   Message: "s, e.what(), '\n');
    }
+}
+
+void explode_file(const App_options& options, fs::path path) noexcept
+{
+   try {
+      Mapped_file file{path};
+      File_saver file_saver{fs::path{path}.replace_extension("") += '/',
+                            options.verbose()};
+
+      Ucfb_reader root_reader{file.bytes()};
+
+      explode_chunk(root_reader, file_saver);
+   }
+   catch (std::exception& e) {
+      synced_cout::print("Error: Exception occured while processing file.\n   File: "s,
+                         path.string(), '\n', "   Message: "s, e.what(), '\n');
+   }
+}
+
+auto get_file_processor(const Tool_mode mode)
+   -> std::function<void(const App_options&, fs::path)>
+{
+   if (mode == Tool_mode::extract) return extract_file;
+   if (mode == Tool_mode::explode) return explode_file;
+
+   throw std::invalid_argument{""};
 }
 
 int main(int argc, char* argv[])
@@ -68,8 +96,11 @@ int main(int argc, char* argv[])
 
    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-   tbb::parallel_for_each(
-      input_files, [&app_options](const auto& file) { process_file(app_options, file); });
+   const auto processor = get_file_processor(app_options.tool_mode());
+
+   tbb::parallel_for_each(input_files, [&app_options, &processor](const auto& file) {
+      processor(app_options, file);
+   });
 
    CoUninitialize();
 }

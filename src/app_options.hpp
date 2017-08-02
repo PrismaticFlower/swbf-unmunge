@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+enum class Tool_mode { extract, explode };
+
 enum class Image_format { tga, png, dds };
 
 enum class Game_version { swbf_ii, swbf };
@@ -21,6 +23,8 @@ public:
    App_options(const int argc, char* argv[]);
 
    auto input_files() const noexcept -> const std::vector<std::string>&;
+
+   Tool_mode tool_mode() const noexcept;
 
    Game_version game_version() const noexcept;
 
@@ -50,6 +54,7 @@ private:
    std::vector<Option> _options;
 
    std::vector<std::string> _input_files;
+   Tool_mode _tool_mode = Tool_mode::extract;
    Game_version _game_version = Game_version::swbf_ii;
    Game_version _output_game_version = Game_version::swbf_ii;
    Image_format _img_save_format = Image_format::tga;

@@ -48,6 +48,24 @@ auto append_file_list(std::istream& istream, std::vector<std::string>& out)
    if (!view.empty()) out.emplace_back(view);
 }
 
+std::istream& operator>>(std::istream& istream, Tool_mode& mode)
+{
+   std::string str;
+   istream >> std::quoted(str);
+
+   if (str == "extract"_sv) {
+      mode = Tool_mode::extract;
+   }
+   else if (str == "explode"_sv) {
+      mode = Tool_mode::explode;
+   }
+   else {
+      throw std::invalid_argument{"Invalid tool mode specified."};
+   }
+
+   return istream;
+}
+
 std::istream& operator>>(std::istream& istream, Game_version& game_version)
 {
    std::string str;
@@ -131,6 +149,11 @@ constexpr auto input_plat_opt_description{
 constexpr auto verbose_opt_description{
    R"(Enable verbose output.)"_sv};
 
+constexpr auto mode_opt_description{
+   R"(<mode> Set the mode of operation for the tool. Can be 'extract' or 'explode'.
+   'extract' (default) - Extract and "unmunge" the contents of the file.
+   'explode' - Recursively explode the file's chunks into their hierarchies.)"_sv};
+
 App_options::App_options()
 {
    using Istr = std::istream;
@@ -148,7 +171,8 @@ App_options::App_options()
        image_opt_description},
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
        input_plat_opt_description},
-      {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description}};
+      {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
+      {"-mode"s, [this](Istr& istr) { istr >> _tool_mode; }, mode_opt_description}};
 }
 
 App_options::App_options(int argc, char* argv[]) : App_options()
@@ -169,6 +193,11 @@ App_options::App_options(int argc, char* argv[]) : App_options()
 auto App_options::input_files() const noexcept -> const std::vector<std::string>&
 {
    return _input_files;
+}
+
+Tool_mode App_options::tool_mode() const noexcept
+{
+   return _tool_mode;
 }
 
 Game_version App_options::game_version() const noexcept

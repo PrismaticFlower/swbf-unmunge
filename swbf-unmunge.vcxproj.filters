@@ -101,6 +101,9 @@
     <ClCompile Include="src\handle_misc.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\explode_chunk.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">
@@ -161,6 +164,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\cloth_converter.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\explode_chunk.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

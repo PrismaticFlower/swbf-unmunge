@@ -8,6 +8,7 @@
 #include <gsl/gsl>
 
 #include <cstddef>
+#include <new>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -202,6 +203,29 @@ public:
       return read_child(true);
    }
 
+   //! \brief Attempts to read a child chunk without the possibility of throwing an
+   //! exception.
+   //!
+   //! \param <unnamed> std tag type for specifying the noexcept function.
+   //! \param unaligned If the read is unaligned or not.
+   //!
+   //! \return A std::optional<Ucfb_reader> for the child chunk. If the read failed
+   //! (because it would overflow the chunk) nullopt is returned instead.
+   auto read_child(const std::nothrow_t, const bool unaligned = false) noexcept
+      -> std::optional<Ucfb_reader>;
+
+   //! \brief Attempts to read an unaligned child chunk without the possibility of
+   //! throwing an exception.
+   //!
+   //! \param <unnamed> std tag type for specifying the noexcept function.
+   //!
+   //! \return A std::optional<Ucfb_reader> for the child chunk. If the read failed
+   //! (because it would overflow the chunk) nullopt is returned instead.
+   auto read_child_unaligned(const std::nothrow_t) noexcept -> std::optional<Ucfb_reader>
+   {
+      return read_child(std::nothrow, true);
+   }
+
    //! \brief Reads a child if it's magic number matches an expected
    //! magic number.
    //!
@@ -213,8 +237,8 @@ public:
    //!
    //! \exception std::runtime_error Thrown when the magic number of the child and the
    //! expected magic number do not match. If this happens the read head is not moved.
-   //! \exception std::runtime_error Thrown when reading the child would go past the end
-   //! of the current chunk.
+   //! \exception std::runtime_error Thrown when reading the child would go past the
+   //! end of the current chunk.
    template<Magic_number type_mn>
    auto read_child_strict(const bool unaligned = false) -> Ucfb_reader_strict<type_mn>
    {

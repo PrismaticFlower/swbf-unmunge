@@ -35,6 +35,30 @@ Ucfb_reader Ucfb_reader::read_child(const bool unaligned)
    return Ucfb_reader{child_mn, child_size, _data + child_data_offset};
 }
 
+auto Ucfb_reader::read_child(const std::nothrow_t, const bool unaligned) noexcept
+   -> std::optional<Ucfb_reader>
+{
+   if ((_head + 8) > _size) return std::nullopt;
+
+   const auto old_head = _head;
+
+   const auto child_mn = read_trivial<Magic_number>();
+   const auto child_size = read_trivial<std::uint32_t>();
+   const auto child_data_offset = _head;
+
+   _head += child_size;
+
+   if (_head > _size) {
+      _head = old_head;
+
+      return std::nullopt;
+   }
+
+   if (!unaligned) align_head();
+
+   return Ucfb_reader{child_mn, child_size, _data + child_data_offset};
+}
+
 Ucfb_reader Ucfb_reader::read_child_strict(const Magic_number child_mn,
                                            const bool unaligned)
 {

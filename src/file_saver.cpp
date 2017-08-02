@@ -22,6 +22,13 @@ File_saver::File_saver(const fs::path& path, bool verbose) noexcept
    fs::create_directory(_path);
 }
 
+File_saver::File_saver(File_saver&& other) noexcept
+   : File_saver{other._path, other._verbose}
+{
+   std::lock_guard<tbb::spin_rw_mutex> lock{other._dirs_mutex};
+   std::swap(_created_dirs, other._created_dirs);
+}
+
 void File_saver::save_file(std::string_view contents, std::string_view directory,
                            std::string_view name, std::string_view extension)
 {
@@ -39,8 +46,12 @@ void File_saver::save_file(std::string_view contents, std::string_view directory
       static_cast<char>(std::experimental::filesystem::path::preferred_separator);
 
    path += _path;
-   path += directory;
-   path += preferred_separator;
+
+   if (!directory.empty()) {
+      path += directory;
+      path += preferred_separator;
+   }
+
    path += name;
    path += extension;
 
@@ -82,4 +93,13 @@ void File_saver::create_dir(std::string_view directory) noexcept
 
       _created_dirs.emplace_back(std::move(str_dir));
    }
+}
+
+File_saver File_saver::create_nested(std::string_view directory) const
+{
+   fs::path new_path = _path;
+   new_path.append(std::cbegin(directory), std::cend(directory));
+   new_path += fs::path::preferred_separator;
+
+   return {new_path, _verbose};
 }
