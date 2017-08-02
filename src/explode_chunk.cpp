@@ -41,7 +41,7 @@ inline std::string get_chunk_name(const Ucfb_reader& chunk, const std::size_t in
    std::string name;
    name += std::to_string(index);
 
-   name += '_';
+   name += ' ';
 
    if (is_usable_chunk_name(chunk.magic_number())) {
       name += view_pod_as_string(chunk.magic_number());
@@ -50,9 +50,9 @@ inline std::string get_chunk_name(const Ucfb_reader& chunk, const std::size_t in
       name += serialize_magic_number(chunk.magic_number());
    }
 
-   name += '_';
+   name += ' ';
 
-   name += std::to_string(chunk.size());
+   name += to_hexstring(chunk.size());
 
    return name;
 }
