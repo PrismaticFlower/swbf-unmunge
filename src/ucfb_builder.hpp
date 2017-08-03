@@ -9,12 +9,17 @@
 #include <type_traits>
 #include <vector>
 
+#include <experimental/filesystem>
+
 class Ucfb_builder {
 public:
    using iterator = std::vector<Ucfb_builder>::iterator;
    using const_iterator = std::vector<Ucfb_builder>::const_iterator;
 
    explicit Ucfb_builder(Magic_number magic_number);
+
+   Ucfb_builder(const std::experimental::filesystem::path& file_path,
+                Magic_number magic_number);
 
    Magic_number get_magic_number() const noexcept;
 

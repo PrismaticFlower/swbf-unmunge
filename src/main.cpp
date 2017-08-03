@@ -1,5 +1,6 @@
 
 #include "app_options.hpp"
+#include "assemble_chunks.hpp"
 #include "chunk_processor.hpp"
 #include "explode_chunk.hpp"
 #include "file_saver.hpp"
@@ -63,11 +64,27 @@ void explode_file(const App_options& options, fs::path path) noexcept
    }
 }
 
+void assemble_directory(const App_options& options, fs::path path) noexcept
+{
+   try {
+      File_saver file_saver{fs::path{path}.replace_extension("") /= "../",
+                            options.verbose()};
+
+      assemble_chunks(path, file_saver);
+   }
+   catch (std::exception& e) {
+      synced_cout::print(
+         "Error: Exception occured while assembling directory.\n   Directory: "s,
+         path.string(), '\n', "   Message: "s, e.what(), '\n');
+   }
+}
+
 auto get_file_processor(const Tool_mode mode)
    -> std::function<void(const App_options&, fs::path)>
 {
    if (mode == Tool_mode::extract) return extract_file;
    if (mode == Tool_mode::explode) return explode_file;
+   if (mode == Tool_mode::assemble) return assemble_directory;
 
    throw std::invalid_argument{""};
 }

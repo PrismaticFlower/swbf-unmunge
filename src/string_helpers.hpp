@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <iterator>
 #include <sstream>
@@ -42,6 +43,22 @@ inline void for_each_substr(
    }
 
    if (!string.empty()) function(string);
+}
+
+template<typename Char_type, typename Char_traits = std::char_traits<Char_type>>
+constexpr auto split_string(
+   typename std::common_type<std::basic_string_view<Char_type, Char_traits>>::type string,
+   const Char_type delimiter) noexcept
+   -> std::array<std::basic_string_view<Char_type, Char_traits>, 2>
+{
+   const auto offset = string.find(delimiter);
+
+   if (offset == string.npos) return {string, decltype(string){}};
+
+   const auto other = string.substr(0, offset);
+   string.remove_prefix(offset + 1);
+
+   return {other, string};
 }
 
 inline bool string_is_number(std::string_view string) noexcept

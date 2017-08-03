@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app_options.cpp" />
+    <ClCompile Include="src\assemble_chunks.cpp" />
     <ClCompile Include="src\cloth_converter.cpp" />
     <ClCompile Include="src\explode_chunk.cpp" />
     <ClCompile Include="src\handle_cloth.cpp" />
@@ -47,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app_options.hpp" />
+    <ClInclude Include="src\assemble_chunks.hpp" />
     <ClInclude Include="src\bit_flags.hpp" />
     <ClInclude Include="src\byte.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />

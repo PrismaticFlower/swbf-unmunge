@@ -59,6 +59,9 @@ std::istream& operator>>(std::istream& istream, Tool_mode& mode)
    else if (str == "explode"_sv) {
       mode = Tool_mode::explode;
    }
+   else if (str == "assemble"_sv) {
+      mode = Tool_mode::assemble;
+   }
    else {
       throw std::invalid_argument{"Invalid tool mode specified."};
    }
@@ -152,7 +155,8 @@ constexpr auto verbose_opt_description{
 constexpr auto mode_opt_description{
    R"(<mode> Set the mode of operation for the tool. Can be 'extract' or 'explode'.
    'extract' (default) - Extract and "unmunge" the contents of the file.
-   'explode' - Recursively explode the file's chunks into their hierarchies.)"_sv};
+   'explode' - Recursively explode the file's chunks into their hierarchies.
+   'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.)"_sv};
 
 App_options::App_options()
 {

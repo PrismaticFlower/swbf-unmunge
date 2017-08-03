@@ -1,11 +1,38 @@
 #include "ucfb_builder.hpp"
 
+#include <fstream>
 #include <limits>
 #include <stdexcept>
+
+namespace fs = std::experimental::filesystem;
+
+namespace {
+std::size_t needed_padding(const std::size_t size) noexcept
+{
+   if (size % 4) {
+      return 4 - (size % 4);
+   }
+
+   return 0;
+}
+}
 
 Ucfb_builder::Ucfb_builder(Magic_number magic_number)
 {
    _magic_number = magic_number;
+}
+
+Ucfb_builder::Ucfb_builder(const std::experimental::filesystem::path& file_path,
+                           Magic_number magic_number)
+   : Ucfb_builder{magic_number}
+{
+   const auto size = fs::file_size(file_path);
+
+   std::ifstream file{file_path, std::ios::in | std::ios::binary};
+
+   _contents.resize(size);
+
+   file.read(_contents.data(), size);
 }
 
 Magic_number Ucfb_builder::get_magic_number() const noexcept
@@ -41,9 +68,7 @@ void Ucfb_builder::write(std::string_view str, bool null_terminate, bool aligned
 
 void Ucfb_builder::pad_till_aligned()
 {
-   if (_contents.size() % 4) {
-      _contents.append(4 - (_contents.size() % 4), '\0');
-   }
+   _contents.append(needed_padding(_contents.size()), '\0');
 }
 
 std::string Ucfb_builder::create_buffer() const
@@ -63,9 +88,11 @@ std::string Ucfb_builder::create_buffer() const
    buffer += view_pod_as_string(size_minus_header);
 
    buffer += _contents;
+   buffer.append(needed_padding(buffer.size()), '\0');
 
    for (const auto& child : _children) {
       buffer += child.create_buffer();
+      buffer.append(needed_padding(buffer.size()), '\0');
    }
 
    return buffer;
@@ -73,10 +100,11 @@ std::string Ucfb_builder::create_buffer() const
 
 std::size_t Ucfb_builder::calc_size() const noexcept
 {
-   std::size_t size = _contents.size() + 8;
+   std::size_t size = 8 + _contents.size();
 
    for (const auto& child : _children) {
       size += child.calc_size();
+      size += needed_padding(size);
    }
 
    return size;

@@ -104,6 +104,9 @@
     <ClCompile Include="src\explode_chunk.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\assemble_chunks.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">
@@ -167,6 +170,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\explode_chunk.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assemble_chunks.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

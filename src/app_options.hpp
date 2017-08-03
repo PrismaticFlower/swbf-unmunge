@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-enum class Tool_mode { extract, explode };
+enum class Tool_mode { extract, explode, assemble };
 
 enum class Image_format { tga, png, dds };
 
