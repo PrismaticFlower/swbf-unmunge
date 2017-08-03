@@ -1,11 +1,7 @@
-This is a tool I've been making for fun over the past few weeks. It's purpose
-is to take "munged" file for Pandemic's Star Wars Battlefront (2004) and Star Wars Battlefront
+This is a tool whose purpose is to take "munged" file for Pandemic's Star Wars Battlefront (2004) and Star Wars Battlefront
 II (2005) and get them back into a state the modtools can understand.
 
-It is by no means perfect (or finished), but I may never be happy with it so I
-may as well release it into the wild now. So that if nothing else I at least
-released it. Hopefully someone finds some good use for it, although given the
-age of the games it's targetting I have doubts about that.
+It is by no means perfect but it can do a reasonable job for most file types of interest.
 
 ## Usage
 
@@ -21,6 +17,10 @@ Options:
  -imgfmt <format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.
  -platform <platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.
  -verbose Enable verbose output.
+ -mode <mode> Set the mode of operation for the tool. Can be 'extract' or 'explode'.
+   'extract' (default) - Extract and "unmunge" the contents of the file.
+   'explode' - Recursively explode the file's chunks into their hierarchies.
+   'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.
 ```
 
 So as an example.
