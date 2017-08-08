@@ -5,13 +5,10 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <fstream>
 #include <limits>
 #include <memory>
 #include <mutex>
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
 
 namespace fs = std::experimental::filesystem;
 using namespace std::literals;
@@ -32,10 +29,6 @@ File_saver::File_saver(File_saver&& other) noexcept
 void File_saver::save_file(std::string_view contents, std::string_view directory,
                            std::string_view name, std::string_view extension)
 {
-   if (contents.size() > std::numeric_limits<DWORD>::max()) {
-      throw std::runtime_error{"File is too large to save."};
-   }
-
    create_dir(directory);
 
    std::string path;
@@ -59,14 +52,8 @@ void File_saver::save_file(std::string_view contents, std::string_view directory
       synced_cout::print("Info: Saving file \""s, path, '\"', '\n');
    }
 
-   HANDLE file;
-   const auto closer = gsl::finally([&file] { CloseHandle(file); });
-
-   file = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                      FILE_ATTRIBUTE_NORMAL, NULL);
-
-   WriteFile(file, contents.data(), static_cast<DWORD>(contents.size()), nullptr,
-             nullptr);
+   std::ofstream file{path, std::ios::binary};
+   file.write(contents.data(), contents.size());
 }
 
 void File_saver::create_dir(std::string_view directory) noexcept
