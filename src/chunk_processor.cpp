@@ -177,7 +177,7 @@ const auto chunk_processors = Chunk_processor_map{
    {"lght"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".light"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".lgt"_sv, "world"_sv);
      }}},
    {"port"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
