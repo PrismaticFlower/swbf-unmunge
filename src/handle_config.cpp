@@ -254,7 +254,7 @@ std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
    }
 
    buffer.append(indention_level - 1, '\t');
-   buffer += "}\n"_sv;
+   buffer += "}\n\n"_sv;
 
    return buffer;
 }
