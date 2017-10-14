@@ -167,7 +167,7 @@ void handle_localization(Ucfb_reader localization, File_saver& file_saver)
       auto localization_copy = localization;
       const auto name = localization_copy.read_child_strict<"NAME"_mn>().read_string();
 
-      handle_unknown(localization, file_saver, name, "loc"_sv);
+      handle_unknown(localization, file_saver, name, ".loc"_sv);
    });
 
    tasks.run_and_wait([localization, &file_saver] {
