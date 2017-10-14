@@ -153,7 +153,7 @@ constexpr auto verbose_opt_description{
    R"(Enable verbose output.)"_sv};
 
 constexpr auto mode_opt_description{
-   R"(<mode> Set the mode of operation for the tool. Can be 'extract' or 'explode'.
+   R"(<mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
    'extract' (default) - Extract and "unmunge" the contents of the file.
    'explode' - Recursively explode the file's chunks into their hierarchies.
    'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.)"_sv};
