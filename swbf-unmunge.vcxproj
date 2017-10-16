@@ -22,6 +22,7 @@
     <ClCompile Include="src\handle_model.cpp" />
     <ClCompile Include="src\handle_planning_swbf1.cpp" />
     <ClCompile Include="src\handle_primitives.cpp" />
+    <ClCompile Include="src\handle_script.cpp" />
     <ClCompile Include="src\handle_skeleton.cpp" />
     <ClCompile Include="src\handle_terrain.cpp" />
     <ClCompile Include="src\handle_unknown.cpp" />
