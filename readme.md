@@ -9,18 +9,18 @@ It is by no means perfect but it can do a reasonable job for most file types of 
 swbf-unmunge <options>
 
 Options:
+ Usage: swbf-unmunge <options>
+
+Options:
  -file <filepath> Specify an input file to operate on.
  -files <files> Specify a list of input files to operate, delimited by ';'.
    Example: "-files foo.lvl;bar.lvl"
- -version <version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.
- -outversion <version> Set the game version the output files will target. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.
  -imgfmt <format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.
+ -keepscripts Keep Lua scripts munged instead of attempting to decompile them.
+ -outversion <version> Set the game version the output files will target. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.
  -platform <platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.
+ -version <version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.
  -verbose Enable verbose output.
- -mode <mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
-   'extract' (default) - Extract and "unmunge" the contents of the file.
-   'explode' - Recursively explode the file's chunks into their hierarchies.
-   'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.
 ```
 
 So as an example.

@@ -149,14 +149,17 @@ constexpr auto image_opt_description{
 constexpr auto input_plat_opt_description{
    R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
 
-constexpr auto verbose_opt_description{
-   R"(Enable verbose output.)"_sv};
+constexpr auto keepscripts_opt_description{
+   R"(Keep Lua scripts munged instead of attempting to decompile them.)"_sv};
 
 constexpr auto mode_opt_description{
    R"(<mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
    'extract' (default) - Extract and "unmunge" the contents of the file.
    'explode' - Recursively explode the file's chunks into their hierarchies.
    'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.)"_sv};
+
+constexpr auto verbose_opt_description{
+   R"(Enable verbose output.)"_sv};
 
 App_options::App_options()
 {
@@ -167,16 +170,18 @@ App_options::App_options()
        fileinput_opt_description},
       {"-files"s, [this](Istr& istr) { append_file_list(istr, _input_files); },
        files_opt_description},
-      {"-version"s, [this](Istr& istr) { istr >> _game_version; },
-       game_ver_opt_description},
-      {"-outversion"s, [this](Istr& istr) { istr >> _output_game_version; },
-       gameout_ver_opt_description},
       {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
        image_opt_description},
+      {"-keepscripts"s, [this](Istr&) { _keep_scripts = true; },
+       keepscripts_opt_description},
+      {"-outversion"s, [this](Istr& istr) { istr >> _output_game_version; },
+       gameout_ver_opt_description},
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
        input_plat_opt_description},
+      {"-version"s, [this](Istr& istr) { istr >> _game_version; },
+       game_ver_opt_description},
       {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
-      {"-mode"s, [this](Istr& istr) { istr >> _tool_mode; }, mode_opt_description}};
+   };
 }
 
 App_options::App_options(int argc, char* argv[]) : App_options()
@@ -222,6 +227,11 @@ Image_format App_options::image_save_format() const noexcept
 Input_platform App_options::input_platform() const noexcept
 {
    return _input_platform;
+}
+
+bool App_options::keep_scripts() const noexcept
+{
+   return _keep_scripts;
 }
 
 bool App_options::verbose() const noexcept

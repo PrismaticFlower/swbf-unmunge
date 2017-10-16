@@ -268,7 +268,12 @@ const auto chunk_processors = Chunk_processor_map{
      [](Args_pack args) { handle_localization(args.chunk, args.file_saver); }}},
    {"scr_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_script(args.chunk, args.file_saver); }}},
+     [](Args_pack args) {
+        handle_script(args.chunk, args.file_saver, args.app_options.keep_scripts());
+     }}},
+   {"scr_"_mn,
+    {Input_platform::pc, Game_version::swbf,
+     [](Args_pack args) { handle_script(args.chunk, args.file_saver, true); }}},
    {"SHDR"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) { handle_shader(args.chunk, args.file_saver); }}},
