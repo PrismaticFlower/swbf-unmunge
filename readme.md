@@ -44,7 +44,7 @@ Terrain | Height, colour, most texture info and some limited water info is recov
 Models | Recovered mostly. The recovered collision mesh for models is rejected by the munger and other things like material information may be wrong.
 Localization | Barely recovered, it will save a dump of the hash keys and their values while also saving the munged chunk as well.
 
-For everything else it will be saved as a `chunk_*.munged` that can be passed back to levelpack.
+For everything else it will be saved as a `chunk_*.munged` that can be passed back to levelpack, or in some cases it will have a pretty name and the correct extension. It depends on the type of chunk. In either case it can be passed to levelpack.
 
 ## Building
 
