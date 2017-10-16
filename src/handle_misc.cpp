@@ -38,3 +38,14 @@ void handle_binary(Ucfb_reader binary, File_saver& file_saver, std::string_view 
 
    handle_unknown(binary, file_saver, name, extension);
 }
+
+void handle_zaabin(Ucfb_reader zaabin, File_saver& file_saver)
+{
+   const auto name = zaabin.read_child_strict<"NAME"_mn>().read_string();
+
+   zaabin.reset_head();
+
+   handle_unknown(zaabin, file_saver, name, ".zaabin"_sv);
+
+   file_saver.save_file("ucft\n{\n}"_sv, "munged"_sv, name, ".anims");
+}

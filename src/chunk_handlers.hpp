@@ -60,3 +60,5 @@ void handle_font(Ucfb_reader font, File_saver& file_saver);
 
 void handle_binary(Ucfb_reader binary, File_saver& file_saver,
                    std::string_view extension);
+
+void handle_zaabin(Ucfb_reader zaabin, File_saver& file_saver);

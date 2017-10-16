@@ -277,7 +277,7 @@ const auto chunk_processors = Chunk_processor_map{
      [](Args_pack args) { handle_font(args.chunk, args.file_saver); }}},
    {"zaa_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".zaabin"_sv); }}},
+     [](Args_pack args) { handle_zaabin(args.chunk, args.file_saver); }}},
    {"zaf_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".zafbin"_sv); }}},
