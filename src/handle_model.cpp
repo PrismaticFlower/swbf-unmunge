@@ -23,7 +23,7 @@ enum class Material_flags : std::uint32_t {
    normal = 1,
    hardedged = 2,
    singlesided = 4,
-   unknown_0 = 8, // Seems to be set when Specular is set.
+   glossmap = 8,
    glow = 16,
    bumpmap = 32,
    additive = 64,
