@@ -221,9 +221,12 @@ const auto chunk_processors = Chunk_processor_map{
      [](Args_pack args) {
         handle_texture(args.chunk, args.file_saver, args.app_options.image_save_format());
      }}},
-   {"tex_"_mn, {Input_platform::ps2, Game_version::swbf_ii, nullptr}},
-   {"tex_"_mn, {Input_platform::xbox, Game_version::swbf_ii, nullptr}},
-
+   {"tex_"_mn,
+    {Input_platform::ps2, Game_version::swbf_ii,
+     [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".texture"_sv); }}},
+   {"tex_"_mn,
+    {Input_platform::xbox, Game_version::swbf_ii,
+     [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".texture"_sv); }}},
    // World chunks
    {"wrld"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
