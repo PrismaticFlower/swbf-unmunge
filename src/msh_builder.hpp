@@ -24,7 +24,7 @@ enum class Render_flags : std::uint8_t {
    normal = 0,
    emissive = 1,
    glow = 2,
-   singlesided = 4,
+   transparent = 4,
    doublesided = 8,
    hardedged = 16,
    perpixel = 32,
@@ -79,7 +79,8 @@ struct Bbox {
 };
 
 struct Material {
-   glm::vec4 colour{1.0f, 1.0f, 1.0f, 1.0f};
+   glm::vec4 diffuse_colour{1.0f, 1.0f, 1.0f, 1.0f};
+   glm::vec4 specular_colour{1.0f, 1.0f, 1.0f, 1.0f};
    float specular_value{20.0f};
    std::array<std::string, 4> textures;
 

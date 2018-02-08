@@ -686,9 +686,10 @@ Ucfb_builder create_matd_chunk(const Material& material, std::size_t index)
    name.write("material_"s + std::to_string(index));
 
    auto& data = matd.emplace_child("DATA"_mn);
-   data.write_multiple(1.0f, 1.0f, 1.0f, 1.0f);
-   data.write_multiple(material.colour.r, material.colour.g, material.colour.b,
-                       material.colour.a);
+   data.write_multiple(material.diffuse_colour.r, material.diffuse_colour.g,
+                       material.diffuse_colour.b, material.diffuse_colour.a);
+   data.write_multiple(material.specular_colour.r, material.specular_colour.g,
+                       material.specular_colour.b, material.specular_colour.a);
    data.write_multiple(1.0f, 1.0f, 1.0f, 1.0f);
    data.write(material.specular_value);
 

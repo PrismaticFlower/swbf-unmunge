@@ -22,19 +22,22 @@ namespace {
 enum class Material_flags : std::uint32_t {
    normal = 1,
    hardedged = 2,
-   singlesided = 4,
+   transparent = 4,
    glossmap = 8,
    glow = 16,
    bumpmap = 32,
    additive = 64,
    specular = 128,
    env_map = 256,
+   vertex_lighting = 512,
    wireframe = 2048, // Name based off msh flags, may produce some other effect.
    doublesided = 65536,
 
    scrolling = 16777216,
    energy = 33554432,
-   animated = 67108864
+   animated = 67108864,
+
+   attached_light = 134217728,
 };
 
 enum class Material_flags_swbf1 : std::uint32_t {
@@ -51,42 +54,20 @@ enum class Material_flags_swbf1 : std::uint32_t {
    refraction = 16384
 };
 
-enum class Material_flags_ps2 {
-   normal = 1, // set when model is NOT emissive
-   hardedged = 2,
-   singlesided = 4,
-   glow = 16,
-   additive = 64,
-   specular = 136,
-   env_map = 256,
-   normal_1 = 65536,
-   doublesided = 65541,
-   scrolling = 16777216,
-   animated = 67108864,
-   energy = 33554432,
-};
-
 struct Material_info {
    Material_flags flags;
-   std::uint32_t unknown_1;
-   std::uint32_t colour;
+   std::uint32_t diffuse_colour;
+   std::uint32_t specular_colour;
    std::uint32_t specular_intensity;
    std::uint32_t params[2];
+
+   // There is a null-terminated string as the last member declaring the name of the
+   // attached-light, this string is always present even if the attached_light flag is
+   // unset.
 };
 
 static_assert(std::is_pod_v<Material_info>);
 static_assert(sizeof(Material_info) == 24);
-
-struct Material_info_ps2 {
-   Material_flags_ps2 flags;
-   std::uint32_t unknown_1;
-   std::uint32_t colour;
-   std::uint32_t specular_intensity;
-   std::uint32_t params[2];
-};
-
-static_assert(std::is_pod_v<Material_info_ps2>);
-static_assert(sizeof(Material_info_ps2) == 24);
 
 struct Model_info {
 
@@ -363,13 +344,13 @@ void read_material_swbf1(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& 
       out.flags = set_flags(out.flags, msh::Render_flags::hardedged);
    }
    if (are_flags_set(flags, Material_flags_swbf1::transparent)) {
-      out.flags = set_flags(out.flags, msh::Render_flags::singlesided);
+      out.flags = set_flags(out.flags, msh::Render_flags::transparent);
    }
    if (are_flags_set(flags, Material_flags_swbf1::specular)) {
       out.type_swbf1 = msh::Render_type_swbf1::specular;
 
       out.specular_value = static_cast<float>(material.read_trivial<std::int32_t>());
-      out.colour = cast_uint_colour(material.read_trivial<std::uint32_t>());
+      out.specular_colour = cast_uint_colour(material.read_trivial<std::uint32_t>());
    }
    if (are_flags_set(flags, Material_flags_swbf1::additive)) {
       out.flags = set_flags(out.flags, msh::Render_flags::additive);
@@ -416,21 +397,21 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)
 
    const auto info = material.read_trivial<Material_info>();
 
-   out.colour = cast_uint_colour(info.colour);
-
+   out.diffuse_colour = cast_uint_colour(info.diffuse_colour);
+   out.specular_colour = cast_uint_colour(info.specular_colour);
    out.specular_value = static_cast<float>(info.specular_intensity);
 
    out.params[0] = static_cast<std::uint8_t>(info.params[0]);
    out.params[1] = static_cast<std::uint8_t>(info.params[1]);
 
+   [[maybe_unused]] const auto attached_light = material.read_string_unaligned();
+
    if (are_flags_set(info.flags, Material_flags::hardedged)) {
       out.flags = set_flags(out.flags, msh::Render_flags::hardedged);
    }
-   if (are_flags_set(info.flags, Material_flags::hardedged)) {
-      out.flags = set_flags(out.flags, msh::Render_flags::doublesided);
-   }
-   if (are_flags_set(info.flags, Material_flags::singlesided)) {
-      out.flags = set_flags(out.flags, msh::Render_flags::singlesided);
+   if (are_flags_set(info.flags, Material_flags::transparent) &&
+       !are_flags_set(info.flags, Material_flags::doublesided)) {
+      out.flags = set_flags(out.flags, msh::Render_flags::transparent);
    }
    if (are_flags_set(info.flags, Material_flags::glow)) {
       out.flags = set_flags(out.flags, msh::Render_flags::glow);
