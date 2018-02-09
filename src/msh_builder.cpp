@@ -149,19 +149,22 @@ void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone>& 
    for (auto& mesh : meshes) {
       if (!mesh.pretransformed || mesh.skin.empty()) continue;
 
-      if (mesh.skin.size() != mesh.positions.size()) {
+      if (mesh.skin.size() != mesh.positions.size() ||
+          mesh.skin.size() != mesh.normals.size()) {
          throw std::runtime_error{
             "Count of segment's skin entries and vertex entries does not match"};
       }
 
       for (std::size_t i = 0; i < mesh.skin.size(); ++i) {
          auto& position = mesh.positions[i];
+         auto& normal = mesh.normals[i];
 
          const auto bone_index = mesh.bone_map.at(mesh.skin[i].bones[0]);
          auto bone = bones.begin() + bone_index;
 
          while (bone < std::end(bones)) {
             position = position * glm::inverse(bone->rotation);
+            normal = normal * glm::inverse(bone->rotation);
 
             position += bone->position;
 
@@ -169,6 +172,8 @@ void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone>& 
                std::begin(bones), std::end(bones),
                [bone](const Bone& other) { return (other.name == bone->parent); });
          }
+
+         normal = glm::normalize(normal);
       }
    }
 }
