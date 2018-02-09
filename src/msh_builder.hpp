@@ -100,6 +100,13 @@ struct Skin_entry {
    glm::vec3 weights;
 };
 
+enum class Lod {
+   zero,
+   one,
+   two,
+   lowres,
+};
+
 struct Model {
    std::optional<std::string> parent;
    std::optional<std::string> name;
@@ -117,7 +124,7 @@ struct Model {
    std::vector<Skin_entry> skin;
    std::vector<std::uint8_t> bone_map;
    bool pretransformed = false;
-   bool low_resolution = false;
+   Lod lod{Lod::zero};
 };
 
 struct Bone {

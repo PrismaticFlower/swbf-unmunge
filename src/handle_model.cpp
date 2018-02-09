@@ -99,15 +99,25 @@ msh::Bbox create_bbox(const Model_info& model_info) noexcept
    return bbox;
 }
 
-auto read_model_name(Ucfb_reader_strict<"NAME"_mn> name) -> std::pair<std::string, bool>
+auto read_model_name(Ucfb_reader_strict<"NAME"_mn> name)
+   -> std::pair<std::string, msh::Lod>
 {
    const auto name_view = name.read_string();
 
-   if (name_view.substr(name_view.length() - 4, 4) == "LOWD"_sv) {
-      return {std::string{name_view.substr(0, name_view.length() - 4)}, true};
+   const auto suffix = name_view.substr(name_view.length() - 4, 4);
+   const auto unsuffixed_name = std::string{name_view.substr(0, name_view.length() - 4)};
+
+   if (suffix == "LOD1"_sv) {
+      return {unsuffixed_name, msh::Lod::one};
+   }
+   else if (suffix == "LOD2"_sv) {
+      return {unsuffixed_name, msh::Lod::two};
+   }
+   else if (suffix == "LOWD"_sv) {
+      return {unsuffixed_name, msh::Lod::lowres};
    }
 
-   return {std::string{name_view}, false};
+   return {std::string{name_view}, msh::Lod::zero};
 }
 
 Model_info read_model_info(Ucfb_reader_strict<"INFO"_mn> info)
@@ -468,11 +478,11 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
    }
 }
 
-void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolution,
+void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lod,
                         Model_info, msh::Builder& builder)
 {
    msh::Model model{};
-   model.low_resolution = low_resolution;
+   model.lod = lod;
 
    while (segment) {
       const auto child = segment.read_child();
@@ -507,11 +517,11 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, bool low_resoluti
    builder.add_model(std::move(model));
 }
 
-void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolution,
+void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lod,
                          Model_info model_info, msh::Builder& builder)
 {
    msh::Model model{};
-   model.low_resolution = low_resolution;
+   model.lod = lod;
 
    auto info = segment.read_child_strict<"INFO"_mn>();
    const auto vertex_count = info.read_trivial<std::uint32_t>();
@@ -571,10 +581,7 @@ template<typename Segm_processor>
 void handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model,
                        msh::Builders_map& builders)
 {
-   std::string name;
-   bool low_resolution = false;
-
-   std::tie(name, low_resolution) = read_model_name(model.read_child_strict<"NAME"_mn>());
+   auto [name, lod] = read_model_name(model.read_child_strict<"NAME"_mn>());
 
    model.read_child_strict_optional<"VRTX"_mn>();
 
@@ -590,8 +597,7 @@ void handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model,
 
       if (child.magic_number() == "segm"_mn) {
          std::invoke(std::forward<Segm_processor>(segm_processor),
-                     Ucfb_reader_strict<"segm"_mn>{child}, low_resolution, model_info,
-                     builder);
+                     Ucfb_reader_strict<"segm"_mn>{child}, lod, model_info, builder);
       }
    }
 }

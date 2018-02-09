@@ -11,6 +11,7 @@
 #include "tbb/parallel_for_each.h"
 
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
@@ -143,8 +144,7 @@ auto sort_sections(std::vector<Modl_section>& sections)
    return create_bone_index(old_index_map, sections);
 }
 
-template<typename Type>
-void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone>& bones)
+void reverse_pretransformed(std::vector<Model>& meshes, const std::vector<Bone>& bones)
 {
    for (auto& mesh : meshes) {
       if (!mesh.pretransformed || mesh.skin.empty()) continue;
@@ -155,25 +155,34 @@ void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone>& 
             "Count of segment's skin entries and vertex entries does not match"};
       }
 
-      for (std::size_t i = 0; i < mesh.skin.size(); ++i) {
-         auto& position = mesh.positions[i];
-         auto& normal = mesh.normals[i];
+      for (std::size_t vertex = 0; vertex < mesh.skin.size(); ++vertex) {
+         glm::vec3 weighted_position;
+         glm::vec3 weighted_normal;
 
-         const auto bone_index = mesh.bone_map.at(mesh.skin[i].bones[0]);
-         auto bone = bones.begin() + bone_index;
+         for (auto i = 0; i < 3; ++i) {
+            auto position = mesh.positions[vertex];
+            auto normal = mesh.normals[vertex];
 
-         while (bone < std::end(bones)) {
-            position = position * glm::inverse(bone->rotation);
-            normal = normal * glm::inverse(bone->rotation);
+            const auto bone_index = mesh.bone_map.at(mesh.skin[vertex].bones[i]);
+            auto bone = bones.begin() + bone_index;
 
-            position += bone->position;
+            while (bone < std::end(bones)) {
+               position = position * glm::inverse(bone->rotation);
+               normal = normal * glm::inverse(bone->rotation);
 
-            bone = std::find_if(
-               std::begin(bones), std::end(bones),
-               [bone](const Bone& other) { return (other.name == bone->parent); });
+               position += bone->position;
+
+               bone = std::find_if(
+                  std::begin(bones), std::end(bones),
+                  [bone](const Bone& other) { return (other.name == bone->parent); });
+            }
+
+            weighted_position += (position * mesh.skin[vertex].weights[i]);
+            weighted_normal += (normal * mesh.skin[vertex].weights[i]);
          }
 
-         normal = glm::normalize(normal);
+         mesh.positions[vertex] = weighted_position;
+         mesh.normals[vertex] = glm::normalize(weighted_normal);
       }
    }
 }
@@ -278,14 +287,18 @@ Modl_section create_section_from(const Model& model, std::string_view root_name,
    section.type = Model_type::fixed;
    section.index = index;
 
-   if (!model.name) {
-      section.name = "mesh_"s;
+   section.name = model.name.value_or("model_"s + std::to_string(index));
 
-      if (model.low_resolution) section.name += "lowrez_"_sv;
-      section.name += std::to_string(index);
-   }
-   else {
-      section.name = model.name.value();
+   switch (model.lod) {
+   case Lod::one:
+      section.name += "_lod"_sv;
+      break;
+   case Lod::two:
+      section.name += "_lod1"_sv;
+      break;
+   case Lod::lowres:
+      section.name += "_lowres"_sv;
+      break;
    }
 
    section.parent = model.parent.value_or(std::string{root_name});
