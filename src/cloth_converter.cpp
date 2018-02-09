@@ -60,23 +60,23 @@ Material create_cloth_material(std::string_view texture_name)
    return material;
 }
 
-auto create_cloth_normals(const std::vector<glm::vec3>& vertices,
+auto create_cloth_normals(const std::vector<glm::vec3>& positions,
                           const std::vector<glm::uvec3>& faces) -> std::vector<glm::vec3>
 {
-   if (vertices.empty()) return {};
+   if (positions.empty()) return {};
 
    std::vector<glm::vec3> normals;
-   normals.resize(vertices.size());
+   normals.resize(positions.size());
 
-   const auto max_vertex = static_cast<std::uint32_t>(vertices.size()) - 1;
+   const auto max_vertex = static_cast<std::uint32_t>(positions.size()) - 1;
 
    for (const auto& face : faces) {
       if (std::max({face.x, face.y, face.z, max_vertex}) != max_vertex) {
          throw std::out_of_range{"Face contained invalid vertex index"};
       }
 
-      const auto e1 = vertices[face.x] - vertices[face.y];
-      const auto e2 = vertices[face.z] - vertices[face.y];
+      const auto e1 = positions[face.x] - positions[face.y];
+      const auto e2 = positions[face.z] - positions[face.y];
       const auto no = glm::cross(e1, e2);
 
       normals[face.x] += no;
@@ -126,12 +126,12 @@ auto create_cloth_strips(const std::vector<glm::uvec3>& faces)
    return strips;
 }
 
-auto create_cloth_skin(const std::vector<glm::vec3>& vertices,
+auto create_cloth_skin(const std::vector<glm::vec3>& positions,
                        const std::vector<Bone>& bones)
-   -> std::pair<std::vector<std::uint8_t>, std::vector<std::uint8_t>>
+   -> std::tuple<std::vector<Skin_entry>, std::vector<std::uint8_t>>
 {
-   std::vector<std::uint8_t> skin;
-   skin.reserve(vertices.size());
+   std::vector<Skin_entry> skin;
+   skin.reserve(positions.size());
 
    std::unordered_map<std::string_view, std::uint8_t> used_bones;
 
@@ -147,10 +147,11 @@ auto create_cloth_skin(const std::vector<glm::vec3>& vertices,
       return bone_iter->second;
    };
 
-   for (const auto& vertex : vertices) {
+   for (const auto& vertex : positions) {
       const auto& nearest = find_nearest_bone(vertex, bones);
 
-      skin.emplace_back(add_used_bone(nearest.name));
+      skin.emplace_back(Skin_entry{glm::u8vec3{add_used_bone(nearest.name)},
+                                   glm::vec3{1.0f, 0.0f, 0.0f}});
    }
 
    std::vector<std::uint8_t> bone_map;
@@ -176,12 +177,12 @@ Model cloth_to_model(const Cloth& cloth, const std::vector<Bone>& bones)
    model.rotation = cloth.rotation;
    model.position = cloth.position;
 
-   model.vertices = cloth.vertices;
-   model.normals = create_cloth_normals(cloth.vertices, cloth.indices);
+   model.positions = cloth.positions;
+   model.normals = create_cloth_normals(cloth.positions, cloth.indices);
    model.texture_coords = cloth.texture_coords;
    model.strips = create_cloth_strips(cloth.indices);
 
-   std::tie(model.skin, model.bone_map) = create_cloth_skin(cloth.vertices, bones);
+   std::tie(model.skin, model.bone_map) = create_cloth_skin(cloth.positions, bones);
 
    return model;
 }

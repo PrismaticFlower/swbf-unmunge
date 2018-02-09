@@ -77,7 +77,7 @@ void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
    collision_mesh.strips.reserve(info.leaf_count);
    collision_mesh.flags = flags;
 
-   collision_mesh.vertices =
+   collision_mesh.positions =
       read_positions(collision.read_child_strict<"POSI"_mn>(), info.vertex_count);
 
    handle_tree(collision.read_child_strict<"TREE"_mn>(), collision_mesh);

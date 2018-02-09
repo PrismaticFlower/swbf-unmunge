@@ -49,11 +49,11 @@ struct Modl_section {
 
    std::optional<Material> material;
    std::optional<std::vector<std::uint16_t>> strips;
-   std::optional<std::vector<glm::vec3>> vertices;
+   std::optional<std::vector<glm::vec3>> positions;
    std::optional<std::vector<glm::vec3>> normals;
    std::optional<std::vector<std::array<std::uint8_t, 4>>> colours;
    std::optional<std::vector<glm::vec2>> texture_coords;
-   std::optional<std::vector<std::uint8_t>> skin;
+   std::optional<std::vector<Skin_entry>> skin;
    std::optional<std::vector<std::uint32_t>> bone_map;
    std::optional<Cloth> cloth;
    std::optional<Modl_collision> collision;
@@ -149,20 +149,21 @@ void reverse_pretransformed(std::vector<Type>& meshes, const std::vector<Bone>& 
    for (auto& mesh : meshes) {
       if (!mesh.pretransformed || mesh.skin.empty()) continue;
 
-      if (mesh.skin.size() != mesh.vertices.size()) {
+      if (mesh.skin.size() != mesh.positions.size()) {
          throw std::runtime_error{
             "Count of segment's skin entries and vertex entries does not match"};
       }
 
       for (std::size_t i = 0; i < mesh.skin.size(); ++i) {
-         auto& vertex = mesh.vertices[i];
+         auto& position = mesh.positions[i];
 
-         const auto bone_index = mesh.bone_map.at(mesh.skin[i]);
+         const auto bone_index = mesh.bone_map.at(mesh.skin[i].bones[0]);
          auto bone = bones.begin() + bone_index;
 
          while (bone < std::end(bones)) {
-            vertex = vertex * glm::inverse(bone->rotation);
-            vertex += bone->position;
+            position = position * glm::inverse(bone->rotation);
+
+            position += bone->position;
 
             bone = std::find_if(
                std::begin(bones), std::end(bones),
@@ -291,7 +292,7 @@ Modl_section create_section_from(const Model& model, std::string_view root_name,
    fixup_texture_names(*section.material);
 
    section.strips = strips_to_msh_fmt(model.strips);
-   section.vertices = model.vertices;
+   section.positions = model.positions;
    section.normals = model.normals;
 
    if (!model.colours.empty()) {
@@ -311,30 +312,6 @@ Modl_section create_section_from(const Model& model, std::string_view root_name,
    return section;
 }
 
-Modl_section create_section_from(const Shadow& shadow, std::string_view root_name,
-                                 std::uint32_t index)
-{
-   Modl_section section;
-
-   section.type = Model_type::fixed;
-   section.index = index;
-   section.name = "sv_"s + std::to_string(index);
-   section.parent = shadow.parent.value_or(std::string{root_name});
-
-   section.strips = strips_to_msh_fmt(shadow.strips);
-   section.vertices = shadow.vertices;
-
-   if (!shadow.skin.empty()) {
-      section.skin = shadow.skin;
-      section.type = Model_type::skin;
-   }
-   if (!shadow.bone_map.empty()) {
-      section.bone_map = convert_bonemap(shadow.bone_map);
-   }
-
-   return section;
-}
-
 Modl_section create_section_from(const Collsion_mesh& collision,
                                  std::string_view root_name, std::uint32_t index)
 {
@@ -347,7 +324,7 @@ Modl_section create_section_from(const Collsion_mesh& collision,
    section.parent = collision.parent.value_or(std::string{root_name});
 
    section.strips = strips_to_msh_fmt(collision.strips);
-   section.vertices = collision.vertices;
+   section.positions = collision.positions;
 
    return section;
 }
@@ -386,15 +363,14 @@ Modl_section create_section_from(const Cloth& cloth, std::string_view,
 }
 
 std::vector<Modl_section> create_modl_sections(
-   std::vector<Bone> bones, std::vector<Model> models, std::vector<Shadow> shadows,
+   std::vector<Bone> bones, std::vector<Model> models,
    std::vector<Collsion_mesh> collision_meshes,
    std::vector<Collision_primitive> collision_primitives, std::vector<Cloth> cloths)
 {
    reverse_pretransformed(models, bones);
-   reverse_pretransformed(shadows, bones);
 
    std::vector<Modl_section> sections;
-   sections.reserve(bones.size() + models.size() + shadows.size());
+   sections.reserve(bones.size() + models.size());
 
    const auto root_name = find_root_bone(bones).name;
    std::uint32_t model_index = 1;
@@ -407,7 +383,6 @@ std::vector<Modl_section> create_modl_sections(
 
    std::for_each(std::begin(bones), std::end(bones), create_section);
    std::for_each(std::begin(models), std::end(models), create_section);
-   std::for_each(std::begin(shadows), std::end(shadows), create_section);
    std::for_each(std::begin(collision_meshes), std::end(collision_meshes),
                  create_section);
    std::for_each(std::begin(collision_primitives), std::end(collision_primitives),
@@ -426,12 +401,12 @@ std::vector<Modl_section> create_modl_sections(
 }
 
 template<Magic_number magic_number>
-Ucfb_builder create_pos_chunk(const std::vector<glm::vec3>& vertices)
+Ucfb_builder create_pos_chunk(const std::vector<glm::vec3>& positions)
 {
    Ucfb_builder pos{magic_number};
-   pos.write(static_cast<std::uint32_t>(vertices.size()));
+   pos.write(static_cast<std::uint32_t>(positions.size()));
 
-   for (const auto& v : vertices) {
+   for (const auto& v : positions) {
       pos.write_multiple(v.x, v.y, v.z);
    }
 
@@ -451,14 +426,17 @@ Ucfb_builder create_uv_chunk(const std::vector<glm::vec2>& texture_coords)
    return uvl;
 }
 
-Ucfb_builder create_wght_chunk(const std::vector<std::uint8_t>& skin)
+Ucfb_builder create_wght_chunk(const std::vector<Skin_entry>& skin)
 {
    Ucfb_builder wght{"WGHT"_mn};
    wght.write(static_cast<std::uint32_t>(skin.size()));
 
-   for (const auto& weight : skin) {
-      wght.write_multiple(static_cast<std::uint32_t>(weight), 1.0f, 0ui32, 0.0f, 0ui32,
-                          0.0f, 0ui32, 0.0f);
+   for (const auto& entry : skin) {
+      const auto bones = static_cast<glm::uvec3>(entry.bones);
+      const auto& weights = entry.weights;
+
+      wght.write_multiple(bones.x, weights.x, bones.y, weights.y, bones.z, weights.z,
+                          0ui32, 0.0f);
    }
 
    return wght;
@@ -508,7 +486,7 @@ Ucfb_builder create_segm_chunk(const Modl_section& section)
 
    segm.emplace_child("MATI"_mn).write(section.mat_index);
 
-   if (section.vertices) segm.add_child(create_pos_chunk<"POSL"_mn>(*section.vertices));
+   if (section.positions) segm.add_child(create_pos_chunk<"POSL"_mn>(*section.positions));
    if (section.skin) segm.add_child(create_wght_chunk(*section.skin));
    if (section.normals) segm.add_child(create_nrml_chunk(*section.normals));
    if (section.colours) segm.add_child(create_clrl_chunk(*section.colours));
@@ -596,7 +574,7 @@ Ucfb_builder create_clth_chunk(const Cloth& cloth_info)
 
    clth.emplace_child("CTEX"_mn).write(cloth_info.texture_name);
 
-   clth.add_child(create_pos_chunk<"CPOS"_mn>(cloth_info.vertices));
+   clth.add_child(create_pos_chunk<"CPOS"_mn>(cloth_info.positions));
    clth.add_child(create_uv_chunk<"CUV0"_mn>(cloth_info.texture_coords));
    clth.add_child(create_fidx_chunk(cloth_info.fixed_points));
    clth.add_child(create_fwgt_chunk(cloth_info.fixed_weights));
@@ -784,7 +762,6 @@ Builder::Builder(const Builder& other) : Builder{}
 {
    this->_bones = other._bones;
    this->_models = other._models;
-   this->_shadows = other._shadows;
    this->_collision_meshes = other._collision_meshes;
    this->_collision_primitives = other._collision_primitives;
    this->_cloths = other._cloths;
@@ -801,11 +778,6 @@ void Builder::add_bone(Bone bone)
 void Builder::add_model(Model model)
 {
    _models.emplace_back(std::move(model));
-}
-
-void Builder::add_shadow(Shadow shadow)
-{
-   _shadows.emplace_back(std::move(shadow));
 }
 
 void Builder::add_collision_mesh(Collsion_mesh collision_mesh)
@@ -834,7 +806,6 @@ void Builder::save(const std::string& name, File_saver& file_saver,
 {
    auto bones = downgrade_concurrent_vector(_bones);
    auto models = downgrade_concurrent_vector(_models);
-   auto shadows = downgrade_concurrent_vector(_shadows);
    auto cloths = downgrade_concurrent_vector(_cloths);
    auto collision_meshes = downgrade_concurrent_vector(_collision_meshes);
    auto collision_primitives = downgrade_concurrent_vector(_collision_primitives);
@@ -847,11 +818,11 @@ void Builder::save(const std::string& name, File_saver& file_saver,
       cloths.clear();
    }
 
-   auto msh_file = create_msh_file(
-      create_modl_sections(std::move(bones), std::move(models), std::move(shadows),
-                           std::move(collision_meshes), std::move(collision_primitives),
-                           std::move(cloths)),
-      get_bbox(), name);
+   auto msh_file =
+      create_msh_file(create_modl_sections(
+                         std::move(bones), std::move(models), std::move(collision_meshes),
+                         std::move(collision_primitives), std::move(cloths)),
+                      get_bbox(), name);
 
    file_saver.save_file(msh_file, "msh"_sv, name, ".msh"_sv);
 }

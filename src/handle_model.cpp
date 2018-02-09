@@ -228,18 +228,18 @@ auto read_strip_buffer(Ucfb_reader_strict<"STRP"_mn> strip_buffer,
    return strips;
 }
 
-auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions,
+auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions_buffer,
                            const std::uint32_t vertex_count,
                            const std::array<glm::vec3, 2>& vertex_box)
    -> std::vector<glm::vec3>
 {
    static_assert(sizeof(std::array<std::uint16_t, 3>) == 6);
 
-   const auto compressed_vertices =
-      positions.read_array<std::array<std::uint16_t, 3>>(vertex_count);
+   const auto compressed_positions =
+      positions_buffer.read_array<std::array<std::uint16_t, 3>>(vertex_count);
 
-   std::vector<glm::vec3> vertices;
-   vertices.reserve(vertex_count);
+   std::vector<glm::vec3> positions;
+   positions.reserve(vertex_count);
 
    constexpr std::array<float, 2> old_range = {0.0f, 65535.0f};
    const std::array<std::array<float, 2>, 3> new_ranges{
@@ -247,16 +247,16 @@ auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions,
        {vertex_box[0].y, vertex_box[1].y},
        {vertex_box[0].z, vertex_box[1].z}}};
 
-   for (const auto& compressed : compressed_vertices) {
+   for (const auto& compressed : compressed_positions) {
       glm::vec3 vert;
       vert.x = range_convert(static_cast<float>(compressed[0]), old_range, new_ranges[0]);
       vert.y = range_convert(static_cast<float>(compressed[1]), old_range, new_ranges[1]);
       vert.z = range_convert(static_cast<float>(compressed[2]), old_range, new_ranges[2]);
 
-      vertices.emplace_back(vert);
+      positions.emplace_back(vert);
    }
 
-   return vertices;
+   return positions;
 }
 
 auto read_normals_buffer(Ucfb_reader_strict<"NORM"_mn> normals,
@@ -310,17 +310,20 @@ auto read_uv_buffer(Ucfb_reader_strict<"TEX0"_mn> uv_buffer,
    return uv_coords;
 }
 
-auto read_bone_buffer(Ucfb_reader_strict<"BONE"_mn> bone_buffer,
-                      const std::uint32_t vertex_count) -> std::vector<std::uint8_t>
+auto read_skin_buffer(Ucfb_reader_strict<"BONE"_mn> bone_buffer,
+                      const std::uint32_t vertex_count) -> std::vector<msh::Skin_entry>
 {
-   std::vector<std::uint8_t> skin;
-   skin.reserve(vertex_count);
+   const auto hardskin = bone_buffer.read_array<std::uint8_t>(vertex_count);
 
-   const auto compressed_coords = bone_buffer.read_array<std::uint8_t>(vertex_count);
+   std::vector<msh::Skin_entry> softskin;
+   softskin.reserve(vertex_count);
 
-   skin.assign(std::cbegin(compressed_coords), std::cend(compressed_coords));
+   for (const auto& bone : hardskin) {
+      softskin.emplace_back(
+         msh::Skin_entry{glm::u8vec3{bone}, glm::vec3{1.0f, 0.0f, 0.0f}});
+   }
 
-   return skin;
+   return softskin;
 }
 
 std::vector<std::uint8_t> read_bone_map(Ucfb_reader_strict<"BMAP"_mn> bone_map)
@@ -389,8 +392,8 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)
 {
    // we can detect swbf1 vs swbf2 material information based off the size of
    // the chunk. swbf1 uses a varying sized chunk that never matches the size
-   // of the swbfii one (which is a fixed size, save a trailing string whose purpose I am
-   // unsure of).
+   // of the swbfii one (which is a fixed size, save a trailing string whose purpose I
+   // am unsure of).
    if (material.size() < sizeof(Material_info)) {
       return read_material_swbf1(material, out);
    }
@@ -537,8 +540,8 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolut
             read_strip_buffer(Ucfb_reader_strict<"STRP"_mn>{child}, index_count);
       }
       else if (child.magic_number() == "POSI"_mn) {
-         model.vertices = read_positions_buffer(Ucfb_reader_strict<"POSI"_mn>{child},
-                                                vertex_count, model_info.vertex_box);
+         model.positions = read_positions_buffer(Ucfb_reader_strict<"POSI"_mn>{child},
+                                                 vertex_count, model_info.vertex_box);
       }
       else if (child.magic_number() == "NORM"_mn) {
          model.normals =
@@ -554,7 +557,7 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, bool low_resolut
       }
       else if (child.magic_number() == "BONE"_mn) {
          model.skin =
-            read_bone_buffer(Ucfb_reader_strict<"BONE"_mn>{child}, vertex_count);
+            read_skin_buffer(Ucfb_reader_strict<"BONE"_mn>{child}, vertex_count);
       }
       else if (child.magic_number() == "BNAM"_mn) {
          model.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();

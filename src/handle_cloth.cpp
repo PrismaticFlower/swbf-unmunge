@@ -119,7 +119,7 @@ void read_cloth_data(Ucfb_reader_strict<"DATA"_mn> data, msh::Cloth& cloth)
 
    const auto vertex_count = data.read_trivial_unaligned<std::uint32_t>();
 
-   cloth.vertices = read_vertices(data.read_array_unaligned<pod::Vec3>(vertex_count));
+   cloth.positions = read_vertices(data.read_array_unaligned<pod::Vec3>(vertex_count));
    cloth.texture_coords =
       read_tex_coords(data.read_array_unaligned<pod::Vec2>(vertex_count));
 

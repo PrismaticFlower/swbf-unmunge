@@ -95,6 +95,11 @@ struct Material {
    std::array<std::int8_t, 2> params;
 };
 
+struct Skin_entry {
+   glm::u8vec3 bones;
+   glm::vec3 weights;
+};
+
 struct Model {
    std::optional<std::string> parent;
    std::optional<std::string> name;
@@ -105,24 +110,14 @@ struct Model {
    Material material;
 
    std::vector<std::vector<std::uint16_t>> strips;
-   std::vector<glm::vec3> vertices;
+   std::vector<glm::vec3> positions;
    std::vector<glm::vec3> normals;
    std::vector<std::array<std::uint8_t, 4>> colours;
    std::vector<glm::vec2> texture_coords;
-   std::vector<std::uint8_t> skin;
+   std::vector<Skin_entry> skin;
    std::vector<std::uint8_t> bone_map;
    bool pretransformed = false;
    bool low_resolution = false;
-};
-
-struct Shadow {
-   std::optional<std::string> parent;
-
-   std::vector<std::vector<std::uint16_t>> strips;
-   std::vector<glm::vec3> vertices;
-   std::vector<std::uint8_t> skin;
-   std::vector<std::uint8_t> bone_map;
-   bool pretransformed = false;
 };
 
 struct Bone {
@@ -136,7 +131,7 @@ struct Collsion_mesh {
    std::optional<std::string> parent;
    Collision_flags flags = Collision_flags::all;
 
-   std::vector<glm::vec3> vertices;
+   std::vector<glm::vec3> positions;
    std::vector<std::vector<std::uint16_t>> strips;
 };
 
@@ -162,7 +157,7 @@ struct Cloth {
 
    std::string texture_name;
 
-   std::vector<glm::vec3> vertices;
+   std::vector<glm::vec3> positions;
    std::vector<glm::vec2> texture_coords;
    std::vector<std::uint32_t> fixed_points;
    std::vector<std::string> fixed_weights;
@@ -189,9 +184,6 @@ public:
    void add_bone(Bone bone);
 
    void add_model(Model model);
-
-   void add_shadow(Shadow shadow);
-
    void add_collision_mesh(Collsion_mesh collision_mesh);
 
    void add_collision_primitive(Collision_primitive primitive);
@@ -208,7 +200,6 @@ private:
 
    tbb::concurrent_vector<Bone> _bones;
    tbb::concurrent_vector<Model> _models;
-   tbb::concurrent_vector<Shadow> _shadows;
    tbb::concurrent_vector<Collsion_mesh> _collision_meshes;
    tbb::concurrent_vector<Collision_primitive> _collision_primitives;
    tbb::concurrent_vector<Cloth> _cloths;

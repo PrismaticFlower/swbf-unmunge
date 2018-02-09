@@ -134,15 +134,15 @@ glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
 
 void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& model)
 {
-   model.vertices.clear();
-   model.vertices.reserve(entries.size());
+   model.positions.clear();
+   model.positions.reserve(entries.size());
    model.normals.clear();
    model.normals.reserve(entries.size());
    model.texture_coords.clear();
    model.texture_coords.reserve(entries.size());
 
    for (const auto& entry : entries) {
-      model.vertices.push_back(entry.position);
+      model.positions.push_back(entry.position);
       model.normals.push_back(entry.normal);
       model.texture_coords.push_back(flip_texture_v(entry.uv));
    }
@@ -150,8 +150,8 @@ void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& mode
 
 void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& model)
 {
-   model.vertices.clear();
-   model.vertices.reserve(entries.size());
+   model.positions.clear();
+   model.positions.reserve(entries.size());
    model.normals.clear();
    model.normals.reserve(entries.size());
    model.colours.clear();
@@ -160,7 +160,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& mod
    model.texture_coords.reserve(entries.size());
 
    for (const auto& entry : entries) {
-      model.vertices.push_back(entry.position);
+      model.positions.push_back(entry.position);
       model.normals.push_back(entry.normal);
       model.colours.push_back(entry.rgba);
       model.texture_coords.push_back(entry.uv);
@@ -169,8 +169,8 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& mod
 
 void read_vbuf_span(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& model)
 {
-   model.vertices.clear();
-   model.vertices.reserve(entries.size());
+   model.positions.clear();
+   model.positions.reserve(entries.size());
    model.skin.clear();
    model.skin.reserve(entries.size());
    model.normals.clear();
@@ -179,8 +179,11 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& mo
    model.texture_coords.reserve(entries.size());
 
    for (const auto& entry : entries) {
-      model.vertices.push_back(entry.position);
-      model.skin.push_back(entry.skin[0]);
+      model.positions.push_back(entry.position);
+
+      model.skin.emplace_back(
+         msh::Skin_entry{glm::u8vec3{entry.skin[0]}, glm::vec3{1.0f, 0.0f, 0.0f}});
+
       model.normals.push_back(entry.normal);
       model.texture_coords.push_back(flip_texture_v(entry.uv));
    }
