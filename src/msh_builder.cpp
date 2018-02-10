@@ -52,7 +52,7 @@ struct Modl_section {
    std::optional<std::vector<std::uint16_t>> strips;
    std::optional<std::vector<glm::vec3>> positions;
    std::optional<std::vector<glm::vec3>> normals;
-   std::optional<std::vector<std::array<std::uint8_t, 4>>> colours;
+   std::optional<std::vector<glm::vec4>> colours;
    std::optional<std::vector<glm::vec2>> texture_coords;
    std::optional<std::vector<Skin_entry>> skin;
    std::optional<std::vector<std::uint32_t>> bone_map;
@@ -472,13 +472,13 @@ Ucfb_builder create_nrml_chunk(const std::vector<glm::vec3>& normals)
    return nrml;
 }
 
-Ucfb_builder create_clrl_chunk(const std::vector<std::array<std::uint8_t, 4>>& colours)
+Ucfb_builder create_clrl_chunk(const std::vector<glm::vec4>& colours)
 {
    Ucfb_builder clrl{"CLRL"_mn};
    clrl.write(static_cast<std::uint32_t>(colours.size()));
 
    for (const auto& c : colours) {
-      clrl.write_multiple(c[0], c[1], c[2], c[3]);
+      clrl.write(glm::packUnorm4x8(c));
    }
 
    return clrl;

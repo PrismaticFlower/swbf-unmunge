@@ -45,6 +45,7 @@
     <ClCompile Include="src\ucfb_builder.cpp" />
     <ClCompile Include="src\ucfb_reader.cpp" />
     <ClCompile Include="src\vbuf_reader.cpp" />
+    <ClCompile Include="src\vbuf_reader_xbox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app_options.hpp" />

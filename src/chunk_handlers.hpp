@@ -42,6 +42,8 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
 
 void handle_model(Ucfb_reader model, msh::Builders_map& builders);
 
+void handle_model_xbox(Ucfb_reader model, msh::Builders_map& builders);
+
 void handle_model_ps2(Ucfb_reader model, msh::Builders_map& builders);
 
 void handle_skeleton(Ucfb_reader skeleton, msh::Builders_map& builders);

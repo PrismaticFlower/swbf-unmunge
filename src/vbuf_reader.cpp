@@ -64,7 +64,7 @@ static_assert(sizeof(Vbuf_xyznuv_entry) == 32);
 struct Vbuf_xyzncuv_entry {
    pod::Vec3 position;
    pod::Vec3 normal;
-   std::array<std::uint8_t, 4> rgba;
+   std::uint32_t colour;
    pod::Vec2 uv;
 };
 
@@ -162,7 +162,7 @@ void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& mod
    for (const auto& entry : entries) {
       model.positions.push_back(entry.position);
       model.normals.push_back(entry.normal);
-      model.colours.push_back(entry.rgba);
+      model.colours.push_back(glm::unpackUnorm4x8(entry.colour));
       model.texture_coords.push_back(entry.uv);
    }
 }

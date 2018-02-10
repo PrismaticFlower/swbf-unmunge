@@ -76,14 +76,6 @@ struct Model_info {
    std::uint32_t face_count{};
 };
 
-glm::vec4 cast_uint_colour(std::uint32_t colour)
-{
-   const std::array<std::uint8_t, 4> array{(colour >> 0) & 0xFF, (colour >> 8) & 0xFF,
-                                           (colour >> 16) & 0xFF, (colour >> 24) & 0xFF};
-
-   return {array[0] / 255.0f, array[1] / 255.0f, array[2] / 255.0f, array[3] / 255.0f};
-}
-
 msh::Bbox create_bbox(const Model_info& model_info) noexcept
 {
    msh::Bbox bbox;
@@ -363,7 +355,7 @@ void read_material_swbf1(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& 
       out.type_swbf1 = msh::Render_type_swbf1::specular;
 
       out.specular_value = static_cast<float>(material.read_trivial<std::int32_t>());
-      out.specular_colour = cast_uint_colour(material.read_trivial<std::uint32_t>());
+      out.specular_colour = glm::unpackUnorm4x8(material.read_trivial<std::uint32_t>());
    }
    if (are_flags_set(flags, Material_flags_swbf1::additive)) {
       out.flags = set_flags(out.flags, msh::Render_flags::additive);
@@ -410,8 +402,8 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)
 
    const auto info = material.read_trivial<Material_info>();
 
-   out.diffuse_colour = cast_uint_colour(info.diffuse_colour);
-   out.specular_colour = cast_uint_colour(info.specular_colour);
+   out.diffuse_colour = glm::unpackUnorm4x8(info.diffuse_colour);
+   out.specular_colour = glm::unpackUnorm4x8(info.specular_colour);
    out.specular_value = static_cast<float>(info.specular_intensity);
 
    out.params[0] = static_cast<std::uint8_t>(info.params[0]);
@@ -517,6 +509,45 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lo
    builder.add_model(std::move(model));
 }
 
+void process_segment_xbox(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lod,
+                          Model_info info, msh::Builder& builder)
+{
+   msh::Model model{};
+   model.lod = lod;
+
+   while (segment) {
+      const auto child = segment.read_child();
+
+      if (child.magic_number() == "MTRL"_mn) {
+         read_material(Ucfb_reader_strict<"MTRL"_mn>{child}, model.material);
+      }
+      else if (child.magic_number() == "RTYP"_mn) {
+         read_render_type(Ucfb_reader_strict<"RTYP"_mn>{child}, model.material);
+      }
+      else if (child.magic_number() == "MNAM"_mn) {
+         model.name = Ucfb_reader_strict<"MNAM"_mn>{child}.read_string();
+      }
+      else if (child.magic_number() == "TNAM"_mn) {
+         read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
+      }
+      else if (child.magic_number() == "IBUF"_mn) {
+         model.strips = read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
+      }
+      else if (child.magic_number() == "VBUF"_mn) {
+         read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn>{child}, model, info.vertex_box);
+      }
+      else if (child.magic_number() == "BNAM"_mn) {
+         model.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();
+      }
+      else if (child.magic_number() == "BMAP"_mn) {
+         model.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
+         model.pretransformed = true;
+      }
+   }
+
+   builder.add_model(std::move(model));
+}
+
 void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lod,
                          Model_info model_info, msh::Builder& builder)
 {
@@ -606,6 +637,11 @@ void handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model,
 void handle_model(Ucfb_reader model, msh::Builders_map& builders)
 {
    handle_model_impl(process_segment_pc, model, builders);
+}
+
+void handle_model_xbox(Ucfb_reader model, msh::Builders_map& builders)
+{
+   handle_model_impl(process_segment_xbox, model, builders);
 }
 
 void handle_model_ps2(Ucfb_reader model, msh::Builders_map& builders)

@@ -119,7 +119,7 @@ struct Model {
    std::vector<std::vector<std::uint16_t>> strips;
    std::vector<glm::vec3> positions;
    std::vector<glm::vec3> normals;
-   std::vector<std::array<std::uint8_t, 4>> colours;
+   std::vector<glm::vec4> colours;
    std::vector<glm::vec2> texture_coords;
    std::vector<Skin_entry> skin;
    std::vector<std::uint8_t> bone_map;
