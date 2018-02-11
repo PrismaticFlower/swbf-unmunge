@@ -107,6 +107,15 @@
     <ClCompile Include="src\assemble_chunks.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\vbuf_reader_xbox.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\handle_texture_xbox.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\save_image.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">
@@ -173,6 +182,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\assemble_chunks.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\save_image.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

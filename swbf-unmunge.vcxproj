@@ -24,6 +24,7 @@
     <ClCompile Include="src\handle_primitives.cpp" />
     <ClCompile Include="src\handle_skeleton.cpp" />
     <ClCompile Include="src\handle_terrain.cpp" />
+    <ClCompile Include="src\handle_texture_xbox.cpp" />
     <ClCompile Include="src\handle_unknown.cpp" />
     <ClCompile Include="src\chunk_processor.cpp" />
     <ClCompile Include="src\file_saver.cpp" />
@@ -37,6 +38,7 @@
     <ClCompile Include="src\mapped_file.cpp" />
     <ClCompile Include="src\handle_object.cpp" />
     <ClCompile Include="src\msh_builder.cpp" />
+    <ClCompile Include="src\save_image.cpp" />
     <ClCompile Include="src\swbf_fnv_hashes.cpp">
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</WholeProgramOptimization>
     </ClCompile>
@@ -62,6 +64,7 @@
     <ClInclude Include="src\chunk_handlers.hpp" />
     <ClInclude Include="src\math_helpers.hpp" />
     <ClInclude Include="src\msh_builder.hpp" />
+    <ClInclude Include="src\save_image.hpp" />
     <ClInclude Include="src\string_helpers.hpp" />
     <ClInclude Include="src\swbf_fnv_hashes.hpp" />
     <ClInclude Include="src\synced_cout.hpp" />
@@ -120,7 +123,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_FORCE_CXX98;GLM_FORCE_SWIZZLE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;GLM_FORCE_CXX98;GLM_FORCE_SWIZZLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>false</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/permissive- /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
@@ -138,7 +141,7 @@
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_FORCE_CXX98;GLM_FORCE_SWIZZLE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;GLM_FORCE_CXX98;GLM_FORCE_SWIZZLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>false</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/permissive- /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>

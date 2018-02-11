@@ -27,6 +27,9 @@ void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view 
 void handle_texture(Ucfb_reader texture, File_saver& file_saver,
                     Image_format save_format);
 
+void handle_texture_xbox(Ucfb_reader texture, File_saver& file_saver,
+                         Image_format save_format);
+
 void handle_world(Ucfb_reader world, File_saver& file_saver);
 
 void handle_planning(Ucfb_reader planning, File_saver& file_saver);
