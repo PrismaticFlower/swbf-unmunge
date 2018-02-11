@@ -29,6 +29,19 @@ File_saver::File_saver(File_saver&& other) noexcept
 void File_saver::save_file(std::string_view contents, std::string_view directory,
                            std::string_view name, std::string_view extension)
 {
+   const auto path = get_file_path(directory, name, extension);
+
+   if (_verbose) {
+      synced_cout::print("Info: Saving file \""s, path, '\"', '\n');
+   }
+
+   std::ofstream file{path, std::ios::binary};
+   file.write(contents.data(), contents.size());
+}
+
+std::string File_saver::get_file_path(std::string_view directory, std::string_view name,
+                                      std::string_view extension)
+{
    create_dir(directory);
 
    std::string path;
@@ -48,12 +61,7 @@ void File_saver::save_file(std::string_view contents, std::string_view directory
    path += name;
    path += extension;
 
-   if (_verbose) {
-      synced_cout::print("Info: Saving file \""s, path, '\"', '\n');
-   }
-
-   std::ofstream file{path, std::ios::binary};
-   file.write(contents.data(), contents.size());
+   return path;
 }
 
 void File_saver::create_dir(std::string_view directory) noexcept

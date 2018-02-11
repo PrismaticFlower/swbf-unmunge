@@ -5,6 +5,9 @@
 
 #include "DirectXTex.h"
 
+#include <codecvt>
+#include <locale>
+
 namespace {
 
 bool image_needs_converting(const DirectX::ScratchImage& image) noexcept
@@ -42,62 +45,35 @@ void ensure_basic_format(DirectX::ScratchImage& image)
       image = std::move(conv_image);
    }
 }
-
-void save_dds_image(std::string_view name, DirectX::ScratchImage image,
-                    File_saver& file_saver)
-{
-   DirectX::Blob blob;
-
-   DirectX::SaveToDDSMemory(*image.GetImage(0, 0, 0), DirectX::DDS_FLAGS_NONE, blob);
-
-   const std::string_view buffer{static_cast<const char*>(blob.GetBufferPointer()),
-                                 blob.GetBufferSize()};
-
-   file_saver.save_file(buffer, "textures"_sv, name, ".dds"_sv);
-}
-
-void save_tga_image(std::string_view name, DirectX::ScratchImage image,
-                    File_saver& file_saver)
-{
-   ensure_basic_format(image);
-
-   DirectX::Blob blob;
-
-   DirectX::SaveToTGAMemory(*image.GetImage(0, 0, 0), blob);
-
-   const std::string_view buffer{static_cast<const char*>(blob.GetBufferPointer()),
-                                 blob.GetBufferSize()};
-
-   file_saver.save_file(buffer, "textures"_sv, name, ".tga"_sv);
-}
-
-void save_png_image(std::string_view name, DirectX::ScratchImage image,
-                    File_saver& file_saver)
-{
-   ensure_basic_format(image);
-
-   DirectX::Blob blob;
-
-   DirectX::SaveToWICMemory(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
-                            DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), blob);
-
-   const std::string_view buffer{static_cast<const char*>(blob.GetBufferPointer()),
-                                 blob.GetBufferSize()};
-
-   file_saver.save_file(buffer, "textures"_sv, name, ".png"_sv);
-}
 }
 
 void save_image(std::string_view name, DirectX::ScratchImage image,
                 File_saver& file_saver, Image_format save_format)
 {
+   const auto utf8_path = file_saver.get_file_path("textures"_sv, name, "");
+
+   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+   auto path = converter.from_bytes(utf8_path);
+
    if (save_format == Image_format::tga) {
-      save_tga_image(name, std::move(image), file_saver);
+      path += L".tga"_sv;
+
+      ensure_basic_format(image);
+
+      DirectX::SaveToTGAFile(*image.GetImage(0, 0, 0), path.c_str());
    }
    else if (save_format == Image_format::png) {
-      save_png_image(name, std::move(image), file_saver);
+      path += L".png"_sv;
+
+      ensure_basic_format(image);
+
+      DirectX::SaveToWICFile(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
+                             DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), path.c_str());
    }
    else if (save_format == Image_format::dds) {
-      save_dds_image(name, std::move(image), file_saver);
+      path += L".dds"_sv;
+
+      DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(),
+                             image.GetMetadata(), DirectX::DDS_FLAGS_NONE, path.c_str());
    }
 }

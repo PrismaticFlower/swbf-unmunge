@@ -17,6 +17,9 @@ public:
    void save_file(std::string_view contents, std::string_view directory,
                   std::string_view name, std::string_view extension);
 
+   std::string get_file_path(std::string_view directory, std::string_view name,
+                             std::string_view extension);
+
    File_saver create_nested(std::string_view directory) const;
 
 private:
