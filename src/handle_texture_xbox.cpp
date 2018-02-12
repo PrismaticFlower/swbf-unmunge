@@ -142,8 +142,8 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
    buffer += view_pod_span_as_string(data);
 
    DirectX::ScratchImage image;
-   DirectX::LoadFromDDSMemory(buffer.data(), buffer.size(), DirectX::DDS_FLAGS_NONE,
-                              nullptr, image);
+   DirectX::LoadFromDDSMemory(buffer.data(), buffer.size(),
+                              DirectX::DDS_FLAGS_BAD_DXTN_TAILS, nullptr, image);
 
    return {std::move(name), std::move(image)};
 }
