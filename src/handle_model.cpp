@@ -328,6 +328,23 @@ auto read_skin_buffer(Ucfb_reader_strict<"BONE"_mn> bone_buffer,
    return softskin;
 }
 
+auto read_colour_buffer(Ucfb_reader_strict<"COL0"_mn> uv_buffer,
+                        const std::uint32_t vertex_count) -> std::vector<glm::vec4>
+{
+   static_assert(sizeof(std::array<std::int16_t, 2>) == 4);
+
+   const auto packed_colours = uv_buffer.read_array<std::uint32_t>(vertex_count);
+
+   std::vector<glm::vec4> colours;
+   colours.reserve(vertex_count);
+
+   for (const auto& packed : packed_colours) {
+      colours.emplace_back(glm::unpackSnorm4x8(packed).bgra());
+   }
+
+   return colours;
+}
+
 std::vector<std::uint8_t> read_bone_map(Ucfb_reader_strict<"BMAP"_mn> bone_map)
 {
    const auto count = bone_map.read_trivial<std::uint32_t>();
@@ -591,6 +608,10 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod l
       else if (child.magic_number() == "TEX0"_mn) {
          model.texture_coords =
             read_uv_buffer(Ucfb_reader_strict<"TEX0"_mn>{child}, vertex_count);
+      }
+      else if (child.magic_number() == "COL0"_mn) {
+         model.colours =
+            read_colour_buffer(Ucfb_reader_strict<"COL0"_mn>{child}, vertex_count);
       }
       else if (child.magic_number() == "BMAP"_mn) {
          model.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
