@@ -150,32 +150,6 @@ void read_texture_name(Ucfb_reader_strict<"TNAM"_mn> texture_name,
    }
 }
 
-auto read_vertex_strip(gsl::span<const std::uint16_t> indices, std::int64_t& pos)
-   -> std::vector<std::uint16_t>
-{
-   if (pos + 2 >= indices.size()) throw std::out_of_range{"Index buffer invalid"};
-
-   std::vector<std::uint16_t> strip;
-   strip.reserve(32);
-
-   std::uint16_t last_index = 0xFFFF;
-
-   for (; pos < indices.size(); ++pos) {
-      if (indices[pos] == last_index) {
-         ++pos;
-         break;
-      }
-
-      strip.push_back(indices[pos]);
-   }
-
-   if (pos + 1 < indices.size()) {
-      if (indices[pos] == indices[pos + 1]) ++pos;
-   }
-
-   return strip;
-}
-
 auto read_vertex_strip_ps2(gsl::span<const std::uint16_t> indices, std::int64_t& pos)
    -> std::vector<std::uint16_t>
 {
@@ -198,36 +172,21 @@ auto read_vertex_strip_ps2(gsl::span<const std::uint16_t> indices, std::int64_t&
 }
 
 auto read_index_buffer(Ucfb_reader_strict<"IBUF"_mn> index_buffer)
-   -> std::vector<std::vector<std::uint16_t>>
+   -> std::vector<std::uint16_t>
 {
-   std::vector<std::vector<std::uint16_t>> strips;
-   strips.reserve(32);
-
    const auto indices_count = index_buffer.read_trivial<std::uint32_t>();
    const auto indices = index_buffer.read_array<std::uint16_t>(indices_count);
 
-   for (std::int64_t i = 0; i < indices.size(); ++i) {
-      strips.emplace_back(read_vertex_strip(indices, i));
-   }
-
-   return strips;
+   return {std::cbegin(indices), std::cend(indices)};
 }
 
 auto read_strip_buffer(Ucfb_reader_strict<"STRP"_mn> strip_buffer,
-                       const std::uint32_t index_count)
-   -> std::vector<std::vector<std::uint16_t>>
+                       const std::uint32_t index_count) -> std::vector<std::uint16_t>
 
 {
-   std::vector<std::vector<std::uint16_t>> strips;
-   strips.reserve(32);
-
    const auto indices = strip_buffer.read_array<std::uint16_t>(index_count);
 
-   for (std::int64_t i = 0; i < indices.size();) {
-      strips.emplace_back(read_vertex_strip_ps2(indices, i));
-   }
-
-   return strips;
+   return {std::cbegin(indices), std::cend(indices)};
 }
 
 auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions_buffer,
@@ -509,7 +468,8 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lo
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
       }
       else if (child.magic_number() == "IBUF"_mn) {
-         model.strips = read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
+         model.strips.emplace_back() =
+            read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
       }
       else if (child.magic_number() == "VBUF"_mn) {
          read_vbuf(Ucfb_reader_strict<"VBUF"_mn>{child}, model);
@@ -548,7 +508,8 @@ void process_segment_xbox(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod 
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
       }
       else if (child.magic_number() == "IBUF"_mn) {
-         model.strips = read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
+         model.strips.emplace_back() =
+            read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
       }
       else if (child.magic_number() == "VBUF"_mn) {
          read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn>{child}, model, info.vertex_box);
@@ -594,7 +555,7 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod l
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
       }
       else if (child.magic_number() == "STRP"_mn) {
-         model.strips =
+         model.strips.emplace_back() =
             read_strip_buffer(Ucfb_reader_strict<"STRP"_mn>{child}, index_count);
       }
       else if (child.magic_number() == "POSI"_mn) {
