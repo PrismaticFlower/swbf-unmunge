@@ -1,11 +1,10 @@
 
 #include "app_options.hpp"
 #include "assemble_chunks.hpp"
-#include "chunk_processor.hpp"
+#include "chunk_handlers.hpp"
 #include "explode_chunk.hpp"
 #include "file_saver.hpp"
 #include "mapped_file.hpp"
-#include "msh_builder.hpp"
 #include "synced_cout.hpp"
 #include "ucfb_reader.hpp"
 
@@ -37,9 +36,11 @@ void extract_file(const App_options& options, fs::path path) noexcept
 
       Ucfb_reader root_reader{file.bytes()};
 
-      process_chunk(root_reader, options, file_saver, msh_builders);
+      if (root_reader.magic_number() != "ucfb"_mn) {
+         throw std::runtime_error{"Root chunk is now ucfb as expected."};
+      }
 
-      msh::save_all(file_saver, msh_builders, options.output_game_version());
+      handle_ucfb(static_cast<Ucfb_reader>(root_reader), options, file_saver);
    }
    catch (std::exception& e) {
       synced_cout::print("Error: Exception occured while processing file.\n   File: "s,

@@ -116,6 +116,9 @@
     <ClCompile Include="src\save_image.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\handle_texture_ps2.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\byte.hpp">

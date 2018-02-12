@@ -12,5 +12,6 @@ namespace tbb {
 class task_group;
 }
 
-void process_chunk(Ucfb_reader chunk, const App_options& app_options,
-                   File_saver& file_saver, msh::Builders_map& msh_builders);
+void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
+                   const App_options& app_options, File_saver& file_saver,
+                   msh::Builders_map& msh_builders);

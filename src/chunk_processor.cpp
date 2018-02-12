@@ -20,6 +20,7 @@ namespace {
 
 struct Args_pack {
    Ucfb_reader chunk;
+   Ucfb_reader parent_reader;
    const App_options& app_options;
    File_saver& file_saver;
    msh::Builders_map& msh_builders;
@@ -223,7 +224,10 @@ const auto chunk_processors = Chunk_processor_map{
      }}},
    {"tex_"_mn,
     {Input_platform::ps2, Game_version::swbf_ii,
-     [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".texture"_sv); }}},
+     [](Args_pack args) {
+        handle_texture_ps2(args.chunk, args.parent_reader, args.file_saver,
+                           args.app_options.image_save_format());
+     }}},
    {"tex_"_mn,
     {Input_platform::xbox, Game_version::swbf_ii,
      [](Args_pack args) {
@@ -297,15 +301,16 @@ const auto chunk_processors = Chunk_processor_map{
 };
 }
 
-void process_chunk(Ucfb_reader chunk, const App_options& app_options,
-                   File_saver& file_saver, msh::Builders_map& msh_builders)
+void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
+                   const App_options& app_options, File_saver& file_saver,
+                   msh::Builders_map& msh_builders)
 {
    const auto processor = chunk_processors.lookup(
       chunk.magic_number(), app_options.input_platform(), app_options.game_version());
 
    if (processor) {
       try {
-         processor({chunk, app_options, file_saver, msh_builders});
+         processor({chunk, parent_reader, app_options, file_saver, msh_builders});
       }
       catch (const std::exception& e) {
          synced_cout::print("Error: Exception occured while processing chunk.\n"
