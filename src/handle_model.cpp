@@ -258,12 +258,12 @@ auto read_uv_buffer(Ucfb_reader_strict<"TEX0"_mn> uv_buffer,
    uv_coords.reserve(vertex_count);
 
    for (const auto& compressed : compressed_coords) {
-      constexpr std::array<float, 2> old_range = {-2048.0f, 2048.0f};
-      constexpr std::array<float, 2> new_range = {-1.0f, 1.0f};
+      constexpr auto factor = 1.f / 2048.f;
 
-      glm::vec2 uv;
-      uv.x = range_convert(static_cast<float>(compressed[0]), old_range, new_range);
-      uv.y = range_convert(static_cast<float>(compressed[1]), old_range, new_range);
+      glm::vec2 uv{static_cast<float>(compressed[0]), static_cast<float>(compressed[1])};
+      uv *= factor;
+
+      uv.y = 1.f - glm::fract(uv.y);
 
       uv_coords.emplace_back(uv);
    }
