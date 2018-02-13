@@ -111,7 +111,7 @@ glm::u8vec3 get_bone_index(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 
 glm::u8vec3 get_bone_indices(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
-   const auto bones = vbuf.read_trivial_unaligned<std::array<std::uint16_t, 3>>();
+   const auto bones = vbuf.read_trivial_unaligned<std::array<std::uint8_t, 3>>();
 
    return glm::u8vec3{bones[0], bones[1], bones[2]};
 }
@@ -227,8 +227,8 @@ void read_textured_softskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf, Vbuf_info inf
    for (auto i = 0u; i < info.count; ++i) {
       model.positions[i] = get_position(vbuf, vert_box);
 
-      model.skin[i].bones = get_bone_indices(vbuf);
       model.skin[i].weights = get_bone_weights(vbuf);
+      model.skin[i].bones = get_bone_indices(vbuf);
 
       model.normals[i] = get_normal(vbuf);
       model.texture_coords[i] = get_texcoords(vbuf);
@@ -319,8 +319,8 @@ void read_textured_softskinned_normal_mapped(Ucfb_reader_strict<"VBUF"_mn> vbuf,
    for (auto i = 0u; i < info.count; ++i) {
       model.positions[i] = get_position(vbuf, vert_box);
 
-      model.skin[i].bones = get_bone_indices(vbuf);
       model.skin[i].weights = get_bone_weights(vbuf);
+      model.skin[i].bones = get_bone_indices(vbuf);
 
       model.normals[i] = get_normal(vbuf);
 
