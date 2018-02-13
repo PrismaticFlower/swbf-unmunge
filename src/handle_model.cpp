@@ -420,6 +420,14 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)
    }
 }
 
+void read_material_name(Ucfb_reader_strict<"MNAM"_mn> mnam, msh::Model& out)
+{
+   const auto name = mnam.read_string();
+
+   out.material.name = name;
+   out.name = name;
+}
+
 void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& out)
 {
    const auto type = render_type.read_string();
@@ -456,7 +464,7 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lo
          read_render_type(Ucfb_reader_strict<"RTYP"_mn>{child}, model.material);
       }
       else if (child.magic_number() == "MNAM"_mn) {
-         model.name = Ucfb_reader_strict<"MNAM"_mn>{child}.read_string();
+         read_material_name(Ucfb_reader_strict<"MNAM"_mn>{child}, model);
       }
       else if (child.magic_number() == "TNAM"_mn) {
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
@@ -496,7 +504,7 @@ void process_segment_xbox(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod 
          read_render_type(Ucfb_reader_strict<"RTYP"_mn>{child}, model.material);
       }
       else if (child.magic_number() == "MNAM"_mn) {
-         model.name = Ucfb_reader_strict<"MNAM"_mn>{child}.read_string();
+         read_material_name(Ucfb_reader_strict<"MNAM"_mn>{child}, model);
       }
       else if (child.magic_number() == "TNAM"_mn) {
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);
@@ -543,7 +551,7 @@ void process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod l
             static_cast<msh::Render_type>(rtyp.read_trivial<std::uint32_t>());
       }
       else if (child.magic_number() == "MNAM"_mn) {
-         model.name = Ucfb_reader_strict<"MNAM"_mn>{child}.read_string();
+         read_material_name(Ucfb_reader_strict<"MNAM"_mn>{child}, model);
       }
       else if (child.magic_number() == "TNAM"_mn) {
          read_texture_name(Ucfb_reader_strict<"TNAM"_mn>{child}, model.material.textures);

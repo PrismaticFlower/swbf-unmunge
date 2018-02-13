@@ -79,6 +79,8 @@ struct Bbox {
 };
 
 struct Material {
+   std::optional<std::string> name;
+
    glm::vec4 diffuse_colour{1.0f, 1.0f, 1.0f, 1.0f};
    glm::vec4 specular_colour{1.0f, 1.0f, 1.0f, 1.0f};
    float specular_value{20.0f};
@@ -92,6 +94,7 @@ struct Material {
       static_assert(std::is_same_v<std::underlying_type_t<Render_type>,
                                    std::underlying_type_t<Render_type_swbf1>>);
    };
+
    std::array<std::int8_t, 2> params;
 };
 

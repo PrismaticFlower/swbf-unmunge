@@ -679,7 +679,8 @@ Ucfb_builder create_matd_chunk(const Material& material, std::size_t index)
    Ucfb_builder matd{"MATD"_mn};
 
    auto& name = matd.emplace_child("NAME"_mn);
-   name.write("material_"s + std::to_string(index));
+
+   name.write(material.name.value_or("material_"s + std::to_string(index)));
 
    auto& data = matd.emplace_child("DATA"_mn);
    data.write_multiple(material.diffuse_colour.r, material.diffuse_colour.g,
