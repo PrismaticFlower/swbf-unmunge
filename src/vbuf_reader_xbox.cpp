@@ -333,7 +333,7 @@ void read_textured_softskinned_normal_mapped(Ucfb_reader_strict<"VBUF"_mn> vbuf,
 }
 
 void read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model,
-                    const std::array<glm::vec3, 2> vert_box)
+                    const std::array<glm::vec3, 2> vert_box, bool* const pretransformed)
 {
    const auto info = vbuf.read_trivial<Vbuf_info>();
 
@@ -344,6 +344,8 @@ void read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model,
    case Vbuf_type::textured_vertex_coloured:
       return read_textured_coloured(vbuf, info, model, vert_box);
    case Vbuf_type::textured_hardskinned:
+      if (pretransformed) *pretransformed = true;
+
       return read_textured_hardskinned(vbuf, info, model, vert_box);
    case Vbuf_type::textured_softskinned:
       return read_textured_softskinned(vbuf, info, model, vert_box);
@@ -353,6 +355,8 @@ void read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model,
    case Vbuf_type::textured_normal_mapped_vertex_coloured:
       return read_textured_normal_mapped_coloured(vbuf, info, model, vert_box);
    case Vbuf_type::textured_hardskinned_normal_mapped:
+      if (pretransformed) *pretransformed = true;
+
       return read_textured_hardskinned_normal_mapped(vbuf, info, model, vert_box);
    case Vbuf_type::textured_softskinned_normal_mapped:
       return read_textured_softskinned_normal_mapped(vbuf, info, model, vert_box);

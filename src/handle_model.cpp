@@ -512,14 +512,14 @@ void process_segment_xbox(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod 
             read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
       }
       else if (child.magic_number() == "VBUF"_mn) {
-         read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn>{child}, model, info.vertex_box);
+         read_vbuf_xbox(Ucfb_reader_strict<"VBUF"_mn>{child}, model, info.vertex_box,
+                        &model.pretransformed);
       }
       else if (child.magic_number() == "BNAM"_mn) {
          model.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();
       }
       else if (child.magic_number() == "BMAP"_mn) {
          model.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
-         model.pretransformed = true;
       }
    }
 
