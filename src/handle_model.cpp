@@ -220,30 +220,24 @@ auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions_buffer,
    return positions;
 }
 
-auto read_normals_buffer(Ucfb_reader_strict<"NORM"_mn> normals,
+auto read_normals_buffer(Ucfb_reader_strict<"NORM"_mn> normals_buffer,
                          const std::uint32_t vertex_count) -> std::vector<glm::vec3>
 {
    static_assert(sizeof(std::array<std::int8_t, 3>) == 3);
 
    const auto compressed_normals =
-      normals.read_array<std::array<std::int8_t, 3>>(vertex_count);
+      normals_buffer.read_array<std::array<std::int8_t, 3>>(vertex_count);
 
-   std::vector<glm::vec3> uncompressed_normals;
-   uncompressed_normals.reserve(vertex_count);
+   std::vector<glm::vec3> normals;
+   normals.reserve(vertex_count);
 
    for (const auto& compressed : compressed_normals) {
-      constexpr std::array<float, 2> old_range = {0.0f, 65535.0f};
-      constexpr std::array<float, 2> new_range = {-128.0f, 127.0f};
-
-      glm::vec3 nrml;
-      nrml.x = range_convert(static_cast<float>(compressed[0]), old_range, new_range);
-      nrml.y = range_convert(static_cast<float>(compressed[1]), old_range, new_range);
-      nrml.z = range_convert(static_cast<float>(compressed[2]), old_range, new_range);
-
-      uncompressed_normals.emplace_back(nrml);
+      normals.emplace_back(static_cast<float>(compressed[0]) / 127.f,
+                           static_cast<float>(compressed[1]) / 127.f,
+                           static_cast<float>(compressed[2]) / 127.f);
    }
 
-   return uncompressed_normals;
+   return normals;
 }
 
 auto read_uv_buffer(Ucfb_reader_strict<"TEX0"_mn> uv_buffer,
