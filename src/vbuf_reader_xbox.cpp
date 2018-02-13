@@ -142,7 +142,9 @@ glm::vec2 get_texcoords(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
    const auto ushort_texcoords =
       vbuf.read_trivial_unaligned<std::array<std::uint16_t, 2>>();
 
-   return decompress_texcoords(ushort_texcoords);
+   const auto texcoords = decompress_texcoords(ushort_texcoords);
+
+   return {texcoords.x, 1.f - glm::fract(texcoords.y)};
 }
 
 template<std::uint32_t expected>
