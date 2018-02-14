@@ -9,205 +9,367 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <optional>
+#include <sstream>
 
 using namespace std::literals;
 
 namespace {
 
-enum class Vbuf_types : std::uint32_t {
-   // xyz (position) - xyz (normal) - uv (texture coordinates)
-   xyznuv = 0x00000222,
-   // xyz (position) - xyz (normal) - rgba - uv (texture coordinates)
-   xyzncuv = 0x0000322,
-   // xyz (position) - xyz (normal) - rgba - uv (texture coordinates)
-   xyzncuv_2 = 0x000002a2,
-
-   // xyz (position) - skin - xyz (normal) - uv (texture coordinates)
-   xyzsknuv = 0x0000226,
-
-   // "compressed" formats
-   unused_12 = 0x00005022,
-   unused_16 = 0x0000d222,
-   unused_20_a = 0x0000d2a2,
-   unused_20_b = 0x0000f226,
-   unused_20_c = 0x0000d322,
-   unused_24 = 0x0000d262,
-   unused_28_a = 0x0000780e,
-   unused_28_b = 0x0000d2e2,
-   unused_28_c = 0x0000f266,
-
-   // uncompressed formats for which an alternate, shorter representation can be
-   // used to reverse the mesh instead
-   unused_56 = 0x00000262,
-   unused_60_a = 0x000002e2,
-   unused_60_b = 0x00000266,
+enum class Vbuf_type : std::uint32_t {
+   textured = 0x00000222,                           // stride - 32
+   textured_coloured = 0x000002a2,                  // stride - 36
+   textured_vertex_lit = 0x00000322,                // stride - 36
+   textured_hardskinned = 0x00000226,               // stride - 36
+   textured_softskinned = 0x0000022e,               // stride - 44
+   textured_normal_mapped = 0x00000262,             // stride - 56
+   textured_normal_mapped_coloured = 0x000002e2,    // stride - 60
+   textured_normal_mapped_vertex_lit = 0x00000362,  // stride - 60
+   textured_normal_mapped_hardskinned = 0x00000266, // stride - 60
+   textured_normal_mapped_softskinned = 0x0000026e, // stride - 68
 };
 
 struct Vbuf_info {
-   std::uint32_t entry_count;
-   std::uint32_t entry_size;
-   Vbuf_types type;
+   std::uint32_t count;
+   std::uint32_t stride;
+   Vbuf_type type;
 };
 
 static_assert(std::is_pod_v<Vbuf_info>);
 static_assert(sizeof(Vbuf_info) == 12);
 
-struct Vbuf_xyznuv_entry {
-   pod::Vec3 position;
-   pod::Vec3 normal;
-   pod::Vec2 uv;
-};
+void print_failed_search(const std::vector<Ucfb_reader_strict<"VBUF"_mn>>& vbufs)
+{
+   std::stringstream stream;
 
-static_assert(std::is_pod_v<Vbuf_xyznuv_entry>);
-static_assert(sizeof(Vbuf_xyznuv_entry) == 32);
+   for (auto vbuf : vbufs) {
+      const auto info = vbuf.read_trivial<Vbuf_info>();
 
-struct Vbuf_xyzncuv_entry {
-   pod::Vec3 position;
-   pod::Vec3 normal;
-   std::uint32_t colour;
-   pod::Vec2 uv;
-};
+      stream << "\n   VBUF:";
+      stream << "\n      size:" << vbuf.size();
+      stream << "\n      count:" << info.count;
+      stream << "\n      stride:" << info.stride;
+      stream << "\n      type:" << to_hexstring(static_cast<std::uint32_t>(info.type));
+   }
 
-static_assert(std::is_pod_v<Vbuf_xyzncuv_entry>);
-static_assert(sizeof(Vbuf_xyzncuv_entry) == 36);
+   synced_cout::print("Warning: Unable to find usable VBUF type options are:"s,
+                      stream.str(), '\n');
+}
 
-struct Vbuf_xyzsknuv_entry {
-   pod::Vec3 position;
-   std::array<std::uint8_t, 4> skin;
-   pod::Vec3 normal;
-   pod::Vec2 uv;
-};
+auto find_best_usable_vbuf(const std::vector<Ucfb_reader_strict<"VBUF"_mn>>& vbufs)
+   -> std::optional<Ucfb_reader_strict<"VBUF"_mn>>
+{
+   const auto begin = std::cbegin(vbufs);
+   const auto end = std::cend(vbufs);
 
-static_assert(std::is_pod_v<Vbuf_xyzsknuv_entry>);
-static_assert(sizeof(Vbuf_xyzsknuv_entry) == 36);
+   const auto find_type = [&](Vbuf_type type) {
+      const auto checker = [type](Ucfb_reader_strict<"VBUF"_mn> vbuf) {
+         const auto info = vbuf.read_trivial<Vbuf_info>();
 
-constexpr bool is_known_vbuf(Vbuf_types type) noexcept
+         return (info.type == type);
+      };
+
+      return std::find_if(begin, end, checker);
+   };
+
+   if (auto result = find_type(Vbuf_type::textured_softskinned); result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_normal_mapped_softskinned);
+            result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_hardskinned); result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_normal_mapped_hardskinned);
+            result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured); result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_coloured); result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_vertex_lit); result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_normal_mapped_coloured);
+            result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_normal_mapped_vertex_lit);
+            result != end) {
+      return *result;
+   }
+   else if (result = find_type(Vbuf_type::textured_normal_mapped); result != end) {
+      return *result;
+   }
+
+   return std::nullopt;
+}
+
+bool is_pretransformed_vbuf(const Vbuf_type type) noexcept
 {
    switch (type) {
-   case Vbuf_types::xyznuv:
-      return true;
-   case Vbuf_types::xyzncuv:
-      return true;
-   case Vbuf_types::xyzncuv_2:
-      return true;
-   case Vbuf_types::xyzsknuv:
-      return true;
-   case Vbuf_types::unused_12:
-      return true;
-   case Vbuf_types::unused_16:
-      return true;
-   case Vbuf_types::unused_20_a:
-      return true;
-   case Vbuf_types::unused_20_b:
-      return true;
-   case Vbuf_types::unused_20_c:
-      return true;
-   case Vbuf_types::unused_24:
-      return true;
-   case Vbuf_types::unused_28_a:
-      return true;
-   case Vbuf_types::unused_28_b:
-      return true;
-   case Vbuf_types::unused_28_c:
-      return true;
-   case Vbuf_types::unused_56:
-      return true;
-   case Vbuf_types::unused_60_a:
-      return true;
-   case Vbuf_types::unused_60_b:
+   case Vbuf_type::textured_hardskinned:
+   case Vbuf_type::textured_normal_mapped_hardskinned:
       return true;
    default:
       return false;
    }
 }
 
-glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
+glm::vec4 read_colour(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
-   float v = coords.y;
+   const auto colour = vbuf.read_trivial<std::uint32_t>();
 
-   if (v > 1.0f) {
-      v = std::fmod(v, 1.0f);
-   }
-
-   return {coords.x, 1.0f - v};
+   return glm::unpackUnorm4x8(colour);
 }
 
-void read_vbuf_span(gsl::span<const Vbuf_xyznuv_entry> entries, msh::Model& model)
+glm::vec3 read_weights(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
-   model.positions.clear();
-   model.positions.reserve(entries.size());
-   model.normals.clear();
-   model.normals.reserve(entries.size());
-   model.texture_coords.clear();
-   model.texture_coords.reserve(entries.size());
+   const auto weights = vbuf.read_trivial<pod::Vec2>();
 
-   for (const auto& entry : entries) {
-      model.positions.push_back(entry.position);
-      model.normals.push_back(entry.normal);
-      model.texture_coords.push_back(flip_texture_v(entry.uv));
+   return glm::vec3{weights.x, weights.y, 1.f - weights.x - weights.y};
+}
+
+glm::u8vec3 read_index(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
+{
+   const auto indices = vbuf.read_trivial<std::uint32_t>();
+
+   return glm::u8vec3{static_cast<std::uint8_t>(indices & 0xffu)};
+}
+
+glm::u8vec3 read_indices(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
+{
+   const auto packed = vbuf.read_trivial<std::uint32_t>();
+
+   glm::u8vec3 indices;
+
+   indices.x = static_cast<std::uint8_t>(packed & 0xffu);
+   indices.y = static_cast<std::uint8_t>((packed >> 8u) & 0xffu);
+   indices.z = static_cast<std::uint8_t>((packed >> 16u) & 0xffu);
+
+   return indices;
+}
+
+glm::vec2 read_texcoords(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
+{
+   const auto coords = vbuf.read_trivial<pod::Vec2>();
+
+   return {coords.x, 1.f - glm::fract(coords.y)};
+}
+
+template<std::uint32_t expected>
+void expect_stride(const Vbuf_info& info)
+{
+   if (info.stride != expected) {
+      const auto message = "Unexpected stride value in VBUF:"s + "\n   type: "s +
+                           to_hexstring(static_cast<std::uint32_t>(info.type)) +
+                           "\n   vertex count: "s + std::to_string(info.count) +
+                           "\n   stride: "s + std::to_string(info.stride) +
+                           "\n   expected stride: "s + std::to_string(expected);
+
+      throw std::runtime_error{message};
    }
 }
 
-void read_vbuf_span(gsl::span<const Vbuf_xyzncuv_entry> entries, msh::Model& model)
+void read_textured(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info info,
+                   msh::Model& model)
 {
-   model.positions.clear();
-   model.positions.reserve(entries.size());
-   model.normals.clear();
-   model.normals.reserve(entries.size());
-   model.colours.clear();
-   model.colours.reserve(entries.size());
-   model.texture_coords.clear();
-   model.texture_coords.reserve(entries.size());
+   expect_stride<32u>(info);
 
-   for (const auto& entry : entries) {
-      model.positions.push_back(entry.position);
-      model.normals.push_back(entry.normal);
-      model.colours.push_back(glm::unpackUnorm4x8(entry.colour));
-      model.texture_coords.push_back(entry.uv);
+   model.positions.resize(info.count);
+   model.normals.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.texture_coords[i] = read_texcoords(vbuf);
    }
 }
 
-void read_vbuf_span(gsl::span<const Vbuf_xyzsknuv_entry> entries, msh::Model& model)
+void read_textured_coloured(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info info,
+                            msh::Model& model)
 {
-   model.positions.clear();
-   model.positions.reserve(entries.size());
-   model.skin.clear();
-   model.skin.reserve(entries.size());
-   model.normals.clear();
-   model.normals.reserve(entries.size());
-   model.texture_coords.clear();
-   model.texture_coords.reserve(entries.size());
+   expect_stride<36u>(info);
 
-   for (const auto& entry : entries) {
-      model.positions.push_back(entry.position);
+   model.positions.resize(info.count);
+   model.normals.resize(info.count);
+   model.colours.resize(info.count);
+   model.texture_coords.resize(info.count);
 
-      model.skin.emplace_back(
-         msh::Skin_entry{glm::u8vec3{entry.skin[0]}, glm::vec3{1.0f, 0.0f, 0.0f}});
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.colours[i] = read_colour(vbuf);
+      model.texture_coords[i] = read_texcoords(vbuf);
+   }
+}
 
-      model.normals.push_back(entry.normal);
-      model.texture_coords.push_back(flip_texture_v(entry.uv));
+void read_textured_hardskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info info,
+                               msh::Model& model)
+{
+   expect_stride<36u>(info);
+
+   model.positions.resize(info.count);
+   model.skin.resize(info.count);
+   model.normals.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.skin[i].weights = glm::vec3{1.f, 0.f, 0.f};
+      model.skin[i].bones = read_index(vbuf);
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.texture_coords[i] = read_texcoords(vbuf);
+   }
+}
+
+void read_textured_softskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info info,
+                               msh::Model& model)
+{
+   expect_stride<44u>(info);
+
+   model.positions.resize(info.count);
+   model.skin.resize(info.count);
+   model.normals.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.skin[i].weights = read_weights(vbuf);
+      model.skin[i].bones = read_indices(vbuf);
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.texture_coords[i] = read_texcoords(vbuf);
+   }
+}
+
+void read_textured_normal_mapped(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info info,
+                                 msh::Model& model)
+{
+   expect_stride<56u>(info);
+
+   model.positions.resize(info.count);
+   model.normals.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+
+      vbuf.read_trivial<pod::Vec3>(); // tangent
+      vbuf.read_trivial<pod::Vec3>(); // bitangent
+
+      model.texture_coords[i] = read_texcoords(vbuf);
+   }
+}
+
+void read_textured_coloured_normal_mapped(Ucfb_reader_strict<"VBUF"_mn> vbuf,
+                                          const Vbuf_info info, msh::Model& model)
+{
+   expect_stride<60u>(info);
+
+   model.positions.resize(info.count);
+   model.normals.resize(info.count);
+   model.colours.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      vbuf.read_trivial<pod::Vec3>(); // tangent
+      vbuf.read_trivial<pod::Vec3>(); // bitangent
+
+      model.colours[i] = read_colour(vbuf);
+      model.texture_coords[i] = read_texcoords(vbuf);
+   }
+}
+
+void read_textured_normal_mapped_hardskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf,
+                                             const Vbuf_info info, msh::Model& model)
+{
+   expect_stride<60u>(info);
+
+   model.positions.resize(info.count);
+   model.skin.resize(info.count);
+   model.normals.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.skin[i].weights = glm::vec3{1.f, 0.f, 0.f};
+      model.skin[i].bones = read_index(vbuf);
+
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      vbuf.read_trivial<pod::Vec3>(); // tangent
+      vbuf.read_trivial<pod::Vec3>(); // bitangent
+
+      model.texture_coords[i] = read_texcoords(vbuf);
+   }
+}
+
+void read_textured_normal_mapped_softskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf,
+                                             const Vbuf_info info, msh::Model& model)
+{
+   expect_stride<68u>(info);
+
+   model.positions.resize(info.count);
+   model.skin.resize(info.count);
+   model.normals.resize(info.count);
+   model.texture_coords.resize(info.count);
+
+   for (auto i = 0u; i < info.count; ++i) {
+      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.skin[i].weights = read_weights(vbuf);
+      model.skin[i].bones = read_indices(vbuf);
+
+      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      vbuf.read_trivial<pod::Vec3>(); // tangent
+      vbuf.read_trivial<pod::Vec3>(); // bitangent
+
+      model.texture_coords[i] = read_texcoords(vbuf);
    }
 }
 }
 
-void read_vbuf(Ucfb_reader_strict<"VBUF"_mn> vbuf, msh::Model& model)
+void read_vbuf(const std::vector<Ucfb_reader_strict<"VBUF"_mn>>& vbufs, msh::Model& model,
+               bool* const pretransformed)
 {
-   const auto vbuf_info = vbuf.read_trivial<Vbuf_info>();
+   auto vbuf = find_best_usable_vbuf(vbufs);
 
-   if (vbuf_info.type == Vbuf_types::xyznuv) {
-      read_vbuf_span(vbuf.read_array<Vbuf_xyznuv_entry>(vbuf_info.entry_count), model);
+   if (!vbuf) {
+      print_failed_search(vbufs);
+
+      return;
    }
-   else if (vbuf_info.type == Vbuf_types::xyzncuv ||
-            vbuf_info.type == Vbuf_types::xyzncuv_2) {
-      read_vbuf_span(vbuf.read_array<Vbuf_xyzncuv_entry>(vbuf_info.entry_count), model);
-   }
-   else if (vbuf_info.type == Vbuf_types::xyzsknuv) {
-      read_vbuf_span(vbuf.read_array<Vbuf_xyzsknuv_entry>(vbuf_info.entry_count), model);
-   }
-   else if (!is_known_vbuf(vbuf_info.type)) {
-      synced_cout::print("Warning: Unknown VBUF encountered."s, "\n   size : "s,
-                         vbuf.size(), "\n   entry count: "s, vbuf_info.entry_count,
-                         "\n   entry size: "s, vbuf_info.entry_size, "\n   entry type: "s,
-                         to_hexstring(static_cast<std::uint32_t>(vbuf_info.type)), '\n');
+
+   const auto info = vbuf->read_trivial<Vbuf_info>();
+
+   if (pretransformed) *pretransformed = is_pretransformed_vbuf(info.type);
+
+   switch (info.type) {
+   case Vbuf_type::textured:
+      return read_textured(*vbuf, info, model);
+   case Vbuf_type::textured_coloured:
+   case Vbuf_type::textured_vertex_lit:
+      return read_textured_coloured(*vbuf, info, model);
+   case Vbuf_type::textured_hardskinned:
+      return read_textured_hardskinned(*vbuf, info, model);
+   case Vbuf_type::textured_softskinned:
+      return read_textured_softskinned(*vbuf, info, model);
+   case Vbuf_type::textured_normal_mapped:
+      return read_textured_normal_mapped(*vbuf, info, model);
+   case Vbuf_type::textured_normal_mapped_coloured:
+   case Vbuf_type::textured_normal_mapped_vertex_lit:
+      return read_textured_coloured_normal_mapped(*vbuf, info, model);
+   case Vbuf_type::textured_normal_mapped_hardskinned:
+      return read_textured_normal_mapped_hardskinned(*vbuf, info, model);
+   case Vbuf_type::textured_normal_mapped_softskinned:
+      return read_textured_normal_mapped_softskinned(*vbuf, info, model);
    }
 }

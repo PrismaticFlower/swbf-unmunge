@@ -454,6 +454,9 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lo
    msh::Model model{};
    model.lod = lod;
 
+   std::vector<Ucfb_reader_strict<"VBUF"_mn>> vbufs;
+   vbufs.reserve(8);
+
    while (segment) {
       const auto child = segment.read_child();
 
@@ -474,16 +477,17 @@ void process_segment_pc(Ucfb_reader_strict<"segm"_mn> segment, const msh::Lod lo
             read_index_buffer(Ucfb_reader_strict<"IBUF"_mn>{child});
       }
       else if (child.magic_number() == "VBUF"_mn) {
-         read_vbuf(Ucfb_reader_strict<"VBUF"_mn>{child}, model);
+         vbufs.emplace_back(Ucfb_reader_strict<"VBUF"_mn>{child});
       }
       else if (child.magic_number() == "BNAM"_mn) {
          model.parent = Ucfb_reader_strict<"BNAM"_mn>{child}.read_string();
       }
       else if (child.magic_number() == "BMAP"_mn) {
          model.bone_map = read_bone_map(Ucfb_reader_strict<"BMAP"_mn>{child});
-         model.pretransformed = true;
       }
    }
+
+   read_vbuf(vbufs, model, &model.pretransformed);
 
    builder.add_model(std::move(model));
 }
