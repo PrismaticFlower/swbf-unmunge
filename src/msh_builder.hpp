@@ -96,6 +96,9 @@ struct Material {
    };
 
    std::array<std::int8_t, 2> params;
+
+   std::optional<std::string> attached_light;
+   bool vertex_lighting = false;
 };
 
 struct Skin_entry {

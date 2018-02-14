@@ -773,6 +773,50 @@ std::string create_msh_file(std::vector<Modl_section> sections, const Bbox bbox,
 
    return hedr.create_buffer();
 }
+
+std::string create_option_file(const std::vector<Model>& models)
+{
+   bool vertex_lighting = false;
+
+   std::vector<std::string_view> kept_materials;
+   kept_materials.reserve(models.size());
+
+   std::vector<std::pair<std::string_view, std::string_view>> attached_lights;
+   attached_lights.reserve(models.size());
+
+   for (const auto& model : models) {
+      vertex_lighting |= model.material.vertex_lighting;
+
+      if (model.name) {
+         kept_materials.emplace_back(*model.name);
+
+         if (model.material.attached_light) {
+            attached_lights.emplace_back(*model.name, *model.material.attached_light);
+         }
+      }
+   }
+
+   std::string options;
+
+   if (vertex_lighting) {
+      options += "-vertexlighting "_sv;
+   }
+
+   for (const auto& kept : kept_materials) {
+      options += "-keepmaterial \""_sv;
+      options += kept;
+      options += "\" "_sv;
+   }
+
+   for (const auto& attached : attached_lights) {
+      options += "-attachlight \""_sv;
+      options += attached.first;
+      options += ' ';
+      options += attached.second;
+      options += "\" "_sv;
+   }
+   return options;
+}
 }
 
 namespace msh {
@@ -829,6 +873,8 @@ void Builder::save(const std::string& name, File_saver& file_saver,
    auto collision_meshes = downgrade_concurrent_vector(_collision_meshes);
    auto collision_primitives = downgrade_concurrent_vector(_collision_primitives);
 
+   const auto option_file = create_option_file(models);
+
    if (version == Game_version::swbf) {
       for (const auto& cloth : cloths) {
          models.emplace_back(cloth_to_model(cloth, bones));
@@ -844,6 +890,10 @@ void Builder::save(const std::string& name, File_saver& file_saver,
                       get_bbox(), name);
 
    file_saver.save_file(msh_file, "msh"_sv, name, ".msh"_sv);
+
+   if (!option_file.empty()) {
+      file_saver.save_file(option_file, "msh"_sv, name, ".msh.option"_sv);
+   }
 }
 
 Bbox Builder::get_bbox() const noexcept

@@ -379,7 +379,9 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)
    out.params[0] = static_cast<std::uint8_t>(info.params[0]);
    out.params[1] = static_cast<std::uint8_t>(info.params[1]);
 
-   [[maybe_unused]] const auto attached_light = material.read_string_unaligned();
+   const auto attached_light = material.read_string_unaligned();
+
+   out.vertex_lighting = are_flags_set(info.flags, Material_flags::vertex_lighting);
 
    if (are_flags_set(info.flags, Material_flags::hardedged)) {
       out.flags = set_flags(out.flags, msh::Render_flags::hardedged);
@@ -417,6 +419,9 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)
    }
    if (are_flags_set(info.flags, Material_flags::animated)) {
       out.type = msh::Render_type::animated;
+   }
+   if (are_flags_set(info.flags, Material_flags::attached_light)) {
+      out.attached_light = attached_light;
    }
 }
 
