@@ -1,6 +1,5 @@
 
 #include "app_options.hpp"
-#include "byte.hpp"
 #include "file_saver.hpp"
 #include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
@@ -87,7 +86,7 @@ struct Texture_vbuf_extra_entry {
    std::uint32_t y;
    std::uint32_t z;
 
-   Byte unknown_0[3];
+   std::byte unknown_0[3];
    std::uint8_t texture_value;
 };
 

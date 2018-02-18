@@ -1,7 +1,5 @@
 #pragma once
 
-#include "byte.hpp"
-
 #include <gsl/gsl>
 
 #include <cstddef>
@@ -15,9 +13,9 @@ public:
    Mapped_file() = default;
    Mapped_file(fs::path path);
 
-   gsl::span<const Byte> bytes() const noexcept;
+   gsl::span<const std::byte> bytes() const noexcept;
 
 private:
-   std::shared_ptr<Byte> _view;
+   std::shared_ptr<std::byte> _view;
    std::uint32_t _size = 0;
 };

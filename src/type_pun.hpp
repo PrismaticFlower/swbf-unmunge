@@ -1,7 +1,5 @@
 #pragma once
 
-#include "byte.hpp"
-
 #include <gsl/gsl>
 
 #include <string>

@@ -48,16 +48,16 @@ Mapped_file::Mapped_file(fs::path path)
 
    if (file_mapping == NULL) throw std::runtime_error{"Unable to create file mapping."};
 
-   const auto unmapper = [](Byte* view) { UnmapViewOfFile(view); };
+   const auto unmapper = [](std::byte* view) { UnmapViewOfFile(view); };
 
-   _view = {static_cast<Byte*>(MapViewOfFile(file_mapping, FILE_MAP_READ, 0, 0, 0)),
+   _view = {static_cast<std::byte*>(MapViewOfFile(file_mapping, FILE_MAP_READ, 0, 0, 0)),
             unmapper};
 
    if (_view == nullptr)
       throw std::runtime_error{"Unable to create view of file mapping."};
 }
 
-gsl::span<const Byte> Mapped_file::bytes() const noexcept
+gsl::span<const std::byte> Mapped_file::bytes() const noexcept
 {
    return {_view.get(), _size};
 }

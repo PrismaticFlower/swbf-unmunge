@@ -1,6 +1,5 @@
 #pragma once
 
-#include "byte.hpp"
 #include "magic_number.hpp"
 #include "type_pun.hpp"
 

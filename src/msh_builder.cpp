@@ -1,7 +1,6 @@
 
 #include "msh_builder.hpp"
 #include "bit_flags.hpp"
-#include "byte.hpp"
 #include "cloth_converter.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"

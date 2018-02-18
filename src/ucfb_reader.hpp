@@ -1,6 +1,5 @@
 #pragma once
 
-#include "byte.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
@@ -42,7 +41,7 @@ public:
    //!
    //! \exception std::runtime_error Thrown when the size of the chunk does not match the
    //! size of the span.
-   Ucfb_reader(const gsl::span<const Byte> bytes);
+   Ucfb_reader(const gsl::span<const std::byte> bytes);
 
    template<Magic_number type_mn>
    Ucfb_reader(const Ucfb_reader_strict<type_mn>&) = delete;
@@ -345,7 +344,8 @@ public:
 
 private:
    // Special constructor for use by read_child, performs no error checking.
-   Ucfb_reader(const Magic_number mn, const std::uint32_t size, const Byte* const data);
+   Ucfb_reader(const Magic_number mn, const std::uint32_t size,
+               const std::byte* const data);
 
    Ucfb_reader read_child_strict(const Magic_number child_mn, const bool unaligned);
 
@@ -363,7 +363,7 @@ private:
 
    const Magic_number _mn;
    const std::size_t _size;
-   const Byte* const _data;
+   const std::byte* const _data;
 
    std::size_t _head = 0;
 };

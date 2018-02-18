@@ -121,9 +121,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\byte.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\file_saver.hpp">
       <Filter>src</Filter>
     </ClInclude>

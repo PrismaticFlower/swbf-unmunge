@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-Ucfb_reader::Ucfb_reader(const gsl::span<const Byte> bytes)
+Ucfb_reader::Ucfb_reader(const gsl::span<const std::byte> bytes)
    : _mn{view_type_as<Magic_number>(bytes[0])},
      _size{view_type_as<std::uint32_t>(bytes[4])}, _data{&bytes[8]}
 {
@@ -15,7 +15,7 @@ Ucfb_reader::Ucfb_reader(const gsl::span<const Byte> bytes)
 }
 
 Ucfb_reader::Ucfb_reader(const Magic_number mn, const std::uint32_t size,
-                         const Byte* const data)
+                         const std::byte* const data)
    : _mn{mn}, _size{size}, _data{data}
 {
 }

@@ -7,6 +7,7 @@
 #include "tbb/task_group.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <type_traits>
@@ -33,7 +34,7 @@ struct Node_info {
    float z;
    float radius;
 
-   Byte unknown_1[8];
+   std::byte unknown_1[8];
 };
 
 static_assert(std::is_pod_v<Node_info>);

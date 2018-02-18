@@ -54,7 +54,6 @@
     <ClInclude Include="src\app_options.hpp" />
     <ClInclude Include="src\assemble_chunks.hpp" />
     <ClInclude Include="src\bit_flags.hpp" />
-    <ClInclude Include="src\byte.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />
     <ClInclude Include="src\cloth_converter.hpp" />
     <ClInclude Include="src\explode_chunk.hpp" />
