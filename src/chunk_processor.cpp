@@ -168,12 +168,12 @@ const auto chunk_processors = Chunk_processor_map{
    {"prp_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".prp"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".prp"_sv, "world"_sv, true);
      }}},
    {"bnd_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".bnd"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".bnd"_sv, "world"_sv, true);
      }}},
    {"lght"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
