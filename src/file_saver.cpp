@@ -10,7 +10,7 @@
 #include <memory>
 #include <mutex>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 using namespace std::literals;
 
 File_saver::File_saver(const fs::path& path, bool verbose) noexcept
@@ -49,7 +49,7 @@ std::string File_saver::get_file_path(std::string_view directory, std::string_vi
                 extension.length());
 
    constexpr auto preferred_separator =
-      static_cast<char>(std::experimental::filesystem::path::preferred_separator);
+      static_cast<char>(std::filesystem::path::preferred_separator);
 
    path += _path;
 

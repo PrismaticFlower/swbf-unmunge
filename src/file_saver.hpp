@@ -9,8 +9,7 @@
 
 class File_saver {
 public:
-   File_saver(const std::experimental::filesystem::path& path,
-              bool verbose = false) noexcept;
+   File_saver(const std::filesystem::path& path, bool verbose = false) noexcept;
 
    File_saver(File_saver&& other) noexcept;
 

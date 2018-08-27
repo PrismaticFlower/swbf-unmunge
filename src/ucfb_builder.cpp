@@ -4,7 +4,7 @@
 #include <limits>
 #include <stdexcept>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 std::size_t needed_padding(const std::size_t size) noexcept
@@ -22,8 +22,7 @@ Ucfb_builder::Ucfb_builder(Magic_number magic_number)
    _magic_number = magic_number;
 }
 
-Ucfb_builder::Ucfb_builder(const std::experimental::filesystem::path& file_path,
-                           Magic_number magic_number)
+Ucfb_builder::Ucfb_builder(const fs::path& file_path, Magic_number magic_number)
    : Ucfb_builder{magic_number}
 {
    const auto size = fs::file_size(file_path);

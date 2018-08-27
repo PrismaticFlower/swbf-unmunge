@@ -6,6 +6,8 @@
 
 #include <limits>
 
+namespace fs = std::filesystem;
+
 namespace {
 
 struct Raii_handle {

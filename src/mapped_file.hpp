@@ -6,12 +6,10 @@
 #include <filesystem>
 #include <memory>
 
-namespace fs = std::experimental::filesystem;
-
 class Mapped_file {
 public:
    Mapped_file() = default;
-   Mapped_file(fs::path path);
+   Mapped_file(std::filesystem::path path);
 
    gsl::span<const std::byte> bytes() const noexcept;
 

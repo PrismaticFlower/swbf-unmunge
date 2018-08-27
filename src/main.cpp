@@ -19,7 +19,7 @@
 
 #include <Windows.h>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 using namespace std::literals;
 
 const auto usage = R"(Usage: swbf-unmunge <options>

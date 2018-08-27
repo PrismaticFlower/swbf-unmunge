@@ -4,11 +4,10 @@
 #include "type_pun.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <type_traits>
 #include <vector>
-
-#include <experimental/filesystem>
 
 class Ucfb_builder {
 public:
@@ -17,8 +16,7 @@ public:
 
    explicit Ucfb_builder(Magic_number magic_number);
 
-   Ucfb_builder(const std::experimental::filesystem::path& file_path,
-                Magic_number magic_number);
+   Ucfb_builder(const std::filesystem::path& file_path, Magic_number magic_number);
 
    Magic_number get_magic_number() const noexcept;
 
