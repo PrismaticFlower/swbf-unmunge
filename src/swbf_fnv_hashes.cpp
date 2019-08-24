@@ -622,6 +622,7 @@ const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes{
    "commandpost"_fnvp,
    "CommandPost"_fnvp,
    "commandwalker"_fnvp,
+   "Cone"_fnvp,
    "ConeAngle"_fnvp,
    "ConeFadeFactor"_fnvp,
    "ConeFadeLength"_fnvp,
