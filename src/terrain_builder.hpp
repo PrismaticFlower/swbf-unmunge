@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-enum class Terrain_flags : std::uint8_t {
+enum class Terrain_flags : char {
    munge_none = 0,
    munge_terrain = 1,
    munge_water = 2,

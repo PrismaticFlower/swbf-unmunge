@@ -315,7 +315,7 @@ void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
       catch (const std::exception& e) {
          synced_cout::print("Error: Exception occured while processing chunk.\n"
                             "   Type: "s,
-                            view_pod_as_string(chunk.magic_number()), "\n   Size: "s,
+                            view_object_as_string(chunk.magic_number()), "\n   Size: "s,
                             chunk.size(), "\n   Message: "s, e.what(), '\n');
       }
    }

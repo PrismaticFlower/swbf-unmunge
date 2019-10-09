@@ -4,10 +4,7 @@
 #include "string_helpers.hpp"
 #include "ucfb_reader.hpp"
 
-#include "glm_pod_wrappers.hpp"
-
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
+#include "glm/glm.hpp"
 
 #include <atomic>
 #include <vector>
@@ -26,8 +23,8 @@ static_assert(std::is_pod_v<Path_info>);
 static_assert(sizeof(Path_info) == 6);
 
 struct Path_node {
-   pod::Vec3 position;
-   pod::Vec4 rotation;
+   glm::vec3 position;
+   glm::vec4 rotation;
 };
 
 static_assert(std::is_pod_v<Path_node>);

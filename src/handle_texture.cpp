@@ -121,15 +121,15 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
    mipmap_level.read_child_strict<"INFO"_mn>();
 
    auto body = mipmap_level.read_child_strict<"BODY"_mn>();
-   const auto pixels = body.read_array<std::uint8_t>(body.size());
+   const auto pixels = body.read_bytes(body.size());
 
    const auto dds_header = create_dds_header(format_info);
 
    std::string buffer;
    buffer.reserve(128 + pixels.size());
    buffer += "DDS "s;
-   buffer += view_pod_as_string(dds_header);
-   buffer += view_pod_span_as_string(pixels);
+   buffer += view_object_as_string(dds_header);
+   buffer += view_object_span_as_string(pixels);
 
    DirectX::ScratchImage image;
    DirectX::LoadFromDDSMemory(buffer.data(), buffer.size(), DirectX::DDS_FLAGS_NONE,

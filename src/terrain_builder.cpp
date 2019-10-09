@@ -127,85 +127,85 @@ void Terrain_builder::save(Game_version version, std::string_view name,
 
    // version number
    if (version == Game_version::swbf_ii)
-      buffer += view_pod_as_string(22i32);
+      buffer += view_object_as_string(22i32);
    else
-      buffer += view_pod_as_string(21i32);
+      buffer += view_object_as_string(21i32);
 
    // grid extent
    const auto extent = static_cast<std::int16_t>(_grid_size / 2);
 
-   buffer += view_pod_as_string<std::int16_t>(-extent);
-   buffer += view_pod_as_string<std::int16_t>(-extent);
-   buffer += view_pod_as_string(extent);
-   buffer += view_pod_as_string(extent);
+   buffer += view_object_as_string<std::int16_t>(-extent);
+   buffer += view_object_as_string<std::int16_t>(-extent);
+   buffer += view_object_as_string(extent);
+   buffer += view_object_as_string(extent);
 
    // unknown
-   buffer += view_pod_as_string(164i32);
+   buffer += view_object_as_string(164i32);
 
    // texture scales
    static_assert(sizeof(_texture_scales) == 64);
-   buffer += view_pod_as_string(_texture_scales);
+   buffer += view_object_as_string(_texture_scales);
 
    // texture axises
    static_assert(sizeof(_texture_axises) == 16);
-   buffer += view_pod_as_string(_texture_axises);
+   buffer += view_object_as_string(_texture_axises);
 
    // texture rotations
    static_assert(sizeof(_texture_rotations) == 64);
-   buffer += view_pod_as_string(_texture_rotations);
+   buffer += view_object_as_string(_texture_rotations);
 
    // height granularity
-   buffer += view_pod_as_string(_height_granularity);
+   buffer += view_object_as_string(_height_granularity);
 
    // metere per grid unit
-   buffer += view_pod_as_string(_grid_unit_size);
+   buffer += view_object_as_string(_grid_unit_size);
 
    // prelit
-   buffer += view_pod_as_string(0i32);
+   buffer += view_object_as_string(0i32);
 
    // world size
-   buffer += view_pod_as_string(std::uint32_t{_grid_size});
+   buffer += view_object_as_string(std::uint32_t{_grid_size});
 
    // grids per foliage
-   buffer += view_pod_as_string(2i32);
+   buffer += view_object_as_string(2i32);
 
    // munge flags
-   if (version == Game_version::swbf_ii) buffer += view_type_as<char>(_terrain_flags);
+   if (version == Game_version::swbf_ii) buffer += static_cast<char>(_terrain_flags);
 
    // texture names
    static_assert(sizeof(_textures) == 1024);
-   buffer += view_pod_as_string(_textures);
+   buffer += view_object_as_string(_textures);
 
    // water settings
    static_assert(sizeof(_water_settings) == 1088);
-   buffer += view_pod_as_string(_water_settings);
+   buffer += view_object_as_string(_water_settings);
 
    // decal textures
    buffer.append(32 * max_decal_textures, '\0');
 
    // decal tile count
-   buffer += view_pod_as_string(0i32);
+   buffer += view_object_as_string(0i32);
 
    // unknown decal options(?)
    buffer.append(8, '\0');
 
    // heightmap
-   buffer += view_pod_span_as_string(gsl::make_span(_heightmap));
+   buffer += view_object_span_as_string(gsl::make_span(_heightmap));
 
    // colourmap foreground
-   buffer += view_pod_span_as_string(gsl::make_span(_colourmap));
+   buffer += view_object_span_as_string(gsl::make_span(_colourmap));
 
    // colourmap background
    buffer.append(4 * _colourmap.size(), '\xff');
 
    // texturemap
-   buffer += view_pod_span_as_string(gsl::make_span(_texturemap));
+   buffer += view_object_span_as_string(gsl::make_span(_texturemap));
 
    // unknown map
    buffer.append((_grid_size / 2) * (_grid_size / 2), '\0');
 
    // patch infomap
-   buffer += view_pod_span_as_string(gsl::make_span(_patch_infomap));
+   buffer += view_object_span_as_string(gsl::make_span(_patch_infomap));
 
    file_saver.save_file(buffer, "world"_sv, name, ".ter"_sv);
 }

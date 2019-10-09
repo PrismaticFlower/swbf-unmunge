@@ -1,5 +1,4 @@
 
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "string_helpers.hpp"
@@ -130,7 +129,7 @@ glm::vec4 read_colour(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 
 glm::vec3 read_weights(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
-   const auto weights = vbuf.read_trivial<pod::Vec2>();
+   const auto weights = vbuf.read_trivial<glm::vec2>();
 
    return glm::vec3{weights.x, weights.y, 1.f - weights.x - weights.y};
 }
@@ -157,7 +156,7 @@ glm::u8vec3 read_indices(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 
 glm::vec2 read_texcoords(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
-   const auto coords = vbuf.read_trivial<pod::Vec2>();
+   const auto coords = vbuf.read_trivial<glm::vec2>();
 
    return {coords.x, 1.f - glm::fract(coords.y)};
 }
@@ -186,8 +185,8 @@ void read_textured(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info info,
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
       model.texture_coords[i] = read_texcoords(vbuf);
    }
 }
@@ -203,8 +202,8 @@ void read_textured_coloured(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_info 
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
       model.colours[i] = read_colour(vbuf);
       model.texture_coords[i] = read_texcoords(vbuf);
    }
@@ -221,10 +220,10 @@ void read_textured_hardskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_in
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
       model.skin[i].weights = glm::vec3{1.f, 0.f, 0.f};
       model.skin[i].bones = read_index(vbuf);
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
       model.texture_coords[i] = read_texcoords(vbuf);
    }
 }
@@ -240,10 +239,10 @@ void read_textured_softskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_in
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
       model.skin[i].weights = read_weights(vbuf);
       model.skin[i].bones = read_indices(vbuf);
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
       model.texture_coords[i] = read_texcoords(vbuf);
    }
 }
@@ -258,11 +257,11 @@ void read_textured_normal_mapped(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
 
-      vbuf.read_trivial<pod::Vec3>(); // tangent
-      vbuf.read_trivial<pod::Vec3>(); // bitangent
+      vbuf.read_trivial<glm::vec3>(); // tangent
+      vbuf.read_trivial<glm::vec3>(); // bitangent
 
       model.texture_coords[i] = read_texcoords(vbuf);
    }
@@ -279,11 +278,11 @@ void read_textured_coloured_normal_mapped(Ucfb_reader_strict<"VBUF"_mn> vbuf,
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
 
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
-      vbuf.read_trivial<pod::Vec3>(); // tangent
-      vbuf.read_trivial<pod::Vec3>(); // bitangent
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
+      vbuf.read_trivial<glm::vec3>(); // tangent
+      vbuf.read_trivial<glm::vec3>(); // bitangent
 
       model.colours[i] = read_colour(vbuf);
       model.texture_coords[i] = read_texcoords(vbuf);
@@ -301,13 +300,13 @@ void read_textured_normal_mapped_hardskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf,
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
       model.skin[i].weights = glm::vec3{1.f, 0.f, 0.f};
       model.skin[i].bones = read_index(vbuf);
 
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
-      vbuf.read_trivial<pod::Vec3>(); // tangent
-      vbuf.read_trivial<pod::Vec3>(); // bitangent
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
+      vbuf.read_trivial<glm::vec3>(); // tangent
+      vbuf.read_trivial<glm::vec3>(); // bitangent
 
       model.texture_coords[i] = read_texcoords(vbuf);
    }
@@ -324,13 +323,13 @@ void read_textured_normal_mapped_softskinned(Ucfb_reader_strict<"VBUF"_mn> vbuf,
    model.texture_coords.resize(info.count);
 
    for (auto i = 0u; i < info.count; ++i) {
-      model.positions[i] = vbuf.read_trivial<pod::Vec3>();
+      model.positions[i] = vbuf.read_trivial<glm::vec3>();
       model.skin[i].weights = read_weights(vbuf);
       model.skin[i].bones = read_indices(vbuf);
 
-      model.normals[i] = vbuf.read_trivial<pod::Vec3>();
-      vbuf.read_trivial<pod::Vec3>(); // tangent
-      vbuf.read_trivial<pod::Vec3>(); // bitangent
+      model.normals[i] = vbuf.read_trivial<glm::vec3>();
+      vbuf.read_trivial<glm::vec3>(); // tangent
+      vbuf.read_trivial<glm::vec3>(); // bitangent
 
       model.texture_coords[i] = read_texcoords(vbuf);
    }

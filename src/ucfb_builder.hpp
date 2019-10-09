@@ -58,10 +58,10 @@ public:
 
    void write(std::string_view str, bool null_terminate = true, bool aligned = true);
 
-   template<typename Pod, typename = std::enable_if_t<std::is_pod_v<Pod>>>
-   void write(const Pod& pod)
+   template<typename Type, typename = std::enable_if_t<std::is_pod_v<Type>>>
+   void write(const Type& pod)
    {
-      _contents += view_pod_as_string(pod);
+      _contents += view_object_as_string(pod);
    }
 
    template<typename... Pod_types>

@@ -53,7 +53,7 @@ auto read_dir_entries(const fs::path& directory)
 
    for (const auto& entry : fs::directory_iterator{directory}) {
       const auto& path = entry.path();
-      const auto entry_info = decompose_name(path.stem().u8string());
+      const auto entry_info = decompose_name(path.stem().string());
 
       if (fs::is_directory(path)) {
          tasks.run([&entries, entry_info, path] {
@@ -67,7 +67,7 @@ auto read_dir_entries(const fs::path& directory)
          });
       }
       else {
-         throw std::runtime_error{"Unexpected entry in directory: "s += path.u8string()};
+         throw std::runtime_error{"Unexpected entry in directory: "s += path.string()};
       }
    }
 
@@ -90,7 +90,7 @@ Ucfb_builder assemble_directory(const fs::path& directory)
 
    sort_dir_entries(entries);
 
-   const auto info = decompose_name(directory.stem().u8string());
+   const auto info = decompose_name(directory.stem().string());
    Ucfb_builder builder{info.magic_number};
 
    for (const auto& entry : entries) {
@@ -114,10 +114,10 @@ void assemble_chunks(fs::path directory, File_saver& file_saver)
    if (fs::is_directory(path)) {
       const auto root = assemble_directory(path);
 
-      file_saver.save_file(root.create_buffer(), "", directory.stem().u8string(),
+      file_saver.save_file(root.create_buffer(), "", directory.stem().string(),
                            ".assembled"_sv);
    }
    else {
-      throw std::runtime_error{"Unexpected entry in directory: "s += path.u8string()};
+      throw std::runtime_error{"Unexpected entry in directory: "s += path.string()};
    }
 }

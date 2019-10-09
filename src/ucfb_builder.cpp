@@ -81,10 +81,10 @@ std::string Ucfb_builder::create_buffer() const
    std::string buffer;
    buffer.reserve(size);
 
-   buffer += view_pod_as_string(_magic_number);
+   buffer += view_object_as_string(_magic_number);
 
    const auto size_minus_header = static_cast<std::uint32_t>(size - 8);
-   buffer += view_pod_as_string(size_minus_header);
+   buffer += view_object_as_string(size_minus_header);
 
    buffer += _contents;
    buffer.append(needed_padding(buffer.size()), '\0');

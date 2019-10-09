@@ -126,8 +126,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
    const auto name = texture.read_child_strict<"NAME"_mn>().read_string();
    const auto info = texture.read_child_strict<"INFO"_mn>().read_trivial<Texture_info>();
    const auto data =
-      texture.read_child_strict<"BODY"_mn>().read_array_unaligned<std::uint8_t>(
-         info.body_size);
+      texture.read_child_strict<"BODY"_mn>().read_bytes_unaligned(info.body_size);
 
    if (info.type != Texture_type::t_2d) {
       throw std::runtime_error{"Skipping unsupported texture format (cubemap or 3D)."};
@@ -138,8 +137,8 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
    std::string buffer;
    buffer.reserve(4 + sizeof(dds_header) + info.body_size);
    buffer += "DDS "_sv;
-   buffer += view_pod_as_string(dds_header);
-   buffer += view_pod_span_as_string(data);
+   buffer += view_object_as_string(dds_header);
+   buffer += view_object_span_as_string(data);
 
    DirectX::ScratchImage image;
    DirectX::LoadFromDDSMemory(buffer.data(), buffer.size(),

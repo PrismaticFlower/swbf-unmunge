@@ -1,5 +1,4 @@
 
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "ucfb_reader.hpp"
@@ -9,8 +8,8 @@
 namespace {
 
 struct Xframe {
-   pod::Mat3 matrix;
-   pod::Vec3 position;
+   glm::mat3 matrix;
+   glm::vec3 position;
 };
 
 static_assert(std::is_pod_v<Xframe>);

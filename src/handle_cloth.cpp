@@ -1,4 +1,3 @@
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "ucfb_reader.hpp"
@@ -18,9 +17,9 @@ namespace {
 
 struct Collision_info {
    msh::Cloth_collision_type type;
-   pod::Vec3 size;
-   pod::Mat3 rotation;
-   pod::Vec3 position;
+   glm::vec3 size;
+   glm::mat3 rotation;
+   glm::vec3 position;
 };
 
 static_assert(std::is_pod_v<Collision_info>);
@@ -39,23 +38,18 @@ glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
 
 auto read_xframe(Ucfb_reader_strict<"XFRM"_mn> xframe) -> std::pair<glm::quat, glm::vec3>
 {
-   const glm::mat3 matrix = xframe.read_trivial<pod::Mat3>();
-   const glm::vec3 position = xframe.read_trivial<pod::Vec3>();
+   const glm::mat3 matrix = xframe.read_trivial<glm::mat3>();
+   const glm::vec3 position = xframe.read_trivial<glm::vec3>();
 
    return {matrix, position};
 }
 
-auto read_vertices(gsl::span<const pod::Vec3> vertices) -> std::vector<glm::vec3>
+auto read_tex_coords(Ucfb_reader_strict<"DATA"_mn>& data,
+                     const std::uint32_t vertex_count) -> std::vector<glm::vec2>
 {
-   return {vertices.begin(), vertices.end()};
-}
+   auto coords = data.read_array_unaligned<glm::vec2>(vertex_count);
 
-auto read_tex_coords(gsl::span<const pod::Vec2> texture_coords) -> std::vector<glm::vec2>
-{
-   std::vector<glm::vec2> coords;
-   coords.reserve(texture_coords.size());
-
-   for (const auto& uv : texture_coords) {
+   for (const auto& uv : coords) {
       coords.emplace_back(flip_texture_v(uv));
    }
 
@@ -119,9 +113,8 @@ void read_cloth_data(Ucfb_reader_strict<"DATA"_mn> data, msh::Cloth& cloth)
 
    const auto vertex_count = data.read_trivial_unaligned<std::uint32_t>();
 
-   cloth.positions = read_vertices(data.read_array_unaligned<pod::Vec3>(vertex_count));
-   cloth.texture_coords =
-      read_tex_coords(data.read_array_unaligned<pod::Vec2>(vertex_count));
+   cloth.positions = data.read_array_unaligned<glm::vec3>(vertex_count);
+   cloth.texture_coords = read_tex_coords(data, vertex_count);
 
    const auto fixed_point_count = data.read_trivial_unaligned<std::uint32_t>();
    cloth.fixed_points = generate_fixed_points(fixed_point_count);

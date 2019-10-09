@@ -1,5 +1,4 @@
 
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "type_pun.hpp"
@@ -22,14 +21,7 @@ static_assert(sizeof(Collision_info) == 40);
 std::vector<glm::vec3> read_positions(Ucfb_reader_strict<"POSI"_mn> vertices,
                                       const std::size_t vertex_count)
 {
-   std::vector<glm::vec3> buffer;
-   buffer.resize(vertex_count);
-
-   const auto vertex_array = vertices.read_array<pod::Vec3>(vertex_count);
-
-   std::memcpy(buffer.data(), vertex_array.data(), buffer.size() * sizeof(glm::vec3));
-
-   return buffer;
+   return vertices.read_array<glm::vec3>(vertex_count);
 }
 
 std::vector<std::uint16_t> read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn> leaf)
@@ -37,9 +29,7 @@ std::vector<std::uint16_t> read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn> leaf)
    std::uint8_t index_count = leaf.read_trivial_unaligned<std::uint8_t>();
    leaf.consume_unaligned(6);
 
-   const auto indices = leaf.read_array<std::uint16_t>(index_count);
-
-   return {std::cbegin(indices), std::cend(indices)};
+   return leaf.read_array<std::uint16_t>(index_count);
 }
 
 void handle_tree(Ucfb_reader_strict<"TREE"_mn> tree, msh::Collsion_mesh& collision_mesh)
@@ -78,7 +68,7 @@ void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
    collision_mesh.flags = flags;
 
    collision_mesh.positions =
-      read_positions(collision.read_child_strict<"POSI"_mn>(), info.vertex_count);
+      collision.read_child_strict<"POSI"_mn>().read_array<glm::vec3>(info.vertex_count);
 
    handle_tree(collision.read_child_strict<"TREE"_mn>(), collision_mesh);
 

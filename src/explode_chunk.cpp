@@ -15,7 +15,7 @@ inline bool is_usable_chunk_name(const Magic_number magic_number) noexcept
    constexpr auto safe_chars =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"_sv;
 
-   const auto string = view_pod_as_string(magic_number);
+   const auto string = view_object_as_string(magic_number);
 
    for (const auto& c : string) {
       if (safe_chars.find(c) == safe_chars.npos) return false;
@@ -46,7 +46,7 @@ inline std::string get_chunk_name(const Ucfb_reader& chunk, const std::size_t in
    name += ' ';
 
    if (is_usable_chunk_name(chunk.magic_number())) {
-      name += view_pod_as_string(chunk.magic_number());
+      name += view_object_as_string(chunk.magic_number());
    }
    else {
       name += serialize_magic_number(chunk.magic_number());

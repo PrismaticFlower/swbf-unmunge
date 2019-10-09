@@ -1,13 +1,13 @@
 
 #include "app_options.hpp"
 #include "file_saver.hpp"
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "math_helpers.hpp"
 #include "string_helpers.hpp"
 #include "terrain_builder.hpp"
 #include "ucfb_reader.hpp"
 
+#include "glm/glm.hpp"
 #include "tbb/task_group.h"
 
 #include <gsl/gsl>
@@ -55,8 +55,8 @@ static_assert(std::is_pod_v<Vbuf_info>);
 static_assert(sizeof(Vbuf_info) == 12);
 
 struct Terrain_vbuf_entry {
-   pod::Vec3 position;
-   pod::Vec3 normal;
+   glm::vec3 position;
+   glm::vec3 normal;
 
    std::uint32_t colour;
 };
@@ -281,8 +281,8 @@ void read_water_layer(Ucfb_reader_strict<"LAYR"_mn> layer, Terrain_builder& buil
    const auto texture = layer.read_string_unaligned();
    layer.consume_unaligned(4);
    const auto height = layer.read_trivial_unaligned<float>();
-   const auto velocity = layer.read_trivial_unaligned<pod::Vec2>();
-   const auto repeat = layer.read_trivial_unaligned<pod::Vec2>();
+   const auto velocity = layer.read_trivial_unaligned<glm::vec2>();
+   const auto repeat = layer.read_trivial_unaligned<glm::vec2>();
    const auto colour =
       pack_rgba_colour(layer.read_trivial_unaligned<std::array<std::uint8_t, 4>>());
 

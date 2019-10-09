@@ -141,17 +141,24 @@ void dump_localization(Ucfb_reader_strict<"Locl"_mn> localization, File_saver& f
 
    auto body = localization.read_child_strict<"BODY"_mn>();
 
-   while (body) {
+   for (auto u16str_buf =
+           [] {
+              std::vector<char16_t> buf;
+              buf.reserve(256);
+
+              return buf;
+           }();
+        body;) {
       const auto hash = body.read_trivial<std::uint32_t>();
 
       if (hash == 0) break;
 
       const auto section_size = body.read_trivial_unaligned<std::uint16_t>();
-      const auto char_array = body.read_array<char16_t>((section_size - 6) / 2);
+      body.read_array<char16_t>((section_size - 6) / 2, u16str_buf);
 
       buffer += to_hexstring(hash);
       buffer += ' ';
-      buffer += cast_encoding({char_array.data()});
+      buffer += cast_encoding({u16str_buf.data()});
       buffer += '\n';
    }
 

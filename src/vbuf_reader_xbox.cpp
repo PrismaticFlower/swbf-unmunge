@@ -39,7 +39,7 @@ static_assert(sizeof(Vbuf_info) == 12);
 glm::vec3 decompress_position(const std::array<std::int16_t, 3> ushort_position,
                               const std::array<glm::vec3, 2> vert_box)
 {
-   glm::vec3 position{glm::ctor::uninitialize};
+   glm::vec3 position;
 
    position.x = glm::mix(vert_box[0].x, vert_box[1].x,
                          (static_cast<float>(ushort_position[0]) / 32767.f + 1.f) * 0.5f);

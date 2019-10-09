@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 template<Magic_number type_mn>
 class Ucfb_reader_strict;
@@ -40,7 +41,7 @@ public:
    //! be at least 8.
    //!
    //! \exception std::runtime_error Thrown when the size of the chunk does not match the
-   //! size of the span.
+   //!                               size of the span.
    Ucfb_reader(const gsl::span<const std::byte> bytes);
 
    template<Magic_number type_mn>
@@ -62,9 +63,9 @@ public:
    //! \return A const reference to the value.
    //!
    //! \exception std::runtime_error Thrown when reading the value would go past the end
-   //! of the chunk.
+   //!                               of the chunk.
    template<typename Type>
-   const Type& read_trivial(const bool unaligned = false)
+   Type read_trivial(const bool unaligned = false)
    {
       static_assert(std::is_trivially_copyable_v<Type>,
                     "Type must be trivially copyable.");
@@ -78,7 +79,8 @@ public:
 
       if (!unaligned) align_head();
 
-      return view_type_as<Type>(_data[cur_pos]);
+      return reinterpret_span_as<Type>(
+         gsl::span<const std::byte, sizeof(Type)>{_data + cur_pos, sizeof(Type)});
    }
 
    //! \brief Reads a trivial unaligned value from the chunk.
@@ -88,9 +90,9 @@ public:
    //! \return A const reference to the value.
    //!
    //! \exception std::runtime_error Thrown when reading the value would go past the end
-   //! of the chunk.
+   //!                               of the chunk.
    template<typename Type>
-   const Type& read_trivial_unaligned()
+   Type read_trivial_unaligned()
    {
       return read_trivial<Type>(true);
    }
@@ -102,27 +104,32 @@ public:
    //! \param size The size of the array to read.
    //! \param unaligned If the read is unaligned or not.
    //!
-   //! \return A span of const Type.
+   //! \return A vector of Type.
    //!
    //! \exception std::runtime_error Thrown when reading the array would go past the end
-   //! of the chunk.
+   //!                               of the chunk.
    template<typename Type>
-   auto read_array(typename const gsl::span<const Type>::index_type size,
-                   const bool unaligned = false) -> gsl::span<const Type>
+   auto read_array(const std::size_t size, const bool unaligned = false)
+      -> std::vector<Type>
    {
       static_assert(std::is_trivially_copyable_v<Type>,
                     "Type must be trivially copyable.");
-      static_assert(!std::is_reference_v<Type>, "Type can not be a reference.");
       static_assert(!std::is_pointer_v<Type>, "Type can not be a pointer.");
 
+      const auto size_bytes = sizeof(Type) * size;
       const auto cur_pos = _head;
-      _head += sizeof(Type) * size;
+      _head += size_bytes;
 
       check_head();
 
       if (!unaligned) align_head();
 
-      return {&view_type_as<Type>(_data[cur_pos]), size};
+      std::vector<Type> vec;
+      vec.resize(size);
+
+      std::memcpy(vec.data(), &_data[cur_pos], size_bytes);
+
+      return vec;
    }
 
    //! \brief Reads an unaligned variable-length array of trivial values from the chunk.
@@ -134,12 +141,103 @@ public:
    //! \return A span of const Type.
    //!
    //! \exception std::runtime_error Thrown when reading the array would go past the end
-   //! of the chunk.
+   //!                               of the chunk.
    template<typename Type>
-   auto read_array_unaligned(typename const gsl::span<const Type>::index_type size)
-      -> gsl::span<const Type>
+   auto read_array_unaligned(const std::size_t size) -> std::vector<Type>
    {
       return read_array<Type>(size, true);
+   }
+
+   //! \brief Reads a variable-length array of trivial values from the chunk.
+   //!
+   //! \tparam Type The type of the values to read. The type must be trivially copyable.
+   //! \tparam Contiguous_container The type of the container to put the read array into.
+   //!                              The container must be contiguous, with .resize() and
+   //!                              .data() methods.
+   //!
+   //! \param size The size of the array to read.
+   //! \param output The container to put the read array into.
+   //! \param unaligned If the read is unaligned or not.
+   //!
+   //! \return A vector of Type.
+   //!
+   //! \exception std::runtime_error Thrown when reading the array would go past the end
+   //!                               of the chunk.
+   template<typename Type, typename Contiguous_container>
+   void read_array(const std::size_t size, Contiguous_container& output,
+                   const bool unaligned = false)
+   {
+      static_assert(std::is_trivially_copyable_v<Type>,
+                    "Type must be trivially copyable.");
+      static_assert(!std::is_pointer_v<Type>, "Type can not be a pointer.");
+
+      const auto size_bytes = sizeof(Type) * size;
+      const auto cur_pos = _head;
+      _head += size_bytes;
+
+      check_head();
+
+      if (!unaligned) align_head();
+
+      output.resize(size);
+
+      std::memcpy(output.data(), &_data[cur_pos], size_bytes);
+   }
+
+   //! \brief Reads an unaligned variable-length array of trivial values from the chunk.
+   //!
+   //! \tparam Type The type of the values to read. The type must be trivially copyable.
+   //! \tparam Contiguous_container The type of the container to put the read array into.
+   //!                              The container must be contiguous, with .resize() and
+   //!                              .data() methods.
+   //!
+   //! \param size The size of the array to read.
+   //! \param output The container to put the read array into.
+   //! \param unaligned If the read is unaligned or not.
+   //!
+   //! \return A vector of Type.
+   //!
+   //! \exception std::runtime_error Thrown when reading the array would go past the end
+   //!                               of the chunk.
+   template<typename Type, typename Contiguous_container>
+   void read_array_unaligned(const std::size_t size, Contiguous_container& output)
+   {
+      return read_array<Type>(size, output, true);
+   }
+
+   //! \brief Reads a variable-length array of bytes from the chunk.
+   //!
+   //! \param size The number of bytes to read.
+   //! \param unaligned If the read is unaligned or not.
+   //!
+   //! \return A non-owning span of the bytes.
+   //!
+   //! \exception std::runtime_error Thrown when reading the array would go past the end
+   //!                               of the chunk.
+   auto read_bytes(const std::size_t size, const bool unaligned = false)
+      -> gsl::span<const std::byte>
+   {
+      const auto cur_pos = _head;
+      _head += size;
+
+      check_head();
+
+      if (!unaligned) align_head();
+
+      return {&_data[cur_pos], gsl::narrow_cast<std::ptrdiff_t>(size)};
+   }
+
+   //! \brief Reads an unaligned variable-length array of bytes from the chunk.
+   //!
+   //! \param size The number of bytes to read.
+   //!
+   //! \return A non-owning span of the bytes.
+   //!
+   //! \exception std::runtime_error Thrown when reading the array would go past the end
+   //!                               of the chunk.
+   auto read_bytes_unaligned(const std::size_t size) -> gsl::span<const std::byte>
+   {
+      return read_bytes(size, true);
    }
 
    //! \brief Reads a null-terminated string from a chunk.
@@ -151,14 +249,13 @@ public:
    //! \return A string_view to the string.
    //!
    //! \exception std::runtime_error Thrown when reading the string would go past the end
-   //! of the chunk.
-   template<typename Char_type = char>
-   auto read_string(const bool unaligned = false) -> std::basic_string_view<Char_type>
+   //!                               of the chunk.
+   auto read_string(const bool unaligned = false) -> std::string_view
    {
-      const Char_type* const string = reinterpret_cast<const Char_type*>(_data + _head);
+      const char* const string = to_char_pointer(_data + _head);
       const auto string_length = cstring_length(string, _size - _head);
 
-      _head += (string_length + 1) * sizeof(Char_type);
+      _head += (string_length + 1);
 
       check_head();
 
@@ -174,11 +271,10 @@ public:
    //! \return A string_view to the string.
    //!
    //! \exception std::runtime_error Thrown when reading the string would go past the end
-   //! of the chunk.
-   template<typename Char_type = char>
-   auto read_string_unaligned() -> std::basic_string_view<Char_type>
+   //!                               of the chunk.
+   auto read_string_unaligned() -> std::string_view
    {
-      return read_string<Char_type>(true);
+      return read_string(true);
    }
 
    //! \brief Reads a child chunk.
@@ -188,7 +284,7 @@ public:
    //! \return A new Ucfb_reader for the child chunk.
    //!
    //! \exception std::runtime_error Thrown when reading the child would go past the end
-   //! of the current chunk.
+   //!                                of the current chunk.
    Ucfb_reader read_child(const bool unaligned = false);
 
    //! \brief Reads an unaligned child chunk.
@@ -196,7 +292,7 @@ public:
    //! \return A new Ucfb_reader for the child chunk.
    //!
    //! \exception std::runtime_error Thrown when reading the child would go past the end
-   //! of the current chunk.
+   //!                                of the current chunk.
    Ucfb_reader read_child_unaligned()
    {
       return read_child(true);
@@ -209,7 +305,7 @@ public:
    //! \param unaligned If the read is unaligned or not.
    //!
    //! \return A std::optional<Ucfb_reader> for the child chunk. If the read failed
-   //! (because it would overflow the chunk) nullopt is returned instead.
+   //!         (because it would overflow the chunk) nullopt is returned instead.
    auto read_child(const std::nothrow_t, const bool unaligned = false) noexcept
       -> std::optional<Ucfb_reader>;
 
@@ -219,7 +315,7 @@ public:
    //! \param <unnamed> std tag type for specifying the noexcept function.
    //!
    //! \return A std::optional<Ucfb_reader> for the child chunk. If the read failed
-   //! (because it would overflow the chunk) nullopt is returned instead.
+   //!         (because it would overflow the chunk) nullopt is returned instead.
    auto read_child_unaligned(const std::nothrow_t) noexcept -> std::optional<Ucfb_reader>
    {
       return read_child(std::nothrow, true);
@@ -235,9 +331,10 @@ public:
    //! \return A new Ucfb_reader_strict<type_mn> for the child chunk.
    //!
    //! \exception std::runtime_error Thrown when the magic number of the child and the
-   //! expected magic number do not match. If this happens the read head is not moved.
+   //!                               expected magic number do not match. If this happens
+   //!                               the read head is not moved.
    //! \exception std::runtime_error Thrown when reading the child would go past the
-   //! end of the current chunk.
+   //!                               end of the current chunk.
    template<Magic_number type_mn>
    auto read_child_strict(const bool unaligned = false) -> Ucfb_reader_strict<type_mn>
    {
@@ -253,9 +350,10 @@ public:
    //! \return A new Ucfb_reader_strict<type_mn> for the child chunk.
    //!
    //! \exception std::runtime_error Thrown when the magic number of the child and the
-   //! expected magic number do not match. If this happens the read head is not moved.
-   //! \exception std::runtime_error Thrown when reading the child would go past the end
-   //! of the current chunk.
+   //!                               expected magic number do not match. If this happens
+   //!                               the read head is not moved.
+   //! \exception std::runtime_error Thrown when reading the child would go past the
+   //!                               end of the current chunk.
    template<Magic_number type_mn>
    auto read_child_strict_unaligned() -> Ucfb_reader_strict<type_mn>
    {
@@ -270,10 +368,10 @@ public:
    //! \param unaligned If the read is unaligned or not.
    //!
    //! \return A std::optional<Ucfb_reader_strict<type_mn>> for the child chunk.
-   //! If the magic number does not match std::nullopt is returned.
+   //!         If the magic number does not match std::nullopt is returned.
    //!
    //! \exception std::runtime_error Thrown when reading the child would go past the end
-   //! of the current chunk.
+   //!                               of the current chunk.
    template<Magic_number type_mn>
    auto read_child_strict_optional(const bool unaligned = false)
       -> std::optional<Ucfb_reader_strict<type_mn>>
@@ -293,10 +391,10 @@ public:
    //! \tparam type_mn The expected Magic_number of the child chunk.
    //!
    //! \return A std::optional<Ucfb_reader_strict<type_mn>> for the child chunk.
-   //! If the magic number does not match std::nullopt is returned.
+   //!         If the magic number does not match std::nullopt is returned.
    //!
    //! \exception std::runtime_error Thrown when reading the child would go past the end
-   //! of the current chunk.
+   //!                               of the current chunk.
    template<Magic_number type_mn>
    auto read_child_strict_optional_unaligned()
       -> std::optional<Ucfb_reader_strict<type_mn>>
@@ -310,7 +408,7 @@ public:
    //! \param unaligned If the consume is unaligned or not.
    //!
    //! \exception std::runtime_error Thrown when the consume operation would go
-   //! past the end of the chunk
+   //!                               past the end of the chunk
    void consume(const std::size_t amount, const bool unaligned = false);
 
    //! \brief Shifts the read head forward an unaligned amount of bytes.
@@ -318,7 +416,7 @@ public:
    //! \param amount The amount to shift the head forward by.
    //!
    //! \exception std::runtime_error Thrown when the consume operation would go
-   //! past the end of the chunk
+   //!                               past the end of the chunk
    void consume_unaligned(const std::size_t amount)
    {
       consume(amount, true);
@@ -379,7 +477,7 @@ public:
    //! \brief Construct a strict reader.
    //!
    //! \param ucfb_reader The reader to construct the strict reader from.
-   //! The magic number of the reader must match type_mn.
+   //!                    The magic number of the reader must match type_mn.
    explicit Ucfb_reader_strict(Ucfb_reader ucfb_reader) noexcept
       : Ucfb_reader{ucfb_reader}
    {

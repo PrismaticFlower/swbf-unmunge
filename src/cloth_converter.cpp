@@ -20,7 +20,13 @@ struct Uvec2_hasher {
    {
       static_assert(sizeof(glm::uvec2) == sizeof(std::uint64_t));
 
-      return std::hash<std::uint64_t>{}(view_type_as<std::uint64_t>(value));
+      std::uint64_t v{};
+
+      v |= value[1];
+      v <<= 32;
+      v |= value[0];
+
+      return std::hash<std::uint64_t>{}(v);
    }
 };
 

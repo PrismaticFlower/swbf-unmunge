@@ -1,6 +1,5 @@
 
 #include "bit_flags.hpp"
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "math_helpers.hpp"
 #include "msh_builder.hpp"
@@ -128,8 +127,8 @@ Model_info read_model_info(Ucfb_reader_strict<"INFO"_mn> info)
       info.read_trivial<std::array<std::int32_t, 3>>();
    }
 
-   const auto vertex_box = info.read_trivial<std::array<pod::Vec3, 2>>();
-   const auto vis_box = info.read_trivial<std::array<pod::Vec3, 2>>();
+   const auto vertex_box = info.read_trivial<std::array<glm::vec3, 2>>();
+   const auto vis_box = info.read_trivial<std::array<glm::vec3, 2>>();
 
    // read unknown int
    info.read_trivial<std::int32_t>();
@@ -175,18 +174,15 @@ auto read_index_buffer(Ucfb_reader_strict<"IBUF"_mn> index_buffer)
    -> std::vector<std::uint16_t>
 {
    const auto indices_count = index_buffer.read_trivial<std::uint32_t>();
-   const auto indices = index_buffer.read_array<std::uint16_t>(indices_count);
 
-   return {std::cbegin(indices), std::cend(indices)};
+   return index_buffer.read_array<std::uint16_t>(indices_count);
 }
 
 auto read_strip_buffer(Ucfb_reader_strict<"STRP"_mn> strip_buffer,
                        const std::uint32_t index_count) -> std::vector<std::uint16_t>
 
 {
-   const auto indices = strip_buffer.read_array<std::uint16_t>(index_count);
-
-   return {std::cbegin(indices), std::cend(indices)};
+   return strip_buffer.read_array<std::uint16_t>(index_count);
 }
 
 auto read_positions_buffer(Ucfb_reader_strict<"POSI"_mn> positions_buffer,
@@ -301,14 +297,8 @@ auto read_colour_buffer(Ucfb_reader_strict<"COL0"_mn> uv_buffer,
 std::vector<std::uint8_t> read_bone_map(Ucfb_reader_strict<"BMAP"_mn> bone_map)
 {
    const auto count = bone_map.read_trivial<std::uint32_t>();
-   const auto bones = bone_map.read_array<std::uint8_t>(count);
 
-   std::vector<std::uint8_t> result;
-   result.resize(count);
-
-   std::memcpy(result.data(), bones.data(), result.size());
-
-   return result;
+   return bone_map.read_array<std::uint8_t>(count);
 }
 
 void read_material_swbf1(Ucfb_reader_strict<"MTRL"_mn> material, msh::Material& out)

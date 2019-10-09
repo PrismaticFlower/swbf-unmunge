@@ -1,5 +1,4 @@
 
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "msh_builder.hpp"
 #include "ucfb_reader.hpp"
@@ -9,8 +8,8 @@
 namespace {
 
 struct Xframe {
-   pod::Mat3 rotation;
-   pod::Vec3 position;
+   glm::mat3 rotation;
+   glm::vec3 position;
 };
 
 static_assert(std::is_pod_v<Xframe>);
@@ -18,7 +17,7 @@ static_assert(sizeof(Xframe) == 48);
 
 struct Primitive_Data {
    msh::Primitive_type type;
-   pod::Vec3 size;
+   glm::vec3 size;
 };
 
 static_assert(std::is_pod_v<Primitive_Data>);

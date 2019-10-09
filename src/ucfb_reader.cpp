@@ -3,8 +3,13 @@
 #include <stdexcept>
 
 Ucfb_reader::Ucfb_reader(const gsl::span<const std::byte> bytes)
-   : _mn{view_type_as<Magic_number>(bytes[0])},
-     _size{view_type_as<std::uint32_t>(bytes[4])}, _data{&bytes[8]}
+   : _mn{reinterpret_span_as<Magic_number>(
+        gsl::span<const std::byte, sizeof(Magic_number)>{&bytes[0],
+                                                         sizeof(Magic_number)})},
+     _size{reinterpret_span_as<std::uint32_t>(
+        gsl::span<const std::byte, sizeof(std::uint32_t)>{&bytes[4],
+                                                          sizeof(std::uint32_t)})},
+     _data{&bytes[8]}
 {
    Expects((bytes.size() >= 8));
 

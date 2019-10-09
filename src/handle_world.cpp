@@ -1,6 +1,5 @@
 
 #include "file_saver.hpp"
-#include "glm_pod_wrappers.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
@@ -24,8 +23,8 @@ using namespace std::literals;
 namespace {
 
 struct Xframe {
-   pod::Mat3 matrix;
-   pod::Vec3 position;
+   glm::mat3 matrix;
+   glm::vec3 position;
 };
 
 static_assert(std::is_pod_v<Xframe>);
@@ -233,7 +232,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
 
    const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
 
-   const glm::vec3 size = info.read_child_strict<"SIZE"_mn>().read_trivial<pod::Vec3>();
+   const glm::vec3 size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
 
    buffer += "Region(\""_sv;
    buffer += name;
@@ -261,7 +260,7 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
 
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
    const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
-   const auto size = info.read_child_strict<"SIZE"_mn>().read_trivial<pod::Vec3>();
+   const auto size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
    const auto flags = info.read_child_strict<"FLAG"_mn>().read_trivial<std::uint32_t>();
 
    buffer += "Barrier(\""_sv;
@@ -578,29 +577,27 @@ void handle_world(Ucfb_reader world, File_saver& file_saver)
 
    tbb::task_group tasks;
 
-   tasks.run([ region_entries{std::move(region_entries)}, name, &file_saver ] {
+   tasks.run([region_entries{std::move(region_entries)}, name, &file_saver] {
       process_region_entries(region_entries, name, file_saver);
    });
 
-   tasks.run([
-      instance_entries{std::move(instance_entries)}, name, terrain_name, sky_name,
-      &file_saver
-   ] {
+   tasks.run([instance_entries{std::move(instance_entries)}, name, terrain_name, sky_name,
+              &file_saver] {
       process_instance_entries(instance_entries, std::string{name},
                                std::string{terrain_name}, std::string{sky_name},
                                file_saver);
    });
 
-   tasks.run([ barrier_entries{std::move(barrier_entries)}, name, &file_saver ] {
+   tasks.run([barrier_entries{std::move(barrier_entries)}, name, &file_saver] {
       process_barrier_entries(barrier_entries, name, file_saver);
    });
 
-   tasks.run([ hint_entries{std::move(hint_entries)}, name, &file_saver ] {
+   tasks.run([hint_entries{std::move(hint_entries)}, name, &file_saver] {
       process_hint_entries(hint_entries, name, file_saver);
    });
 
    if (!animation_entries.empty()) {
-      tasks.run([ animation_entries{std::move(animation_entries)}, name, &file_saver ] {
+      tasks.run([animation_entries{std::move(animation_entries)}, name, &file_saver] {
          process_animation_entries(animation_entries, name, file_saver);
       });
    }
