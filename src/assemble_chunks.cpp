@@ -115,7 +115,7 @@ void assemble_chunks(fs::path directory, File_saver& file_saver)
       const auto root = assemble_directory(path);
 
       file_saver.save_file(root.create_buffer(), "", directory.stem().string(),
-                           ".assembled"_sv);
+                           ".assembled"sv);
    }
    else {
       throw std::runtime_error{"Unexpected entry in directory: "s += path.string()};

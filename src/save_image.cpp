@@ -6,6 +6,9 @@
 #include "DirectXTex.h"
 
 #include <exception>
+#include <string_view>
+
+using namespace std::literals;
 
 namespace {
 
@@ -49,11 +52,11 @@ auto image_extension(const Image_format format) noexcept -> std::string_view
 {
    switch (format) {
    case Image_format::tga:
-      return ".tga"_sv;
+      return ".tga"sv;
    case Image_format::png:
-      return ".png"_sv;
+      return ".png"sv;
    case Image_format::dds:
-      return ".dds"_sv;
+      return ".dds"sv;
    default:
       std::terminate();
    }
@@ -65,9 +68,9 @@ void save_image(std::string_view name, DirectX::ScratchImage image,
                 File_saver& file_saver, Image_format save_format)
 {
    const auto path =
-      file_saver.build_file_path("textures"_sv, name, image_extension(save_format));
+      file_saver.build_file_path("textures"sv, name, image_extension(save_format));
 
-   file_saver.create_dir("textures"_sv);
+   file_saver.create_dir("textures"sv);
 
    if (save_format == Image_format::tga) {
       ensure_basic_format(image);

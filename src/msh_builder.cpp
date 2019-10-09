@@ -242,7 +242,7 @@ void fixup_texture_names(Material& material)
    auto& textures = material.textures;
 
    for (auto& texture : textures) {
-      if (!texture.empty()) texture += ".tga"_sv;
+      if (!texture.empty()) texture += ".tga"sv;
    }
 }
 
@@ -259,7 +259,7 @@ std::string create_coll_flags_name(Collision_flags flags)
    if (are_flags_set(flags, Collision_flags::ordnance)) name += 'o';
    if (are_flags_set(flags, Collision_flags::flyer)) name += 'f';
 
-   name += "-_"_sv;
+   name += "-_"sv;
 
    return name;
 }
@@ -290,13 +290,13 @@ Modl_section create_section_from(const Model& model, std::string_view root_name,
 
    switch (model.lod) {
    case Lod::one:
-      section.name += "_lod"_sv;
+      section.name += "_lod"sv;
       break;
    case Lod::two:
-      section.name += "_lod1"_sv;
+      section.name += "_lod1"sv;
       break;
    case Lod::lowres:
-      section.name += "_lowres"_sv;
+      section.name += "_lowres"sv;
       break;
    }
 
@@ -798,21 +798,21 @@ std::string create_option_file(const std::vector<Model>& models)
    std::string options;
 
    if (vertex_lighting) {
-      options += "-vertexlighting "_sv;
+      options += "-vertexlighting "sv;
    }
 
    for (const auto& kept : kept_materials) {
-      options += "-keepmaterial \""_sv;
+      options += "-keepmaterial \""sv;
       options += kept;
-      options += "\" "_sv;
+      options += "\" "sv;
    }
 
    for (const auto& attached : attached_lights) {
-      options += "-attachlight \""_sv;
+      options += "-attachlight \""sv;
       options += attached.first;
       options += ' ';
       options += attached.second;
-      options += "\" "_sv;
+      options += "\" "sv;
    }
    return options;
 }
@@ -888,10 +888,10 @@ void Builder::save(const std::string& name, File_saver& file_saver,
                          std::move(collision_primitives), std::move(cloths)),
                       get_bbox(), name);
 
-   file_saver.save_file(msh_file, "msh"_sv, name, ".msh"_sv);
+   file_saver.save_file(msh_file, "msh"sv, name, ".msh"sv);
 
    if (!option_file.empty()) {
-      file_saver.save_file(option_file, "msh"_sv, name, ".msh.option"_sv);
+      file_saver.save_file(option_file, "msh"sv, name, ".msh.option"sv);
    }
 }
 

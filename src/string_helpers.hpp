@@ -9,26 +9,6 @@
 #include <type_traits>
 #include <utility>
 
-constexpr std::string_view operator""_sv(const char* str, std::size_t size)
-{
-   return {str, size};
-}
-
-constexpr std::u16string_view operator""_sv(const char16_t* str, std::size_t size)
-{
-   return {str, size};
-}
-
-constexpr std::u32string_view operator""_sv(const char32_t* str, std::size_t size)
-{
-   return {str, size};
-}
-
-constexpr std::wstring_view operator""_sv(const wchar_t* str, std::size_t size)
-{
-   return {str, size};
-}
-
 template<typename Char_type, typename Function,
          typename Char_traits = std::char_traits<Char_type>>
 inline void for_each_substr(

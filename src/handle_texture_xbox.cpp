@@ -10,9 +10,12 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <string_view>
 #include <type_traits>
 
 #include <d3d9types.h>
+
+using namespace std::literals;
 
 namespace {
 
@@ -136,7 +139,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
 
    std::string buffer;
    buffer.reserve(4 + sizeof(dds_header) + info.body_size);
-   buffer += "DDS "_sv;
+   buffer += "DDS "sv;
    buffer += view_object_as_string(dds_header);
    buffer += view_object_span_as_string(data);
 

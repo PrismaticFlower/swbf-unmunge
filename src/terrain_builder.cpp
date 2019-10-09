@@ -31,7 +31,7 @@ void Terrain_builder::set_textures(const std::array<std::string, max_textures>& 
 void Terrain_builder::set_detail_texture(std::string_view texture)
 {
    std::string full_tex_name{texture};
-   full_tex_name += ".tga"_sv;
+   full_tex_name += ".tga"sv;
 
    for (std::size_t i = 0; i < max_textures; ++i) {
       copy_to_cstring(full_tex_name, _textures[i].detail.data(),
@@ -67,7 +67,7 @@ void Terrain_builder::set_water_settings(const float height, glm::vec2 velocity,
 
    if (!texture_name.empty()) {
       std::string full_tex_name{texture_name};
-      full_tex_name += ".tga"_sv;
+      full_tex_name += ".tga"sv;
 
       copy_to_cstring(full_tex_name, settings.texture_name.data(),
                       settings.texture_name.size());
@@ -123,7 +123,7 @@ void Terrain_builder::save(Game_version version, std::string_view name,
                   ((_patch_infomap.size() * sizeof(Patch_info))));
 
    // magic number
-   buffer += "TERR"_sv;
+   buffer += "TERR"sv;
 
    // version number
    if (version == Game_version::swbf_ii)
@@ -207,7 +207,7 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    // patch infomap
    buffer += view_object_span_as_string(gsl::make_span(_patch_infomap));
 
-   file_saver.save_file(buffer, "world"_sv, name, ".ter"_sv);
+   file_saver.save_file(buffer, "world"sv, name, ".ter"sv);
 }
 
 std::size_t Terrain_builder::lookup_point_index(Point point) const noexcept

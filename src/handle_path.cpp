@@ -72,28 +72,28 @@ Path read_path_entry(Ucfb_reader_strict<"path"_mn> entry)
 
 void write_node(const std::pair<glm::vec3, glm::vec4>& node, std::string& buffer)
 {
-   buffer += "\t\tNode()\n\t\t{\n"_sv;
+   buffer += "\t\tNode()\n\t\t{\n"sv;
 
-   const auto indent = "\t\t\t"_sv;
+   const auto indent = "\t\t\t"sv;
 
    buffer += indent;
-   buffer += "Position("_sv;
+   buffer += "Position("sv;
    buffer += std::to_string(node.first.x);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(node.first.y);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(node.first.z);
-   buffer += ");\n"_sv;
+   buffer += ");\n"sv;
    buffer += indent;
-   buffer += "Rotation("_sv;
+   buffer += "Rotation("sv;
    buffer += std::to_string(node.second.x);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(node.second.y);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(node.second.z);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(node.second.w);
-   buffer += ");\n"_sv;
+   buffer += ");\n"sv;
 
    buffer += R"(
 			Knot(0.000000);
@@ -104,9 +104,9 @@ void write_node(const std::pair<glm::vec3, glm::vec4>& node, std::string& buffer
 			Properties(0)
 			{
 			}
-		})"_sv;
+		})"sv;
 
-   buffer += "\n\n"_sv;
+   buffer += "\n\n"sv;
 }
 
 void write_path(const Path& path, std::string& buffer)
@@ -122,14 +122,14 @@ void write_path(const Path& path, std::string& buffer)
 	{
 	}
 
-)"_sv;
+)"sv;
 
-   buffer += "Path(\""_sv;
+   buffer += "Path(\""sv;
    buffer += path.name;
-   buffer += "\")\n{\n"_sv;
+   buffer += "\")\n{\n"sv;
 
    buffer += path_common;
-   buffer += "\tNodes("_sv;
+   buffer += "\tNodes("sv;
    buffer += std::to_string(path.nodes.size());
    buffer += ")\n\t{\n";
 
@@ -137,7 +137,7 @@ void write_path(const Path& path, std::string& buffer)
       write_node(node, buffer);
    }
 
-   buffer += "\t}\n}\n\n"_sv;
+   buffer += "\t}\n}\n\n"sv;
 }
 
 void save_paths(std::vector<Path> paths, File_saver& file_saver)
@@ -145,10 +145,10 @@ void save_paths(std::vector<Path> paths, File_saver& file_saver)
    std::string buffer;
    buffer.reserve(2048 * paths.size());
 
-   buffer += "Version(10);\n"_sv;
-   buffer += "PathCount("_sv;
+   buffer += "Version(10);\n"sv;
+   buffer += "PathCount("sv;
    buffer += std::to_string(paths.size());
-   buffer += ");\n\n"_sv;
+   buffer += ");\n\n"sv;
 
    for (const auto& path : paths) {
       write_path(path, buffer);
@@ -158,7 +158,7 @@ void save_paths(std::vector<Path> paths, File_saver& file_saver)
 
    std::string file_name = std::to_string(path_count.fetch_add(1));
 
-   file_saver.save_file(buffer, "world"s, file_name, ".pth"_sv);
+   file_saver.save_file(buffer, "world"s, file_name, ".pth"sv);
 }
 }
 

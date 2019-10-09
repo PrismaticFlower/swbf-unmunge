@@ -136,84 +136,84 @@ const auto chunk_processors = Chunk_processor_map{
    {"entc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(args.chunk, args.file_saver, "GameObjectClass"_sv);
+        handle_object(args.chunk, args.file_saver, "GameObjectClass"sv);
      }}},
    {"expc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(args.chunk, args.file_saver, "ExplosionClass"_sv);
+        handle_object(args.chunk, args.file_saver, "ExplosionClass"sv);
      }}},
    {"ordc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(args.chunk, args.file_saver, "OrdnanceClass"_sv);
+        handle_object(args.chunk, args.file_saver, "OrdnanceClass"sv);
      }}},
    {"wpnc"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_object(args.chunk, args.file_saver, "WeaponClass"_sv);
+        handle_object(args.chunk, args.file_saver, "WeaponClass"sv);
      }}},
 
    // Config chunks
    {"fx__"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".fx"_sv, "effects"_sv);
+        handle_config(args.chunk, args.file_saver, ".fx"sv, "effects"sv);
      }}},
    {"sky_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".sky"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".sky"sv, "world"sv);
      }}},
    {"prp_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".prp"_sv, "world"_sv, true);
+        handle_config(args.chunk, args.file_saver, ".prp"sv, "world"sv, true);
      }}},
    {"bnd_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".bnd"_sv, "world"_sv, true);
+        handle_config(args.chunk, args.file_saver, ".bnd"sv, "world"sv, true);
      }}},
    {"lght"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".lgt"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".lgt"sv, "world"sv);
      }}},
    {"port"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".pvs"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".pvs"sv, "world"sv);
      }}},
    {"path"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".pth"_sv, "world"_sv);
+        handle_config(args.chunk, args.file_saver, ".pth"sv, "world"sv);
      }}},
    {"comb"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".combo"_sv, "combos"_sv);
+        handle_config(args.chunk, args.file_saver, ".combo"sv, "combos"sv);
      }}},
    {"sanm"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".sanm"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".sanm"sv, "config"sv);
      }}},
    {"hud_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".hud"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".hud"sv, "config"sv);
      }}},
    {"load"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".cfg"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".cfg"sv, "config"sv);
      }}},
    {"mcfg"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".mcfg"_sv, "config"_sv);
+        handle_config(args.chunk, args.file_saver, ".mcfg"sv, "config"sv);
      }}},
 
    // Texture chunks
@@ -293,7 +293,7 @@ const auto chunk_processors = Chunk_processor_map{
      [](Args_pack args) { handle_zaabin(args.chunk, args.file_saver); }}},
    {"zaf_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".zafbin"_sv); }}},
+     [](Args_pack args) { handle_binary(args.chunk, args.file_saver, ".zafbin"sv); }}},
 
    // Ignored Chunks, for which we want no output at all.
    {"gmod"_mn, {Input_platform::pc, Game_version::swbf_ii, ignore_chunk}},

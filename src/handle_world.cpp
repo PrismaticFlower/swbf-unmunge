@@ -67,7 +67,7 @@ WorldExtents()
 	Min(0.000000, 0.000000, 0.000000);
 	Max(0.000000, 0.000000, 0.000000);
 }
-)"_sv};
+)"sv};
 
 void write_key_value(bool indent, bool quoted, std::string_view key,
                      std::string_view value, std::string& buffer)
@@ -76,15 +76,15 @@ void write_key_value(bool indent, bool quoted, std::string_view key,
 
    if (quoted) {
       buffer += key;
-      buffer += "(\""_sv;
+      buffer += "(\""sv;
       buffer += value;
-      buffer += "\");\n"_sv;
+      buffer += "\");\n"sv;
    }
    else {
       buffer += key;
-      buffer += "("_sv;
+      buffer += "("sv;
       buffer += value;
-      buffer += ");\n"_sv;
+      buffer += ");\n"sv;
    }
 }
 
@@ -94,9 +94,9 @@ void write_key_value(bool indent, std::string_view key, std::int64_t value,
    if (indent) buffer += '\t';
 
    buffer += key;
-   buffer += "("_sv;
+   buffer += "("sv;
    buffer += std::to_string(value);
-   buffer += ");\n"_sv;
+   buffer += ");\n"sv;
 }
 
 void write_key_value(bool indent, std::string_view key, glm::quat value,
@@ -107,13 +107,13 @@ void write_key_value(bool indent, std::string_view key, glm::quat value,
    buffer += key;
    buffer += '(';
    buffer += std::to_string(value.w);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.x);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.y);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.z);
-   buffer += ");\n"_sv;
+   buffer += ");\n"sv;
 }
 
 void write_key_value(bool indent, std::string_view key, glm::vec3 value,
@@ -124,11 +124,11 @@ void write_key_value(bool indent, std::string_view key, glm::vec3 value,
    buffer += key;
    buffer += '(';
    buffer += std::to_string(value.x);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.y);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.z);
-   buffer += ");\n"_sv;
+   buffer += ");\n"sv;
 }
 
 void write_animation_key(std::string_view key, Animation_key value, std::string& buffer)
@@ -137,30 +137,30 @@ void write_animation_key(std::string_view key, Animation_key value, std::string&
    buffer += key;
    buffer += '(';
    buffer += std::to_string(value.time);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.data[0]);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.data[1]);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(value.data[2]);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(static_cast<std::int16_t>(value.type));
 
    for (const auto& fl : value.spline_data) {
-      buffer += ", "_sv;
+      buffer += ", "sv;
       buffer += std::to_string(fl);
    }
 
    buffer.resize(buffer.size() - 2);
 
-   buffer += ");\n"_sv;
+   buffer += ");\n"sv;
 }
 
 char convert_region_type(std::string_view type)
 {
-   if (type == "box"_sv) return '0';
-   if (type == "sphere"_sv) return '1';
-   if (type == "cylinder"_sv) return '2';
+   if (type == "box"sv) return '0';
+   if (type == "sphere"sv) return '1';
+   if (type == "cylinder"sv) return '2';
 
    throw std::invalid_argument{"Invalid region type passed to function."};
 }
@@ -234,16 +234,16 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
 
    const glm::vec3 size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
 
-   buffer += "Region(\""_sv;
+   buffer += "Region(\""sv;
    buffer += name;
-   buffer += "\", "_sv;
+   buffer += "\", "sv;
    buffer += convert_region_type(type);
-   buffer += ")\n{\n"_sv;
+   buffer += ")\n{\n"sv;
 
    const auto world_coords = convert_xframe(xframe);
-   write_key_value(true, "Position"_sv, world_coords.second, buffer);
-   write_key_value(true, "Rotation"_sv, world_coords.first, buffer);
-   write_key_value(true, "Size"_sv, size, buffer);
+   write_key_value(true, "Position"sv, world_coords.second, buffer);
+   write_key_value(true, "Rotation"sv, world_coords.first, buffer);
+   write_key_value(true, "Size"sv, size, buffer);
 
    while (region) {
       auto property = region.read_child_strict<"PROP"_mn>();
@@ -251,7 +251,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
       read_property(property, buffer);
    }
 
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 }
 
 void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
@@ -263,16 +263,16 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
    const auto size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
    const auto flags = info.read_child_strict<"FLAG"_mn>().read_trivial<std::uint32_t>();
 
-   buffer += "Barrier(\""_sv;
+   buffer += "Barrier(\""sv;
    buffer += name;
-   buffer += "\")\n{\n"_sv;
+   buffer += "\")\n{\n"sv;
 
    for (const auto& corner : get_barrier_corners(xframe, size)) {
-      write_key_value(true, "Corner"_sv, corner, buffer);
+      write_key_value(true, "Corner"sv, corner, buffer);
    }
 
-   write_key_value(true, "Flag"_sv, flags, buffer);
-   buffer += "}\n\n"_sv;
+   write_key_value(true, "Flag"sv, flags, buffer);
+   buffer += "}\n\n"sv;
 }
 
 void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
@@ -283,15 +283,15 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
    const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
 
-   buffer += "Hint(\""_sv;
+   buffer += "Hint(\""sv;
    buffer += name;
-   buffer += "\", \""_sv;
+   buffer += "\", \""sv;
    buffer += type;
-   buffer += "\")\n{\n"_sv;
+   buffer += "\")\n{\n"sv;
 
    const auto world_coords = convert_xframe(xframe);
-   write_key_value(true, "Position"_sv, world_coords.second, buffer);
-   write_key_value(true, "Rotation"_sv, world_coords.first, buffer);
+   write_key_value(true, "Position"sv, world_coords.second, buffer);
+   write_key_value(true, "Rotation"sv, world_coords.first, buffer);
 
    while (hint) {
       const auto property = hint.read_child_strict<"PROP"_mn>();
@@ -299,7 +299,7 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
       read_property(property, buffer);
    }
 
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 }
 
 void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer)
@@ -311,15 +311,15 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
    const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
    const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += "Animation(\""_sv;
+   buffer += "Animation(\""sv;
    buffer += name;
-   buffer += "\", "_sv;
+   buffer += "\", "sv;
    buffer += std::to_string(length);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(unknown_flag_1);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(unknown_flag_2);
-   buffer += ")\n{\n"_sv;
+   buffer += ")\n{\n"sv;
 
    while (animation) {
       auto key = animation.read_child();
@@ -336,14 +336,14 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
          std::for_each(std::begin(key_info.spline_data), std::end(key_info.spline_data),
                        glm::degrees<float>);
 
-         write_animation_key("AddRotationKey"_sv, key_info, buffer);
+         write_animation_key("AddRotationKey"sv, key_info, buffer);
       }
       else if (key.magic_number() == "POSK"_mn) {
-         write_animation_key("AddPositionKey"_sv, key_info, buffer);
+         write_animation_key("AddPositionKey"sv, key_info, buffer);
       }
    }
 
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 }
 
 void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string& buffer)
@@ -355,25 +355,25 @@ void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string&
    const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
    const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += "AnimationGroup(\""_sv;
+   buffer += "AnimationGroup(\""sv;
    buffer += name;
-   buffer += "\", "_sv;
+   buffer += "\", "sv;
    buffer += std::to_string(unknown_flag_1);
-   buffer += ", "_sv;
+   buffer += ", "sv;
    buffer += std::to_string(unknown_flag_2);
-   buffer += ")\n{\n"_sv;
+   buffer += ")\n{\n"sv;
 
    while (anim_group) {
       auto anim_pair = anim_group.read_child_strict<"ANIM"_mn>();
 
-      buffer += "\tAnimation(\""_sv;
+      buffer += "\tAnimation(\""sv;
       buffer += anim_pair.read_string_unaligned();
-      buffer += "\", \""_sv;
+      buffer += "\", \""sv;
       buffer += anim_pair.read_string_unaligned();
-      buffer += "\");\n"_sv;
+      buffer += "\");\n"sv;
    }
 
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 }
 
 void read_animation_hierarchy(Ucfb_reader_strict<"anmh"_mn> anim_hierarchy,
@@ -390,17 +390,17 @@ void read_animation_hierarchy(Ucfb_reader_strict<"anmh"_mn> anim_hierarchy,
       strings.emplace_back(info.read_string_unaligned());
    }
 
-   buffer += "Hierarchy(\""_sv;
+   buffer += "Hierarchy(\""sv;
    buffer += strings[0];
-   buffer += "\")\n{\n"_sv;
+   buffer += "\")\n{\n"sv;
 
    for (std::size_t i = 1; i < strings.size(); ++i) {
-      buffer += "\tObj(\""_sv;
+      buffer += "\tObj(\""sv;
       buffer += strings[i];
-      buffer += "\");\n"_sv;
+      buffer += "\");\n"sv;
    }
 
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 }
 
 void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
@@ -411,15 +411,15 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
    const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
 
-   buffer += "Object(\""_sv;
+   buffer += "Object(\""sv;
    buffer += name;
-   buffer += "\", \""_sv;
+   buffer += "\", \""sv;
    buffer += type;
-   buffer += "\", 1)\n{\n"_sv;
+   buffer += "\", 1)\n{\n"sv;
 
    const auto world_coords = convert_xframe(xframe);
-   write_key_value(true, "ChildRotation"_sv, world_coords.first, buffer);
-   write_key_value(true, "ChildPosition"_sv, world_coords.second, buffer);
+   write_key_value(true, "ChildRotation"sv, world_coords.first, buffer);
+   write_key_value(true, "ChildPosition"sv, world_coords.second, buffer);
 
    while (instance) {
       auto property = instance.read_child_strict<"PROP"_mn>();
@@ -429,7 +429,7 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
       });
    }
 
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 }
 
 void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
@@ -437,16 +437,16 @@ void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
 {
    std::string buffer;
    buffer.reserve(256 * regions.size());
-   buffer += "Version(1);\n"_sv;
+   buffer += "Version(1);\n"sv;
 
-   write_key_value(false, "RegionCount"_sv, regions.size(), buffer);
+   write_key_value(false, "RegionCount"sv, regions.size(), buffer);
    buffer += '\n';
 
    for (const auto& region : regions) {
       read_region(region, buffer);
    }
 
-   file_saver.save_file(buffer, "world"_sv, name, ".rgn"_sv);
+   file_saver.save_file(buffer, "world"sv, name, ".rgn"sv);
 }
 
 void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
@@ -460,22 +460,22 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
    buffer += '\n';
 
    if (!terrain_name.empty())
-      write_key_value(false, true, "TerrainName"_sv, terrain_name + ".ter"s, buffer);
+      write_key_value(false, true, "TerrainName"sv, terrain_name + ".ter"s, buffer);
    if (!sky_name.empty())
-      write_key_value(false, true, "SkyName"_sv, sky_name + ".sky"s, buffer);
+      write_key_value(false, true, "SkyName"sv, sky_name + ".sky"s, buffer);
 
-   write_key_value(false, true, "LightName"_sv, name + ".lgt"s, buffer);
+   write_key_value(false, true, "LightName"sv, name + ".lgt"s, buffer);
    buffer += '\n';
 
    for (const auto& instance : instances) {
       read_instance(instance, buffer);
    }
 
-   std::string_view extension = ".wld"_sv;
+   std::string_view extension = ".wld"sv;
 
-   if (terrain_name.empty() || sky_name.empty()) extension = ".lyr"_sv;
+   if (terrain_name.empty() || sky_name.empty()) extension = ".lyr"sv;
 
-   file_saver.save_file(buffer, "world"_sv, name, extension);
+   file_saver.save_file(buffer, "world"sv, name, extension);
 }
 
 void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers,
@@ -484,14 +484,14 @@ void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers
    std::string buffer;
    buffer.reserve(256 * barriers.size());
 
-   write_key_value(false, "BarrierCount"_sv, barriers.size(), buffer);
+   write_key_value(false, "BarrierCount"sv, barriers.size(), buffer);
    buffer += '\n';
 
    for (const auto& barrier : barriers) {
       read_barrier(barrier, buffer);
    }
 
-   file_saver.save_file(buffer, "world"_sv, name, ".bar"_sv);
+   file_saver.save_file(buffer, "world"sv, name, ".bar"sv);
 }
 
 void process_hint_entries(std::vector<Ucfb_reader_strict<"Hint"_mn>> hints,
@@ -504,7 +504,7 @@ void process_hint_entries(std::vector<Ucfb_reader_strict<"Hint"_mn>> hints,
       read_hint(hint, buffer);
    }
 
-   file_saver.save_file(buffer, "world"_sv, name, ".hnt"_sv);
+   file_saver.save_file(buffer, "world"sv, name, ".hnt"sv);
 }
 
 void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_view name,
@@ -525,7 +525,7 @@ void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_vie
       }
    }
 
-   file_saver.save_file(buffer, "world"_sv, name, ".anm"_sv);
+   file_saver.save_file(buffer, "world"sv, name, ".anm"sv);
 }
 }
 

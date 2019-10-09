@@ -162,7 +162,7 @@ void dump_localization(Ucfb_reader_strict<"Locl"_mn> localization, File_saver& f
       buffer += '\n';
    }
 
-   file_saver.save_file(buffer, "localization"_sv, name, ".txt"_sv);
+   file_saver.save_file(buffer, "localization"sv, name, ".txt"sv);
 }
 }
 
@@ -174,7 +174,7 @@ void handle_localization(Ucfb_reader localization, File_saver& file_saver)
       auto localization_copy = localization;
       const auto name = localization_copy.read_child_strict<"NAME"_mn>().read_string();
 
-      handle_unknown(localization, file_saver, name, ".loc"_sv);
+      handle_unknown(localization, file_saver, name, ".loc"sv);
    });
 
    tasks.run_and_wait([localization, &file_saver] {

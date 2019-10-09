@@ -13,7 +13,10 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
+
+using namespace std::literals;
 
 namespace {
 
@@ -227,7 +230,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> tex, Ucfb_reader parent_reader)
       if (detail_tex) {
          auto [detail_name, detail_image] = read_texture(*detail_tex, parent_reader);
 
-         if (detail_name.substr(detail_name.size() - 4, 4) == "_dtl"_sv) {
+         if (detail_name.substr(detail_name.size() - 4, 4) == "_dtl"sv) {
             image = resolve_detail_compression(std::move(image), std::move(detail_image));
 
             success = true;

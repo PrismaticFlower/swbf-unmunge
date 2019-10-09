@@ -51,20 +51,20 @@ struct Hub_info {
 
    void write_to_buffer(std::string& buffer) const
    {
-      buffer += "Hub(\""_sv;
+      buffer += "Hub(\""sv;
       buffer += name;
-      buffer += "\")\n{\n"_sv;
+      buffer += "\")\n{\n"sv;
 
-      buffer += "\tPos("_sv;
+      buffer += "\tPos("sv;
       buffer += std::to_string(x);
-      buffer += ", "_sv;
+      buffer += ", "sv;
       buffer += std::to_string(y);
-      buffer += ", "_sv;
+      buffer += ", "sv;
       buffer += std::to_string(z);
-      buffer += ");\n"_sv;
-      buffer += "\tRadius("_sv;
+      buffer += ");\n"sv;
+      buffer += "\tRadius("sv;
       buffer += std::to_string(radius);
-      buffer += ");\n}\n\n"_sv;
+      buffer += ");\n}\n\n"sv;
    }
 };
 
@@ -83,25 +83,25 @@ struct Connection_info {
          throw std::runtime_error{"Invalid planning info."};
       }
 
-      buffer += "Connection(\""_sv;
+      buffer += "Connection(\""sv;
       buffer += name;
-      buffer += "\")\n{\n"_sv;
+      buffer += "\")\n{\n"sv;
 
-      buffer += "\tStart(\""_sv;
+      buffer += "\tStart(\""sv;
       buffer += hubs[start].name;
-      buffer += "\");\n"_sv;
-      buffer += "\tEnd(\""_sv;
+      buffer += "\");\n"sv;
+      buffer += "\tEnd(\""sv;
       buffer += hubs[end].name;
-      buffer += "\");\n"_sv;
-      buffer += "\tFlags("_sv;
+      buffer += "\");\n"sv;
+      buffer += "\tFlags("sv;
       buffer += std::to_string(filter_flags);
-      buffer += ");\n"_sv;
+      buffer += ");\n"sv;
 
-      if (one_way) buffer += "\tOneWay();\n"_sv;
-      if (jump) buffer += "\tJump();\n"_sv;
-      if (jet_jump) buffer += "\tJetJump();\n"_sv;
+      if (one_way) buffer += "\tOneWay();\n"sv;
+      if (jump) buffer += "\tJump();\n"sv;
+      if (jet_jump) buffer += "\tJetJump();\n"sv;
 
-      buffer += "}\n\n"_sv;
+      buffer += "}\n\n"sv;
    }
 };
 
@@ -192,10 +192,10 @@ void write_planning(std::string_view name, const std::vector<Hub_info> hubs,
    }
    catch (std::runtime_error&) {
       buffer.clear();
-      buffer += "// Failed reading planning info //"_sv;
+      buffer += "// Failed reading planning info //"sv;
    }
 
-   file_saver.save_file(buffer, "world"_sv, name, ".pln"_sv);
+   file_saver.save_file(buffer, "world"sv, name, ".pln"sv);
 }
 }
 

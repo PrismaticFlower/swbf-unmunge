@@ -53,13 +53,13 @@ std::istream& operator>>(std::istream& istream, Tool_mode& mode)
    std::string str;
    istream >> std::quoted(str);
 
-   if (str == "extract"_sv) {
+   if (str == "extract"sv) {
       mode = Tool_mode::extract;
    }
-   else if (str == "explode"_sv) {
+   else if (str == "explode"sv) {
       mode = Tool_mode::explode;
    }
-   else if (str == "assemble"_sv) {
+   else if (str == "assemble"sv) {
       mode = Tool_mode::assemble;
    }
    else {
@@ -74,10 +74,10 @@ std::istream& operator>>(std::istream& istream, Game_version& game_version)
    std::string str;
    istream >> std::quoted(str);
 
-   if (str == "swbf_ii"_sv) {
+   if (str == "swbf_ii"sv) {
       game_version = Game_version::swbf_ii;
    }
-   else if (str == "swbf"_sv) {
+   else if (str == "swbf"sv) {
       game_version = Game_version::swbf;
    }
    else {
@@ -92,13 +92,13 @@ std::istream& operator>>(std::istream& istream, Image_format& image_type)
    std::string str;
    istream >> std::quoted(str);
 
-   if (str == "tga"_sv) {
+   if (str == "tga"sv) {
       image_type = Image_format::tga;
    }
-   else if (str == "png"_sv) {
+   else if (str == "png"sv) {
       image_type = Image_format::png;
    }
-   else if (str == "dds"_sv) {
+   else if (str == "dds"sv) {
       image_type = Image_format::dds;
    }
    else {
@@ -113,13 +113,13 @@ std::istream& operator>>(std::istream& istream, Input_platform& platform)
    std::string str;
    istream >> std::quoted(str);
 
-   if (str == "pc"_sv) {
+   if (str == "pc"sv) {
       platform = Input_platform::pc;
    }
-   else if (str == "ps2"_sv) {
+   else if (str == "ps2"sv) {
       platform = Input_platform::ps2;
    }
-   else if (str == "xbox"_sv) {
+   else if (str == "xbox"sv) {
       platform = Input_platform::xbox;
    }
    else {
@@ -131,32 +131,32 @@ std::istream& operator>>(std::istream& istream, Input_platform& platform)
 }
 
 constexpr auto fileinput_opt_description{
-   R"(<filepath> Specify an input file to operate on.)"_sv};
+   R"(<filepath> Specify an input file to operate on.)"sv};
 
 constexpr auto files_opt_description{
    R"(<files> Specify a list of input files to operate, delimited by ';'.
-   Example: "-files foo.lvl;bar.lvl")"_sv};
+   Example: "-files foo.lvl;bar.lvl")"sv};
 
 constexpr auto game_ver_opt_description{
-   R"(<version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"_sv};
+   R"(<version> Set the game version of the input file. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"sv};
 
 constexpr auto gameout_ver_opt_description{
-   R"(<version> Set the game version the output files will target. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"_sv};
+   R"(<version> Set the game version the output files will target. Can be 'swbf_ii' or 'swbf. Default is 'swbf_ii'.)"sv};
 
 constexpr auto image_opt_description{
-   R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"_sv};
+   R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"sv};
 
 constexpr auto input_plat_opt_description{
-   R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"_sv};
+   R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"sv};
 
 constexpr auto verbose_opt_description{
-   R"(Enable verbose output.)"_sv};
+   R"(Enable verbose output.)"sv};
 
 constexpr auto mode_opt_description{
    R"(<mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
    'extract' (default) - Extract and "unmunge" the contents of the file.
    'explode' - Recursively explode the file's chunks into their hierarchies.
-   'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.)"_sv};
+   'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.)"sv};
 
 App_options::App_options()
 {

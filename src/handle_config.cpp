@@ -9,6 +9,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string_view>
+
+using namespace std::literals;
 
 namespace {
 
@@ -111,11 +114,11 @@ std::string read_string_data(Ucfb_reader_strict<"DATA"_mn> data,
    while (data) {
       line += '\"';
       line += data.read_string_unaligned();
-      line += "\", "_sv;
+      line += "\", "sv;
    }
 
    line.resize(line.size() - 2);
-   line += ");\n"_sv;
+   line += ");\n"sv;
 
    return line;
 }
@@ -130,18 +133,18 @@ std::string read_hash_data(Ucfb_reader_strict<"DATA"_mn> data,
    std::string line;
    line.append(indention_level, '\t');
    line += lookup_fnv_hash(hash);
-   line += "(\""_sv;
+   line += "(\""sv;
    line += lookup_fnv_hash(value_hash);
-   line += "\", "_sv;
+   line += "\", "sv;
 
    for (std::size_t i = 1; i < element_count; ++i) {
       line += cast_number_value(data.read_trivial_unaligned<float>());
-      line += ", "_sv;
+      line += ", "sv;
    }
 
    line.resize(line.size() - 2);
 
-   line += ");\n"_sv;
+   line += ");\n"sv;
 
    return line;
 }
@@ -162,11 +165,11 @@ std::string read_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data,
    std::string line;
    line.append(indention_level, '\t');
    line += lookup_fnv_hash(hash);
-   line += "(\""_sv;
+   line += "(\""sv;
    line += data.read_string_unaligned();
-   line += "\", "_sv;
+   line += "\", "sv;
    line += cast_number_value(value);
-   line += ");\n"_sv;
+   line += ");\n"sv;
 
    return line;
 }
@@ -184,12 +187,12 @@ std::string read_float_data(Ucfb_reader_strict<"DATA"_mn> data,
 
    for (std::size_t i = 0; i < element_count; ++i) {
       line += cast_number_value(data.read_trivial_unaligned<float>());
-      line += ", "_sv;
+      line += ", "sv;
    }
 
    line.resize(line.size() - 2);
 
-   line += ");\n"_sv;
+   line += ");\n"sv;
 
    return line;
 }
@@ -202,7 +205,7 @@ std::string read_tag_data(Ucfb_reader_strict<"DATA"_mn> data,
    std::string line;
    line.append(indention_level, '\t');
    line += lookup_fnv_hash(hash);
-   line += "();\n"_sv;
+   line += "();\n"sv;
 
    return line;
 }
@@ -236,7 +239,7 @@ std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
    buffer.reserve(4096);
 
    buffer.append(indention_level - 1, '\t');
-   buffer += "{\n"_sv;
+   buffer += "{\n"sv;
 
    while (scope) {
       const auto child = scope.read_child();
@@ -254,7 +257,7 @@ std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
    }
 
    buffer.append(indention_level - 1, '\t');
-   buffer += "}\n\n"_sv;
+   buffer += "}\n\n"sv;
 
    return buffer;
 }

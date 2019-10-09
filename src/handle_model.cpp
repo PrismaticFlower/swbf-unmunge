@@ -13,8 +13,11 @@
 #include <array>
 #include <functional>
 #include <limits>
+#include <string_view>
 #include <tuple>
 #include <vector>
+
+using namespace std::literals;
 
 namespace {
 
@@ -98,13 +101,13 @@ auto read_model_name(Ucfb_reader_strict<"NAME"_mn> name)
    const auto suffix = name_view.substr(name_view.length() - 4, 4);
    const auto unsuffixed_name = std::string{name_view.substr(0, name_view.length() - 4)};
 
-   if (suffix == "LOD1"_sv) {
+   if (suffix == "LOD1"sv) {
       return {unsuffixed_name, msh::Lod::one};
    }
-   else if (suffix == "LOD2"_sv) {
+   else if (suffix == "LOD2"sv) {
       return {unsuffixed_name, msh::Lod::two};
    }
-   else if (suffix == "LOWD"_sv) {
+   else if (suffix == "LOWD"sv) {
       return {unsuffixed_name, msh::Lod::lowres};
    }
 
@@ -427,10 +430,10 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
 {
    const auto type = render_type.read_string();
 
-   if (type == "Refraction"_sv) {
+   if (type == "Refraction"sv) {
       out.type = msh::Render_type::refraction;
    }
-   else if (type == "Bump"_sv) {
+   else if (type == "Bump"sv) {
       if (out.type_swbf1 == msh::Render_type_swbf1::specular) {
          out.type_swbf1 = msh::Render_type_swbf1::bumpmap_specular;
       }
@@ -438,7 +441,7 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, msh::Material& 
          out.type_swbf1 = msh::Render_type_swbf1::bumpmap;
       }
    }
-   else if (type == "Water"_sv) {
+   else if (type == "Water"sv) {
       out.type_swbf1 = msh::Render_type_swbf1::water;
    }
 }

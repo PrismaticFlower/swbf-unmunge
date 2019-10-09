@@ -4,7 +4,10 @@
 
 #include "tbb/parallel_for.h"
 
+#include <string_view>
 #include <vector>
+
+using namespace std::literals;
 
 namespace {
 
@@ -13,7 +16,7 @@ constexpr auto index_factor = 10u;
 inline bool is_usable_chunk_name(const Magic_number magic_number) noexcept
 {
    constexpr auto safe_chars =
-      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"_sv;
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"sv;
 
    const auto string = view_object_as_string(magic_number);
 
