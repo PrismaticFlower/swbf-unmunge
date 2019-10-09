@@ -14,83 +14,60 @@ namespace fs = std::filesystem;
 using namespace std::literals;
 
 File_saver::File_saver(const fs::path& path, bool verbose) noexcept
-   : _path{path.string()}, _verbose{verbose}
+   : _path{path.lexically_normal()}, _verbose{verbose}
 {
    fs::create_directory(_path);
-}
-
-File_saver::File_saver(File_saver&& other) noexcept
-   : File_saver{other._path, other._verbose}
-{
-   std::lock_guard<tbb::spin_rw_mutex> lock{other._dirs_mutex};
-   std::swap(_created_dirs, other._created_dirs);
 }
 
 void File_saver::save_file(std::string_view contents, std::string_view directory,
                            std::string_view name, std::string_view extension)
 {
-   const auto path = get_file_path(directory, name, extension);
+   const auto path = directory.empty() ? build_file_path(name, extension)
+                                       : build_file_path(directory, name, extension);
+
+   create_dir(directory);
 
    if (_verbose) {
-      synced_cout::print("Info: Saving file \""s, path, '\"', '\n');
+      synced_cout::print("Info: Saving file "s, path, '\n');
    }
 
    std::ofstream file{path, std::ios::binary};
    file.write(contents.data(), contents.size());
 }
 
-std::string File_saver::get_file_path(std::string_view directory, std::string_view name,
-                                      std::string_view extension)
+auto File_saver::build_file_path(std::string_view directory, std::string_view name,
+                                 std::string_view extension) -> fs::path
 {
-   create_dir(directory);
+   return (_path / directory /= name) += extension;
+}
 
-   std::string path;
-   path.reserve(_path.length() + 1 + directory.length() + 1 + name.length() +
-                extension.length());
-
-   constexpr auto preferred_separator =
-      static_cast<char>(std::filesystem::path::preferred_separator);
-
-   path += _path;
-
-   if (!directory.empty()) {
-      path += directory;
-      path += preferred_separator;
-   }
-
-   path += name;
-   path += extension;
-
-   return path;
+auto File_saver::build_file_path(std::string_view name, std::string_view extension)
+   -> fs::path
+{
+   return (_path / name) += extension;
 }
 
 void File_saver::create_dir(std::string_view directory) noexcept
 {
-   decltype(_created_dirs)::const_iterator dir_result;
+   const auto dir_result = [&] {
+      std::shared_lock lock{_dirs_mutex};
 
-   {
-      const auto releaser = gsl::finally([this] { _dirs_mutex.unlock(); });
-      _dirs_mutex.lock_read();
-
-      dir_result =
-         std::find(std::cbegin(_created_dirs), std::cend(_created_dirs), directory);
-   }
+      return std::find(std::cbegin(_created_dirs), std::cend(_created_dirs), directory);
+   }();
 
    if (dir_result == std::cend(_created_dirs)) {
-      std::string str_dir{directory};
+      std::lock_guard lock{_dirs_mutex};
 
       fs::path path{_path};
-      path /= str_dir;
+      path /= directory;
 
-      std::lock_guard<tbb::spin_rw_mutex> writer_lock{_dirs_mutex};
+      fs::create_directories(path);
 
-      fs::create_directory(path);
-
-      _created_dirs.emplace_back(std::move(str_dir));
+      _created_dirs.emplace_back(directory);
    }
 }
 
-File_saver File_saver::create_nested(std::string_view directory) const
+auto File_saver::create_nested(std::string_view directory) const -> File_saver
 {
    fs::path new_path = _path;
    new_path.append(std::cbegin(directory), std::cend(directory));

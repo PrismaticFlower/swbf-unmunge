@@ -5,8 +5,7 @@
 
 #include "DirectXTex.h"
 
-#include <codecvt>
-#include <locale>
+#include <exception>
 
 namespace {
 
@@ -45,34 +44,43 @@ void ensure_basic_format(DirectX::ScratchImage& image)
       image = std::move(conv_image);
    }
 }
+
+auto image_extension(const Image_format format) noexcept -> std::string_view
+{
+   switch (format) {
+   case Image_format::tga:
+      return ".tga"_sv;
+   case Image_format::png:
+      return ".png"_sv;
+   case Image_format::dds:
+      return ".dds"_sv;
+   default:
+      std::terminate();
+   }
+}
+
 }
 
 void save_image(std::string_view name, DirectX::ScratchImage image,
                 File_saver& file_saver, Image_format save_format)
 {
-   const auto utf8_path = file_saver.get_file_path("textures"_sv, name, "");
+   const auto path =
+      file_saver.build_file_path("textures"_sv, name, image_extension(save_format));
 
-   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-   auto path = converter.from_bytes(utf8_path);
+   file_saver.create_dir("textures"_sv);
 
    if (save_format == Image_format::tga) {
-      path += L".tga"_sv;
-
       ensure_basic_format(image);
 
       DirectX::SaveToTGAFile(*image.GetImage(0, 0, 0), path.c_str());
    }
    else if (save_format == Image_format::png) {
-      path += L".png"_sv;
-
       ensure_basic_format(image);
 
       DirectX::SaveToWICFile(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
                              DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), path.c_str());
    }
    else if (save_format == Image_format::dds) {
-      path += L".dds"_sv;
-
       DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(),
                              image.GetMetadata(), DirectX::DDS_FLAGS_NONE, path.c_str());
    }
