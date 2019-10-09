@@ -91,13 +91,22 @@ void write_bracketed_str(std::string_view what, std::string& to)
    to += "]\n\n"sv;
 }
 
-void write_property(std::pair<std::string_view, std::string_view> prop_value,
-                    std::string& to)
+void write_property(std::string_view prop, std::string_view value, std::string& to)
 {
-   to += prop_value.first;
-   to += " = \""sv;
-   to += prop_value.second;
-   to += "\"\n"sv;
+   const bool quoted = !string_is_number(value);
+
+   to += prop;
+
+   if (quoted) {
+      to += " = \""sv;
+      to += value;
+      to += "\"\n"sv;
+   }
+   else {
+      to += " = "sv;
+      to += value;
+      to += "\n"sv;
+   }
 }
 
 auto get_properties(Ucfb_reader object)
@@ -143,9 +152,8 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
 
    const auto class_name = object.read_child_strict<"BASE"_mn>().read_string();
 
-   write_property(
-      {is_class_label(class_name) ? "ClassLabel"sv : "ClassParent"sv, class_name},
-      file_buffer);
+   write_property(is_class_label(class_name) ? "ClassLabel"sv : "ClassParent"sv,
+                  class_name, file_buffer);
 
    const auto odf_name = object.read_child_strict<"TYPE"_mn>().read_string();
 
@@ -153,14 +161,14 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
 
    const auto geom_name = find_geometry_name(properties);
 
-   if (geom_name) write_property({"GeometryName"sv, *geom_name}, file_buffer);
+   if (geom_name) write_property("GeometryName"sv, *geom_name, file_buffer);
 
    file_buffer += '\n';
 
    write_bracketed_str("Properties"sv, file_buffer);
 
    for (const auto& property : properties) {
-      write_property({lookup_fnv_hash(property.first), property.second}, file_buffer);
+      write_property(lookup_fnv_hash(property.first), property.second, file_buffer);
    }
 
    file_saver.save_file(file_buffer, "odf"sv, odf_name, ".odf"sv);
