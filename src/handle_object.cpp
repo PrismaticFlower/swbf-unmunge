@@ -6,12 +6,83 @@
 #include "ucfb_reader.hpp"
 
 #include <algorithm>
+#include <array>
 #include <optional>
 #include <stdexcept>
+#include <string_view>
 
 using namespace std::literals;
 
 namespace {
+
+constexpr std::array class_labels{"animatedbuilding"sv,
+                                  "animatedprop"sv,
+                                  "armedbuilding"sv,
+                                  "armedbuildingdynamic"sv,
+                                  "beacon"sv,
+                                  "beam"sv,
+                                  "binoculars"sv,
+                                  "bolt"sv,
+                                  "building"sv,
+                                  "bullet"sv,
+                                  "cannon"sv,
+                                  "catapult"sv,
+                                  "cloudcluster"sv,
+                                  "commandarmedanimatedbuilding"sv,
+                                  "commandhover"sv,
+                                  "commandpost"sv,
+                                  "commandwalker"sv,
+                                  "destruct"sv,
+                                  "destructablebuilding"sv,
+                                  "detonator"sv,
+                                  "disguise"sv,
+                                  "dispenser"sv,
+                                  "droid"sv,
+                                  "dusteffect"sv,
+                                  "emitterordnance"sv,
+                                  "explosion"sv,
+                                  "fatray"sv,
+                                  "flyer"sv,
+                                  "godray"sv,
+                                  "grapplinghook"sv,
+                                  "grapplinghookweapon"sv,
+                                  "grasspatch"sv,
+                                  "grenade"sv,
+                                  "haywire"sv,
+                                  "hologram"sv,
+                                  "hover"sv,
+                                  "launcher"sv,
+                                  "leafpatch"sv,
+                                  "Light"sv,
+                                  "melee"sv,
+                                  "mine"sv,
+                                  "missile"sv,
+                                  "powerupitem"sv,
+                                  "prop"sv,
+                                  "remote"sv,
+                                  "repair"sv,
+                                  "rumbleeffect"sv,
+                                  "shell"sv,
+                                  "shield"sv,
+                                  "soldier"sv,
+                                  "SoundAmbienceStatic"sv,
+                                  "SoundAmbienceStreaming"sv,
+                                  "sticky"sv,
+                                  "towcable"sv,
+                                  "towcableweapon"sv,
+                                  "trap"sv,
+                                  "vehiclepad"sv,
+                                  "vehiclespawn"sv,
+                                  "walker"sv,
+                                  "walkerdroid"sv,
+                                  "water"sv,
+                                  "weapon"sv};
+
+bool is_class_label(std::string_view class_name) noexcept
+{
+   return std::find(std::cbegin(class_labels), std::cend(class_labels), class_name) !=
+          std::cend(class_labels);
+}
 
 void write_bracketed_str(std::string_view what, std::string& to)
 {
@@ -72,7 +143,9 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
 
    const auto class_name = object.read_child_strict<"BASE"_mn>().read_string();
 
-   write_property({"ClassLabel"_sv, class_name}, file_buffer);
+   write_property(
+      {is_class_label(class_name) ? "ClassLabel"_sv : "ClassParent"sv, class_name},
+      file_buffer);
 
    const auto odf_name = object.read_child_strict<"TYPE"_mn>().read_string();
 
