@@ -129,17 +129,18 @@ void write_matd(Ucfb_writer& matl, const scene::Material& material)
 
    matd.emplace_child("NAME"_mn).write(material.name);
    matd.emplace_child("DATA"_mn).write(material.diffuse_colour, material.specular_colour,
-                                       glm::vec4{0.0f}, material.specular_exponent);
+                                       glm::vec4{0.0f, 0.0f, 0.0f, 1.0f},
+                                       material.specular_exponent);
    matd.emplace_child("ATRB"_mn).write_unaligned(material.flags, material.rendertype,
                                                  material.params);
 
    constexpr std::array tx_d_magic_numbers{"TX0D"_mn, "TX1D"_mn, "TX2D"_mn, "TX3D"_mn};
 
    for (auto i = 0; i < material.textures.size(); ++i) {
-      if (material.textures[0].empty()) continue;
+      if (material.textures[i].empty()) continue;
 
       matd.emplace_child(tx_d_magic_numbers.at(i))
-         .write(fmt::format("{}.tga"sv, material.textures[0]));
+         .write(fmt::format("{}.tga"sv, material.textures[i]));
    }
 }
 
