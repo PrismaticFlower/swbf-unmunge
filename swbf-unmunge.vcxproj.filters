@@ -107,9 +107,6 @@
     <ClCompile Include="src\assemble_chunks.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\vbuf_reader_xbox.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\handle_texture_xbox.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -117,6 +114,18 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\handle_texture_ps2.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_builder.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_msh_save.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_topology_converter.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_scene.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -146,9 +155,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\vbuf_reader.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\msh_builder.hpp">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\bit_flags.hpp">
@@ -182,6 +188,30 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\save_image.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_builder.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_scene.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_types.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sorted_vector.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_basic_primitives.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_msh_save.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ucfb_writer.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_topology_converter.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

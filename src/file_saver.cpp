@@ -35,6 +35,23 @@ void File_saver::save_file(std::string_view contents, std::string_view directory
    file.write(contents.data(), contents.size());
 }
 
+auto File_saver::open_save_file(std::string_view directory, std::string_view name,
+                                std::string_view extension,
+                                std::ios_base::openmode openmode) -> std::ofstream
+{
+
+   const auto path = directory.empty() ? build_file_path(name, extension)
+                                       : build_file_path(directory, name, extension);
+
+   create_dir(directory);
+
+   if (_verbose) {
+      synced_cout::print("Info: Saving file "s, path, '\n');
+   }
+
+   return std::ofstream{path, openmode};
+}
+
 auto File_saver::build_file_path(std::string_view directory, std::string_view name,
                                  std::string_view extension) -> fs::path
 {

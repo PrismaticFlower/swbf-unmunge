@@ -1,13 +1,17 @@
 #pragma once
 
 #include "app_options.hpp"
-#include "msh_builder.hpp"
 #include "ucfb_reader.hpp"
 
 #include <optional>
 #include <string>
 
+class App_options;
 class File_saver;
+
+namespace model {
+class Models_builder;
+}
 
 void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
                     std::optional<std::string_view> file_name = {},
@@ -46,19 +50,19 @@ void handle_localization(Ucfb_reader localization, File_saver& file_saver);
 void handle_terrain(Ucfb_reader terrain, Game_version output_version,
                     File_saver& file_saver);
 
-void handle_model(Ucfb_reader model, msh::Builders_map& builders);
+void handle_model(Ucfb_reader model, model::Models_builder& builders);
 
-void handle_model_xbox(Ucfb_reader model, msh::Builders_map& builders);
+void handle_model_xbox(Ucfb_reader model, model::Models_builder& builders);
 
-void handle_model_ps2(Ucfb_reader model, msh::Builders_map& builders);
+void handle_model_ps2(Ucfb_reader model, model::Models_builder& builders);
 
-void handle_skeleton(Ucfb_reader skeleton, msh::Builders_map& builders);
+void handle_skeleton(Ucfb_reader skeleton, model::Models_builder& builders);
 
-void handle_collision(Ucfb_reader collision, msh::Builders_map& builders);
+void handle_collision(Ucfb_reader collision, model::Models_builder& builders);
 
-void handle_primitives(Ucfb_reader primitives, msh::Builders_map& builders);
+void handle_primitives(Ucfb_reader primitives, model::Models_builder& builders);
 
-void handle_cloth(Ucfb_reader cloth, msh::Builders_map& builders);
+void handle_cloth(Ucfb_reader cloth, model::Models_builder& builders);
 
 void handle_script(Ucfb_reader script, File_saver& file_saver);
 

@@ -1,5 +1,6 @@
 
 #include "chunk_processor.hpp"
+#include "model_builder.hpp"
 
 #include "tbb/parallel_for_each.h"
 
@@ -13,15 +14,15 @@ void handle_ucfb(Ucfb_reader chunk, const App_options& app_options,
 
    while (chunk) children_parents.emplace_back(chunk.read_child(), chunk);
 
-   msh::Builders_map msh_builders;
+   model::Models_builder models_builder;
 
    const auto processor = [&app_options, &file_saver,
-                           &msh_builders](const auto& child_parent) {
+                           &models_builder](const auto& child_parent) {
       process_chunk(child_parent.first, child_parent.second, app_options, file_saver,
-                    msh_builders);
+                    models_builder);
    };
 
    tbb::parallel_for_each(children_parents, processor);
 
-   msh::save_all(file_saver, msh_builders, app_options.output_game_version());
+   models_builder.save_models(file_saver, app_options.output_game_version());
 }

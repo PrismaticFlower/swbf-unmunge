@@ -10,6 +10,7 @@
 #include <new>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -95,6 +96,37 @@ public:
    Type read_trivial_unaligned()
    {
       return read_trivial<Type>(true);
+   }
+
+   //! \brief Reads a list of trivial value from the chunk.
+   //!
+   //! \tparam Types A list of types of the values to read. The types must be standard
+   //! layout.
+   //!
+   //! \return A tuple of the values.
+   //!
+   //! \exception std::runtime_error Thrown when reading the value would go past the end
+   //! of the chunk.
+   template<typename... Types>
+   auto read_multi(const std::array<bool, sizeof...(Types)> unaligned = {})
+      -> std::tuple<Types...>
+   {
+      return read_multi_impl<Types...>(unaligned, std::index_sequence_for<Types...>{});
+   }
+
+   //! \brief Reads a list of trivial unaligned value from the chunk.
+   //!
+   //! \tparam Types A list of types of the values to read. The types must be standard
+   //! layout.
+   //!
+   //! \return A tuple of the values.
+   //!
+   //! \exception std::runtime_error Thrown when reading the value would go past the end
+   //! of the chunk.
+   template<typename... Types>
+   auto read_multi_unaligned() -> std::tuple<Types...>
+   {
+      return read_multi<Types...>(std::array{(sizeof(Types), true)...});
    }
 
    //! \brief Reads a variable-length array of trivial values from the chunk.
@@ -203,6 +235,67 @@ public:
    void read_array_unaligned(const std::size_t size, Contiguous_container& output)
    {
       return read_array<Type>(size, output, true);
+   }
+
+   //! \brief Reads a variable-length array of trivial values from the chunk.
+   //!
+   //! \tparam Type The type of the values to read. The type must be trivially copyable.
+   //! \tparam Contiguous_container The type of the container to put the read array into.
+   //!                              The container must be contiguous, with .resize() and
+   //!                              .data() methods.
+   //!
+   //! \param size The size of the array to read.
+   //! \param output The span to put the read array into.
+   //! \param unaligned If the read is unaligned or not.
+   //!
+   //! \expects size <= output.size()
+   //!
+   //! \return A vector of Type.
+   //!
+   //! \exception std::runtime_error Thrown when reading the array would go past the end
+   //!                               of the chunk.
+   template<typename Type>
+   void read_array_to_span(const std::size_t size, gsl::span<Type> output,
+                           const bool unaligned = false)
+   {
+      static_assert(std::is_trivially_copyable_v<Type>,
+                    "Type must be trivially copyable.");
+      static_assert(!std::is_pointer_v<Type>, "Type can not be a pointer.");
+
+      Expects(size <= static_cast<std::size_t>(output.size()));
+
+      const auto size_bytes = sizeof(Type) * size;
+      const auto cur_pos = _head;
+      _head += size_bytes;
+
+      check_head();
+
+      if (!unaligned) align_head();
+
+      std::memcpy(output.data(), &_data[cur_pos], size_bytes);
+   }
+
+   //! \brief Reads an unaligned variable-length array of trivial values from the chunk.
+   //!
+   //! \tparam Type The type of the values to read. The type must be trivially copyable.
+   //! \tparam Contiguous_container The type of the container to put the read array into.
+   //!                              The container must be contiguous, with .resize() and
+   //!                              .data() methods.
+   //!
+   //! \param size The size of the array to read.
+   //! \param output The span to put the read array into.
+   //! \param unaligned If the read is unaligned or not.
+   //!
+   //! \expects size <= output.size()
+   //!
+   //! \return A vector of Type.
+   //!
+   //! \exception std::runtime_error Thrown when reading the array would go past the end
+   //!                               of the chunk.
+   template<typename Type>
+   void read_array_to_span_unaligned(const std::size_t size, gsl::span<Type> output)
+   {
+      return read_array_to_span(size, output, true);
    }
 
    //! \brief Reads a variable-length array of bytes from the chunk.
@@ -450,6 +543,13 @@ private:
    auto read_child_strict_optional(const Magic_number child_mn, const bool unaligned)
       -> std::optional<Ucfb_reader>;
 
+   template<typename... Types, std::size_t... indices>
+   auto read_multi_impl(const std::array<bool, sizeof...(Types)> unaligned,
+                        std::index_sequence<indices...>) -> std::tuple<Types...>
+   {
+      return {read_trivial<Types>(unaligned[indices])...};
+   }
+
    void check_head();
 
    void align_head() noexcept
@@ -459,9 +559,9 @@ private:
       if (remainder != 0) _head += (4 - remainder);
    }
 
-   const Magic_number _mn;
-   const std::size_t _size;
-   const std::byte* const _data;
+   Magic_number _mn;
+   std::size_t _size;
+   const std::byte* _data;
 
    std::size_t _head = 0;
 };

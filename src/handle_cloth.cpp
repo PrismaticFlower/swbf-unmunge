@@ -1,5 +1,5 @@
 #include "magic_number.hpp"
-#include "msh_builder.hpp"
+#include "model_builder.hpp"
 #include "ucfb_reader.hpp"
 
 #include "glm/gtc/quaternion.hpp"
@@ -16,13 +16,13 @@
 namespace {
 
 struct Collision_info {
-   msh::Cloth_collision_type type;
+   model::Cloth_collision_primitive_type type;
    glm::vec3 size;
    glm::mat3 rotation;
    glm::vec3 position;
 };
 
-static_assert(std::is_pod_v<Collision_info>);
+static_assert(std::is_trivially_copyable_v<Collision_info>);
 static_assert(sizeof(Collision_info) == 64);
 
 glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
@@ -34,26 +34,6 @@ glm::vec2 flip_texture_v(const glm::vec2 coords) noexcept
    }
 
    return {coords.x, 1.0f - v};
-}
-
-auto read_xframe(Ucfb_reader_strict<"XFRM"_mn> xframe) -> std::pair<glm::quat, glm::vec3>
-{
-   const glm::mat3 matrix = xframe.read_trivial<glm::mat3>();
-   const glm::vec3 position = xframe.read_trivial<glm::vec3>();
-
-   return {matrix, position};
-}
-
-auto read_tex_coords(Ucfb_reader_strict<"DATA"_mn>& data,
-                     const std::uint32_t vertex_count) -> std::vector<glm::vec2>
-{
-   auto coords = data.read_array_unaligned<glm::vec2>(vertex_count);
-
-   for (const auto& uv : coords) {
-      coords.emplace_back(flip_texture_v(uv));
-   }
-
-   return coords;
 }
 
 auto generate_fixed_points(std::uint32_t count) -> std::vector<std::uint32_t>
@@ -79,42 +59,23 @@ auto read_fixed_weights(Ucfb_reader_strict<"DATA"_mn>& data, std::uint32_t count
    return weights;
 }
 
-auto read_msh_indices(gsl::span<const std::array<std::uint32_t, 3>> indices)
-   -> std::vector<glm::uvec3>
-{
-   std::vector<glm::uvec3> buffer;
-   buffer.reserve(indices.size());
-
-   for (const auto& index : indices) {
-      buffer.emplace_back(index[0], index[1], index[2]);
-   }
-
-   return buffer;
-}
-
-auto read_constraint(gsl::span<const std::array<std::uint32_t, 2>> constraints)
-   -> std::vector<std::array<std::uint16_t, 2>>
-{
-   std::vector<std::array<std::uint16_t, 2>> result;
-   result.reserve(constraints.size());
-
-   for (const auto& constraint : constraints) {
-      result.emplace_back();
-      result.back()[0] = static_cast<std::uint16_t>(constraint[0]);
-      result.back()[1] = static_cast<std::uint16_t>(constraint[1]);
-   }
-
-   return result;
-}
-
-void read_cloth_data(Ucfb_reader_strict<"DATA"_mn> data, msh::Cloth& cloth)
+void read_cloth_data(Ucfb_reader_strict<"DATA"_mn> data, model::Cloth& cloth)
 {
    cloth.texture_name = data.read_string_unaligned();
 
    const auto vertex_count = data.read_trivial_unaligned<std::uint32_t>();
 
-   cloth.positions = data.read_array_unaligned<glm::vec3>(vertex_count);
-   cloth.texture_coords = read_tex_coords(data, vertex_count);
+   cloth.vertices = model::Cloth_vertices{vertex_count};
+
+   data.read_array_to_span_unaligned<glm::vec3>(
+      vertex_count, gsl::make_span(cloth.vertices.positions.get(), vertex_count));
+
+   const auto texcoords_span =
+      gsl::make_span(cloth.vertices.texcoords.get(), vertex_count);
+
+   data.read_array_to_span_unaligned<glm::vec2>(vertex_count, texcoords_span);
+   std::transform(texcoords_span.begin(), texcoords_span.end(), texcoords_span.begin(),
+                  flip_texture_v);
 
    const auto fixed_point_count = data.read_trivial_unaligned<std::uint32_t>();
    cloth.fixed_points = generate_fixed_points(fixed_point_count);
@@ -123,34 +84,32 @@ void read_cloth_data(Ucfb_reader_strict<"DATA"_mn> data, msh::Cloth& cloth)
    cloth.fixed_weights = read_fixed_weights(data, fixed_weight_count);
 
    const auto index_count = data.read_trivial_unaligned<std::uint32_t>();
-   cloth.indices = read_msh_indices(
-      data.read_array_unaligned<std::array<std::uint32_t, 3>>(index_count));
+   cloth.indices = data.read_array_unaligned<std::array<std::uint32_t, 3>>(index_count);
 
    using Constraint = std::array<std::uint32_t, 2>;
 
    const auto stretch_constraint_count = data.read_trivial_unaligned<std::uint32_t>();
    cloth.stretch_constraints =
-      read_constraint(data.read_array_unaligned<Constraint>(stretch_constraint_count));
+      data.read_array_unaligned<Constraint>(stretch_constraint_count);
 
    const auto bend_constraint_count = data.read_trivial_unaligned<std::uint32_t>();
-   cloth.bend_constraints =
-      read_constraint(data.read_array_unaligned<Constraint>(bend_constraint_count));
+   cloth.bend_constraints = data.read_array_unaligned<Constraint>(bend_constraint_count);
 
    const auto cross_constraint_count = data.read_trivial_unaligned<std::uint32_t>();
    cloth.cross_constraints =
-      read_constraint(data.read_array_unaligned<Constraint>(cross_constraint_count));
+      data.read_array_unaligned<Constraint>(cross_constraint_count);
 }
 
 auto read_cloth_collision(Ucfb_reader_strict<"COLL"_mn> collision)
-   -> std::vector<msh::Cloth_collision>
+   -> std::vector<model::Cloth_collision_primitive>
 {
    const auto count = collision.read_trivial<std::uint32_t>();
 
-   std::vector<msh::Cloth_collision> nodes;
+   std::vector<model::Cloth_collision_primitive> nodes;
    nodes.reserve(count);
 
    for (std::uint32_t i = 0; i < count; ++i) {
-      msh::Cloth_collision node{};
+      auto& node = nodes.emplace_back();
 
       node.parent = collision.read_string_unaligned();
 
@@ -158,30 +117,27 @@ auto read_cloth_collision(Ucfb_reader_strict<"COLL"_mn> collision)
 
       node.type = info.type;
       node.size = info.size;
-
-      nodes.emplace_back(std::move(node));
    }
 
    return nodes;
 }
 }
 
-void handle_cloth(Ucfb_reader cloth, msh::Builders_map& builders)
+void handle_cloth(Ucfb_reader cloth, model::Models_builder& models_builder)
 {
-   const std::string model_name{cloth.read_child_strict<"INFO"_mn>().read_string()};
+   const auto model_name = cloth.read_child_strict<"INFO"_mn>().read_string();
 
-   msh::Cloth cloth_msh{};
+   model::Model model{.name = std::string{model_name}};
+   auto& cloth_model = model.cloths.emplace_back();
 
-   cloth_msh.name = cloth.read_child_strict<"NAME"_mn>().read_string();
-   cloth_msh.parent = cloth.read_child_strict<"PRNT"_mn>().read_string();
+   cloth_model.name = cloth.read_child_strict<"NAME"_mn>().read_string();
+   cloth_model.parent = cloth.read_child_strict<"PRNT"_mn>().read_string();
+   cloth_model.transform =
+      cloth.read_child_strict<"XFRM"_mn>().read_trivial<glm::mat3x4>();
 
-   const auto xframe = cloth.read_child_strict<"XFRM"_mn>();
-   std::tie(cloth_msh.rotation, cloth_msh.position) = read_xframe(xframe);
+   read_cloth_data(cloth.read_child_strict<"DATA"_mn>(), cloth_model);
 
-   read_cloth_data(cloth.read_child_strict<"DATA"_mn>(), cloth_msh);
+   cloth_model.collision = read_cloth_collision(cloth.read_child_strict<"COLL"_mn>());
 
-   cloth_msh.collision = read_cloth_collision(cloth.read_child_strict<"COLL"_mn>());
-
-   auto& builder = builders[model_name];
-   builder.add_cloth(std::move(cloth_msh));
+   models_builder.integrate(std::move(model));
 }

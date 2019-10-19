@@ -41,6 +41,26 @@ constexpr auto split_string(
    return {other, string};
 }
 
+template<typename Char_t, typename Char_triats = std::char_traits<Char_t>>
+constexpr bool begins_with(
+   std::basic_string_view<Char_t, Char_triats> string,
+   typename std::common_type<std::basic_string_view<Char_t, Char_triats>>::type
+      what) noexcept
+{
+   if (what.size() > string.size()) return false;
+
+   return (string.substr(0, what.size()) == what);
+}
+
+template<typename Char_t, typename Char_triats = std::char_traits<Char_t>>
+constexpr bool begins_with(
+   const std::basic_string<Char_t, Char_triats>& string,
+   typename std::common_type<std::basic_string_view<Char_t, Char_triats>>::type
+      what) noexcept
+{
+   return begins_with(std::basic_string_view<Char_t, Char_triats>{string}, what);
+}
+
 inline bool string_is_number(std::string_view string) noexcept
 {
    const auto is_char_digit = [](const char& c) { return (c >= '0' && c <= '9'); };

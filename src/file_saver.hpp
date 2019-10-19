@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <shared_mutex>
 #include <string>
@@ -12,6 +13,11 @@ public:
 
    void save_file(std::string_view contents, std::string_view directory,
                   std::string_view name, std::string_view extension);
+
+   auto open_save_file(std::string_view directory, std::string_view name,
+                       std::string_view extension,
+                       std::ios_base::openmode openmode = std::ios::binary)
+      -> std::ofstream;
 
    auto build_file_path(std::string_view directory, std::string_view name,
                         std::string_view extension) -> std::filesystem::path;

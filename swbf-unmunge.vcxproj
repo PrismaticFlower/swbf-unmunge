@@ -13,7 +13,10 @@
   <ItemGroup>
     <ClCompile Include="src\app_options.cpp" />
     <ClCompile Include="src\assemble_chunks.cpp" />
-    <ClCompile Include="src\cloth_converter.cpp" />
+    <ClCompile Include="src\cloth_converter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\explode_chunk.cpp" />
     <ClCompile Include="src\handle_cloth.cpp" />
     <ClCompile Include="src\handle_collision.cpp" />
@@ -38,7 +41,14 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mapped_file.cpp" />
     <ClCompile Include="src\handle_object.cpp" />
-    <ClCompile Include="src\msh_builder.cpp" />
+    <ClCompile Include="src\model_builder.cpp" />
+    <ClCompile Include="src\model_msh_save.cpp" />
+    <ClCompile Include="src\model_scene.cpp" />
+    <ClCompile Include="src\model_topology_converter.cpp" />
+    <ClCompile Include="src\msh_builder.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\save_image.cpp" />
     <ClCompile Include="src\swbf_fnv_hashes.cpp">
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</WholeProgramOptimization>
@@ -48,22 +58,30 @@
     <ClCompile Include="src\ucfb_builder.cpp" />
     <ClCompile Include="src\ucfb_reader.cpp" />
     <ClCompile Include="src\vbuf_reader.cpp" />
-    <ClCompile Include="src\vbuf_reader_xbox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app_options.hpp" />
     <ClInclude Include="src\assemble_chunks.hpp" />
     <ClInclude Include="src\bit_flags.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />
-    <ClInclude Include="src\cloth_converter.hpp" />
+    <ClInclude Include="src\cloth_converter.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="src\explode_chunk.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
     <ClInclude Include="src\magic_number.hpp" />
     <ClInclude Include="src\mapped_file.hpp" />
     <ClInclude Include="src\chunk_handlers.hpp" />
     <ClInclude Include="src\math_helpers.hpp" />
-    <ClInclude Include="src\msh_builder.hpp" />
+    <ClInclude Include="src\model_basic_primitives.hpp" />
+    <ClInclude Include="src\model_builder.hpp" />
+    <ClInclude Include="src\model_msh_save.hpp" />
+    <ClInclude Include="src\model_scene.hpp" />
+    <ClInclude Include="src\model_topology_converter.hpp" />
+    <ClInclude Include="src\model_types.hpp" />
     <ClInclude Include="src\save_image.hpp" />
+    <ClInclude Include="src\sorted_vector.hpp" />
     <ClInclude Include="src\string_helpers.hpp" />
     <ClInclude Include="src\swbf_fnv_hashes.hpp" />
     <ClInclude Include="src\synced_cout.hpp" />
@@ -71,6 +89,7 @@
     <ClInclude Include="src\type_pun.hpp" />
     <ClInclude Include="src\ucfb_builder.hpp" />
     <ClInclude Include="src\ucfb_reader.hpp" />
+    <ClInclude Include="src\ucfb_writer.hpp" />
     <ClInclude Include="src\vbuf_reader.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -127,6 +146,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <ConformanceMode>true</ConformanceMode>
+      <DisableSpecificWarnings>4275</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,6 +168,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <ConformanceMode>true</ConformanceMode>
+      <DisableSpecificWarnings>4275</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

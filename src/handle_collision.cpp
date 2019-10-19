@@ -1,6 +1,7 @@
 
 #include "magic_number.hpp"
-#include "msh_builder.hpp"
+#include "model_builder.hpp"
+#include "synced_cout.hpp"
 #include "type_pun.hpp"
 #include "ucfb_reader.hpp"
 
@@ -10,67 +11,91 @@ struct Collision_info {
    std::uint32_t vertex_count;
    std::uint32_t node_count;
    std::uint32_t leaf_count;
-   std::uint32_t unknown;
-
-   float bbox_info[6];
+   std::uint32_t
+      index_count; // (?) probably not exactly this but seems to hold similar semantics
+   std::array<glm::vec3, 2> aabb;
 };
 
 static_assert(std::is_standard_layout_v<Collision_info>);
 static_assert(sizeof(Collision_info) == 40);
 
-std::vector<glm::vec3> read_positions(Ucfb_reader_strict<"POSI"_mn> vertices,
-                                      const std::size_t vertex_count)
+void triangulate_points(const std::vector<std::uint16_t>& points, model::Indices& out)
 {
-   return vertices.read_array<glm::vec3>(vertex_count);
+   if (points.size() == 1) {
+      synced_cout::print("Found collision geometry represented as a point. Storing as "
+                         "degenerate triangle.");
+
+      out.insert(out.end(), {points[0], points[0], points[0]});
+
+      return;
+   }
+   else if (points.size() == 2) {
+      synced_cout::print("Found collision geometry represented as a line. Storing as "
+                         "degenerate triangle.");
+
+      out.insert(out.end(), {points[0], points[1], points[1]});
+
+      return;
+   }
+
+   for (std::size_t i = 2; i < points.size(); ++i) {
+      out.insert(out.end(), {points[0], points[i - 1], points[i]});
+   }
 }
 
-std::vector<std::uint16_t> read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn> leaf)
+void read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn> leaf, model::Indices& out)
 {
-   std::uint8_t index_count = leaf.read_trivial_unaligned<std::uint8_t>();
-   leaf.consume_unaligned(6);
+   const std::uint8_t point_count = leaf.read_trivial_unaligned<std::uint8_t>();
+   leaf.consume_unaligned(6); // consume six unknown byte fields
 
-   return leaf.read_array<std::uint16_t>(index_count);
+   const auto points = leaf.read_array_unaligned<std::uint16_t>(point_count);
+
+   triangulate_points(points, out);
 }
 
-void handle_tree(Ucfb_reader_strict<"TREE"_mn> tree, msh::Collsion_mesh& collision_mesh)
+auto read_tree(Ucfb_reader_strict<"TREE"_mn> tree, const std::size_t reserve_size)
+   -> model::Indices
 {
+   model::Indices result;
+   result.reserve(reserve_size * 3);
+
    while (tree) {
       const auto child = tree.read_child();
 
       if (child.magic_number() == "LEAF"_mn) {
-         collision_mesh.strips.emplace_back(
-            read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn>{child}));
+         read_tree_leaf(Ucfb_reader_strict<"LEAF"_mn>{child}, result);
       }
    }
+
+   return result;
 }
 }
 
-void handle_collision(Ucfb_reader collision, msh::Builders_map& builders)
+void handle_collision(Ucfb_reader collision, model::Models_builder& builders)
 {
-   const std::string name{collision.read_child_strict<"NAME"_mn>().read_string()};
+   const auto name = collision.read_child_strict<"NAME"_mn>().read_string();
 
    auto mask = collision.read_child_strict_optional<"MASK"_mn>();
 
-   msh::Collision_flags flags = msh::Collision_flags::all;
+   model::Collision_flags flags = model::Collision_flags::all;
 
    if (mask) {
-      flags = static_cast<msh::Collision_flags>(mask->read_trivial<std::uint8_t>());
+      flags = static_cast<model::Collision_flags>(mask->read_trivial<std::uint8_t>());
    }
 
    collision.read_child_strict<"NODE"_mn>();
 
    const auto info =
       collision.read_child_strict<"INFO"_mn>().read_trivial<Collision_info>();
+   auto posi = collision.read_child_strict<"POSI"_mn>();
+   auto tree = collision.read_child_strict<"TREE"_mn>();
 
-   msh::Collsion_mesh collision_mesh;
-   collision_mesh.parent = std::nullopt;
-   collision_mesh.strips.reserve(info.leaf_count);
-   collision_mesh.flags = flags;
-
-   collision_mesh.positions =
-      collision.read_child_strict<"POSI"_mn>().read_array<glm::vec3>(info.vertex_count);
-
-   handle_tree(collision.read_child_strict<"TREE"_mn>(), collision_mesh);
-
-   builders[name].add_collision_mesh(std::move(collision_mesh));
+   builders.integrate(
+      {.name = std::string{name},
+       .collision_meshes = {model::Collsion_mesh{
+          .flags = flags,
+          .indices = read_tree(tree, info.index_count *
+                                        3), // over reserve more memory than needed
+                                            // to account for triangulation results
+          .positions = posi.read_array<glm::vec3>(info.vertex_count)}}});
 }

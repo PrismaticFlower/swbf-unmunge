@@ -23,7 +23,7 @@ struct Args_pack {
    Ucfb_reader parent_reader;
    const App_options& app_options;
    File_saver& file_saver;
-   msh::Builders_map& msh_builders;
+   model::Models_builder& models_builder;
 };
 
 void ignore_chunk(Args_pack){};
@@ -256,25 +256,25 @@ const auto chunk_processors = Chunk_processor_map{
    // Model chunks
    {"skel"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_skeleton(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_skeleton(args.chunk, args.models_builder); }}},
    {"modl"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_model(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_model(args.chunk, args.models_builder); }}},
    {"modl"_mn,
     {Input_platform::xbox, Game_version::swbf_ii,
-     [](Args_pack args) { handle_model_xbox(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_model_xbox(args.chunk, args.models_builder); }}},
    {"modl"_mn,
     {Input_platform::ps2, Game_version::swbf_ii,
-     [](Args_pack args) { handle_model_ps2(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_model_ps2(args.chunk, args.models_builder); }}},
    {"coll"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_collision(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_collision(args.chunk, args.models_builder); }}},
    {"prim"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_primitives(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_primitives(args.chunk, args.models_builder); }}},
    {"CLTH"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
-     [](Args_pack args) { handle_cloth(args.chunk, args.msh_builders); }}},
+     [](Args_pack args) { handle_cloth(args.chunk, args.models_builder); }}},
    // Misc chunks
    {"Locl"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
@@ -303,14 +303,14 @@ const auto chunk_processors = Chunk_processor_map{
 
 void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
                    const App_options& app_options, File_saver& file_saver,
-                   msh::Builders_map& msh_builders)
+                   model::Models_builder& models_builder)
 {
    const auto processor = chunk_processors.lookup(
       chunk.magic_number(), app_options.input_platform(), app_options.game_version());
 
    if (processor) {
       try {
-         processor({chunk, parent_reader, app_options, file_saver, msh_builders});
+         processor({chunk, parent_reader, app_options, file_saver, models_builder});
       }
       catch (const std::exception& e) {
          synced_cout::print("Error: Exception occured while processing chunk.\n"

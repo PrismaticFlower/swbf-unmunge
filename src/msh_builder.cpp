@@ -1,4 +1,5 @@
 
+#if 0
 #include "msh_builder.hpp"
 #include "bit_flags.hpp"
 #include "cloth_converter.hpp"
@@ -687,7 +688,7 @@ Ucfb_builder create_matd_chunk(const Material& material, std::size_t index)
    data.write_multiple(material.specular_colour.r, material.specular_colour.g,
                        material.specular_colour.b, material.specular_colour.a);
    data.write_multiple(1.0f, 1.0f, 1.0f, 1.0f);
-   data.write(material.specular_value);
+   data.write(material.specular_exponent);
 
    auto& atrb = matd.emplace_child("ATRB"_mn);
    atrb.write(material.flags);
@@ -918,3 +919,4 @@ void save_all(File_saver& file_saver, const Builders_map& builders,
    tbb::parallel_for_each(builders, functor);
 }
 }
+#endif
