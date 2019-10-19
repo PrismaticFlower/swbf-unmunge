@@ -99,7 +99,7 @@ bool is_hidden(const scene::Node& node) noexcept
       return true;
    case scene::Node_type::geometry:
    case scene::Node_type::cloth_geometry:
-      return false;
+      return node.lod != Lod::zero;
    default:
       std::terminate();
    }

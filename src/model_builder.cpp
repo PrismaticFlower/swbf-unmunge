@@ -172,6 +172,7 @@ auto create_scene(Model model) -> scene::Scene
                                     .params = part.material.params,
                                     .textures = std::move(part.material.textures)}),
           .type = scene::Node_type::geometry,
+          .lod = part.lod,
           .geometry = scene::Geometry{.topology = part.primitive_topology,
                                       .indices = std::move(part.indices),
                                       .vertices = std::move(part.vertices),
