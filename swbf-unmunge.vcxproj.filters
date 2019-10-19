@@ -199,9 +199,6 @@
     <ClInclude Include="src\model_types.hpp">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\sorted_vector.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\model_basic_primitives.hpp">
       <Filter>src</Filter>
     </ClInclude>
