@@ -81,7 +81,7 @@ void recreate_aabbs(Scene& scene) noexcept
                  .max = glm::vec3{std::numeric_limits<float>::min()}};
 
    for (auto& node : scene.nodes) {
-      if (!node.geometry || !node.cloth_geometry) continue;
+      if (!node.geometry && !node.cloth_geometry) continue;
 
       node.aabb = {.min = glm::vec3{std::numeric_limits<float>::max()},
                    .max = glm::vec3{std::numeric_limits<float>::min()}};
