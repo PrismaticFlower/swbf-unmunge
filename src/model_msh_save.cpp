@@ -392,6 +392,21 @@ void write_modl(Ucfb_writer& msh2, const scene::Node& node, const std::uint32_t 
    if (node.geometry || node.cloth_geometry) write_geom(modl, node);
    if (node.collision) write_swci(modl, *node.collision);
 }
+
+void save_option_file(const scene::Scene& scene, File_saver& file_saver)
+{
+   auto output =
+      file_saver.open_save_file("msh"sv, scene.name, ".msh.option"sv, std::ios::out);
+
+   if (scene.vertex_lighting) output << "-vertexlighting"sv << '\n';
+   if (scene.softskin) output << "-softskin"sv << '\n';
+
+   for (const auto& light : scene.attached_lights) {
+      fmt::format_to(std::ostream_iterator<char>{output}, "-attachlight \"{} {}\"\n"sv,
+                     light.node, light.light);
+   }
+}
+
 }
 
 void save_scene(scene::Scene scene, File_saver& file_saver,
@@ -417,5 +432,7 @@ void save_scene(scene::Scene scene, File_saver& file_saver,
 
    // CL1L
    (void)writer.emplace_child("CL1L"_mn);
+
+   save_option_file(scene, file_saver);
 }
 }
