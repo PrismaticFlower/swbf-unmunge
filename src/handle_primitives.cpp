@@ -39,7 +39,7 @@ auto read_next_primitive(Ucfb_reader& primitives) -> model::Collision_primitive
    }
 
    prim.parent = primitives.read_child_strict<"PRNT"_mn>().read_string();
-   prim.transform = primitives.read_child_strict<"XFRM"_mn>().read_trivial<glm::mat3x4>();
+   prim.transform = primitives.read_child_strict<"XFRM"_mn>().read_trivial<glm::mat4x3>();
 
    const auto data =
       primitives.read_child_strict<"DATA"_mn>().read_trivial<Primitive_Data>();

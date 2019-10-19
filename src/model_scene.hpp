@@ -71,7 +71,7 @@ struct Node {
    Node_type type = Node_type::null;
    Lod lod = Lod::zero;
 
-   glm::mat3x4 transform = glm::identity<glm::mat3x4>();
+   glm::mat4x3 transform = glm::identity<glm::mat4x3>();
 
    std::optional<Geometry> geometry;
    std::optional<Cloth_geometry> cloth_geometry;

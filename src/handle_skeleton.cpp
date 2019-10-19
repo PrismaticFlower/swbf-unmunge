@@ -19,7 +19,7 @@ auto read_bones(const std::size_t count, Ucfb_reader_strict<"NAME"_mn> name_read
       bones.emplace_back(
          model::Bone{.name = std::string{name_reader.read_string_unaligned()},
                      .parent = std::string{parent_reader.read_string_unaligned()},
-                     .transform = transform_reader.read_trivial<glm::mat3x4>()});
+                     .transform = transform_reader.read_trivial<glm::mat4x3>()});
    }
 
    return bones;

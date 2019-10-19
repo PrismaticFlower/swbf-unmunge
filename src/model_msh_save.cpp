@@ -155,15 +155,13 @@ void write_matl(Ucfb_writer& msh2, const scene::Scene& scene)
    }
 }
 
-void write_tran(Ucfb_writer& modl, const glm::mat3x4 transform)
+void write_tran(Ucfb_writer& modl, const glm::mat4x3 transform)
 {
-   const glm::vec3 translation = {transform[0].w, transform[1].w, transform[2].w};
-   const glm::vec3 scale = {glm::length(glm::vec3{transform[0]}),
-                            glm::length(glm::vec3{transform[1]}),
-                            glm::length(glm::vec3{transform[2]})};
-   const glm::mat3 rotation_mat{glm::vec3{transform[0]} / scale.x,
-                                glm::vec3{transform[1]} / scale.y,
-                                glm::vec3{transform[2]} / scale.z};
+   const glm::vec3 translation = transform[3];
+   const glm::vec3 scale = {glm::length(transform[0]), glm::length(transform[1]),
+                            glm::length(transform[2])};
+   const glm::mat3 rotation_mat{transform[0] / scale.x, transform[1] / scale.y,
+                                transform[2] / scale.z};
    const glm::quat rotation{rotation_mat};
 
    modl.emplace_child("TRAN"_mn).write(scale, rotation, translation);

@@ -133,7 +133,7 @@ void handle_cloth(Ucfb_reader cloth, model::Models_builder& models_builder)
    cloth_model.name = cloth.read_child_strict<"NAME"_mn>().read_string();
    cloth_model.parent = cloth.read_child_strict<"PRNT"_mn>().read_string();
    cloth_model.transform =
-      cloth.read_child_strict<"XFRM"_mn>().read_trivial<glm::mat3x4>();
+      cloth.read_child_strict<"XFRM"_mn>().read_trivial<glm::mat4x3>();
 
    read_cloth_data(cloth.read_child_strict<"DATA"_mn>(), cloth_model);
 

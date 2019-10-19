@@ -21,7 +21,7 @@ namespace model {
 struct Bone {
    std::string name;
    std::string parent;
-   glm::mat3x4 transform;
+   glm::mat4x3 transform = glm::identity<glm::mat4x3>();
 };
 
 struct Material {
@@ -62,7 +62,7 @@ struct Collision_primitive {
    Collision_primitive_type type = Collision_primitive_type::cube;
    Collision_flags flags = Collision_flags::all;
 
-   glm::mat3x4 transform = glm::identity<glm::mat3x4>();
+   glm::mat4x3 transform = glm::identity<glm::mat4x3>();
    glm::vec3 size{0.0f, 0.0f, 0.0f};
 };
 
@@ -79,7 +79,7 @@ struct Cloth {
    std::string name;
    std::string parent;
 
-   glm::mat3x4 transform = glm::identity<glm::mat3x4>();
+   glm::mat4x3 transform = glm::identity<glm::mat4x3>();
 
    std::string texture_name;
 
