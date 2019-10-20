@@ -6,6 +6,7 @@
 #include "synced_cout.hpp"
 #include "ucfb_writer.hpp"
 
+#include <iterator>
 #include <sstream>
 
 #include <fmt/format.h>
@@ -29,6 +30,18 @@ enum class Model_flags : std::uint32_t {
    none = 0b0,
    hidden = 0b1,
 };
+
+auto make_model_name_lookup_table(const std::vector<scene::Node>& nodes)
+   -> std::vector<std::string>
+{
+   std::vector<std::string> lut;
+   lut.reserve(nodes.size());
+
+   std::transform(nodes.cbegin(), nodes.cend(), std::back_inserter(lut),
+                  [](const scene::Node& node) { return node.name; });
+
+   return lut;
+}
 
 void sort_nodes(std::vector<scene::Node>& nodes)
 {
@@ -69,6 +82,24 @@ void sort_nodes(std::vector<scene::Node>& nodes)
    }
 
    std::swap(sorted, nodes);
+}
+
+void patch_bone_maps(std::vector<scene::Node>& nodes,
+                     const std::vector<std::string>& previous_names_lut)
+{
+   for (auto& node : nodes) {
+      if (!node.geometry) continue;
+
+      for (auto& index : node.geometry->bone_map) {
+         auto it =
+            std::find_if(nodes.cbegin(), nodes.cend(),
+                         [name = previous_names_lut.at(index)](const scene::Node& node) {
+                            return node.name == name;
+                         });
+
+         index = static_cast<std::uint8_t>(std::distance(nodes.cbegin(), it));
+      }
+   }
 }
 
 auto get_model_type(const scene::Node& node) noexcept -> Model_type
@@ -418,7 +449,10 @@ void save_scene(scene::Scene scene, File_saver& file_saver,
    {
       auto msh2 = writer.emplace_child("MSH2"_mn);
 
+      const auto previous_names_lut = make_model_name_lookup_table(scene.nodes);
+
       sort_nodes(scene.nodes);
+      patch_bone_maps(scene.nodes, previous_names_lut);
 
       write_sinf(msh2, scene);
       write_matl(msh2, scene);

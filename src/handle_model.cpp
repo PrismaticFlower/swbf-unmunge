@@ -505,7 +505,8 @@ void read_render_type(Ucfb_reader_strict<"RTYP"_mn> render_type, model::Material
 }
 
 auto process_segment_pc_xbox(Ucfb_reader_strict<"segm"_mn> segment, const Model_info info,
-                             const model::Lod lod, const bool xbox) -> model::Part
+                             const model::Lod lod, const std::string_view default_parent,
+                             const bool xbox) -> model::Part
 {
    model::Part part{.lod = lod};
 
@@ -549,11 +550,14 @@ auto process_segment_pc_xbox(Ucfb_reader_strict<"segm"_mn> segment, const Model_
 
    part.vertices = read_vbuf(vbufs, info.vertex_box, xbox);
 
+   if (part.parent.empty()) part.parent = default_parent;
+
    return part;
 }
 
 auto process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const Model_info info,
-                         const model::Lod lod) -> model::Part
+                         const model::Lod lod, const std::string_view default_parent)
+   -> model::Part
 {
    model::Part part{.lod = lod};
 
@@ -613,6 +617,8 @@ auto process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const Model_info
       }
    }
 
+   if (part.parent.empty()) part.parent = default_parent;
+
    return part;
 }
 
@@ -623,7 +629,7 @@ auto handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model) -> mo
 
    model.read_child_strict_optional<"VRTX"_mn>();
 
-   model.read_child_strict<"NODE"_mn>();
+   const auto default_parent = model.read_child_strict<"NODE"_mn>().read_string();
    const auto model_info = read_model_info(model.read_child_strict<"INFO"_mn>());
 
    model::Model result{.name = name};
@@ -634,9 +640,9 @@ auto handle_model_impl(Segm_processor&& segm_processor, Ucfb_reader model) -> mo
       const auto child = model.read_child();
 
       if (child.magic_number() == "segm"_mn) {
-         result.parts.emplace_back(
-            std::invoke(std::forward<Segm_processor>(segm_processor),
-                        Ucfb_reader_strict<"segm"_mn>{child}, model_info, lod));
+         result.parts.emplace_back(std::invoke(
+            std::forward<Segm_processor>(segm_processor),
+            Ucfb_reader_strict<"segm"_mn>{child}, model_info, lod, default_parent));
       }
    }
 

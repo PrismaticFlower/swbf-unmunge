@@ -7,6 +7,11 @@ namespace model::scene {
 
 namespace {
 
+struct Node_inv_transform {
+   glm::mat3 inv_matrix;
+   glm::vec3 offset;
+};
+
 template<typename Type>
 void vertices_aabb(const Type& vertices, AABB& global_aabb,
                    const glm::mat4x3 local_to_global, AABB& local_aabb) noexcept
@@ -26,6 +31,7 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
    -> glm::mat4x3
 {
    glm::mat4 matrix = child.transform;
+   matrix[3].xyz = matrix[3].xyz * -1.0f;
    std::string_view next_parent = child.parent;
 
    const auto is_next_parent = [&next_parent](const Node& node) {
@@ -36,7 +42,7 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
         it != nodes.cend();
         it = std::find_if(nodes.cbegin(), nodes.cend(), is_next_parent)) {
       next_parent = it->parent;
-      matrix *= glm::mat4{it->transform};
+      matrix = glm::mat4{it->transform} * matrix;
 
       if (next_parent.empty()) break;
    }
@@ -44,34 +50,72 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
    return glm::mat4x3{matrix};
 }
 
+auto build_nodes_inv_transforms(const std::vector<Node>& nodes)
+   -> std::vector<Node_inv_transform>
+{
+   std::vector<Node_inv_transform> matrices;
+   matrices.reserve(nodes.size());
+
+   for (auto& node : nodes) {
+      matrices.push_back({.inv_matrix = glm::inverse(glm::mat3{node.transform}),
+                          .offset = node.transform[3]});
+   }
+
+   return matrices;
+}
+
 }
 
 void reverse_pretransforms(Scene& scene) noexcept
 {
+   const auto node_inv_transforms = build_nodes_inv_transforms(scene.nodes);
+
    for (auto& node : scene.nodes) {
-      if (!node.geometry || !node.geometry->vertices.pretransformed) continue;
+      if (!node.geometry || !node.geometry->vertices.pretransformed ||
+          node.geometry->bone_map.empty()) {
+         continue;
+      }
 
-      const auto matrix = build_node_matrix(scene.nodes, node);
-      const auto inv_matrix = glm::mat4x3{glm::inverse(glm::mat4{matrix})};
-      const auto inv_rot_matrix = glm::inverse(glm::mat3{matrix});
+      auto& vertices = node.geometry->vertices;
 
-      std::for_each_n(node.geometry->vertices.positions.get(),
-                      node.geometry->vertices.size, [&](glm::vec3& p) {
-                         p = glm::vec4{p, 1.0f} * inv_matrix;
-                      });
+      if (!vertices.bones) continue;
 
-      std::for_each_n(node.geometry->vertices.normals.get(), node.geometry->vertices.size,
-                      [&](glm::vec3& n) { n = n * inv_rot_matrix; });
+      for (std::size_t i = 0; i < vertices.size; ++i) {
+         const auto apply_transform = [&](const Node_inv_transform transform) {
+            if (vertices.positions) {
+               vertices.positions[i] =
+                  vertices.positions[i] * transform.inv_matrix + transform.offset;
+            }
+            if (vertices.normals) {
+               vertices.normals[i] = vertices.normals[i] * transform.inv_matrix;
+            }
+            if (vertices.tangents) {
+               vertices.tangents[i] = vertices.tangents[i] * transform.inv_matrix;
+            }
+            if (vertices.bitangents) {
+               vertices.bitangents[i] = vertices.bitangents[i] * transform.inv_matrix;
+            }
+         };
 
-      std::for_each_n(node.geometry->vertices.tangents.get(),
-                      node.geometry->vertices.size,
-                      [&](glm::vec3& t) { t = t * inv_rot_matrix; });
+         const auto first_skin_node_index =
+            node.geometry->bone_map.at(vertices.bones[i].x);
+         const auto& skin_node = scene.nodes.at(first_skin_node_index);
 
-      std::for_each_n(node.geometry->vertices.bitangents.get(),
-                      node.geometry->vertices.size,
-                      [&](glm::vec3& b) { b = b * inv_rot_matrix; });
+         apply_transform(node_inv_transforms.at(first_skin_node_index));
 
-      node.geometry->vertices.pretransformed = false;
+         for (auto it = std::find_if(
+                 scene.nodes.cbegin(), scene.nodes.cend(),
+                 [&](const Node& node) { return skin_node.parent == node.name; });
+              it != scene.nodes.cend();
+              it = std::find_if(
+                 scene.nodes.cbegin(), scene.nodes.cend(),
+                 [&](const Node& node) { return it->parent == node.name; })) {
+            apply_transform(
+               node_inv_transforms.at(std::distance(scene.nodes.cbegin(), it)));
+         }
+      }
+
+      vertices.pretransformed = false;
    }
 }
 
