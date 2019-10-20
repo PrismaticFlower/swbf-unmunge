@@ -450,7 +450,7 @@ void save_option_file(const scene::Scene& scene, File_saver& file_saver)
          output << node.name << ' ';
       }
 
-      output << '\n';
+      if (!first) output << '\n';
    }
 
    if (!scene::has_collision_geometry(scene)) {
