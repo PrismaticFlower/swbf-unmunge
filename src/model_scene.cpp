@@ -135,7 +135,7 @@ void recreate_aabbs(Scene& scene) noexcept
                        build_node_matrix(scene.nodes, node), node.aabb);
       }
       if (node.cloth_geometry) {
-         vertices_aabb(node.geometry->vertices, scene.aabb,
+         vertices_aabb(node.cloth_geometry->vertices, scene.aabb,
                        build_node_matrix(scene.nodes, node), node.aabb);
       }
    }
