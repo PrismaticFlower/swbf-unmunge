@@ -424,7 +424,6 @@ void write_modl(Ucfb_writer& msh2, const scene::Node& node, const std::uint32_t 
 
 void save_option_file(const scene::Scene& scene, File_saver& file_saver)
 {
-   std::stringstream str;
    auto output =
       file_saver.open_save_file("msh"sv, scene.name, ".msh.option"sv, std::ios::out);
 
@@ -451,6 +450,18 @@ void save_option_file(const scene::Scene& scene, File_saver& file_saver)
       }
 
       if (!first) output << '\n';
+   }
+
+   if (!scene.nodes.empty()) {
+      output << "-keepmaterial "sv;
+
+      for (const auto& material : scene.materials) {
+         if (!material.reference_in_option_file) continue;
+
+         output << material.name << ' ';
+      }
+
+      output << '\n';
    }
 
    if (!scene::has_collision_geometry(scene)) {

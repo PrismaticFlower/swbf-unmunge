@@ -29,6 +29,8 @@ struct Material {
 
    std::array<std::string, 4> textures{};
 
+   bool reference_in_option_file = false;
+
    bool operator==(const Material&) const = default;
 };
 
