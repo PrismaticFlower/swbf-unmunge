@@ -144,7 +144,7 @@ void recreate_aabbs(Scene& scene) noexcept
 bool has_collision_geometry(const Scene& scene) noexcept
 {
    for (const auto& node : scene.nodes) {
-      if (node.type == Node_type::cloth_geometry) return true;
+      if (node.type == Node_type::collision) return true;
    }
 
    return false;
