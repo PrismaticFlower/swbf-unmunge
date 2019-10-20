@@ -198,7 +198,7 @@ auto create_scene(Model model) -> scene::Scene
    for (auto& prim : model.collision_primitives) {
       scene.nodes.push_back(
          {.name =
-             fmt::format("p_-{}-{}"sv, prim.name, collision_flags_string(prim.flags)),
+             fmt::format("p_-{}-{}"sv, collision_flags_string(prim.flags), prim.name),
           .parent = std::move(prim.parent),
           .material_index = 0,
           .type = scene::Node_type::collision_primitive,
