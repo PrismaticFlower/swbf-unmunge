@@ -434,6 +434,23 @@ void save_option_file(const scene::Scene& scene, File_saver& file_saver)
       fmt::format_to(std::ostream_iterator<char>{output}, "-attachlight \"{} {}\"\n"sv,
                      light.node, light.light);
    }
+
+   if (!scene.nodes.empty()) {
+      bool first = true;
+
+      for (const auto& node : scene.nodes) {
+         if (node.type != scene::Node_type::null || node.parent.empty() ||
+             begins_with(node.name, "bone"sv) || begins_with(node.name, "hp"sv)) {
+            continue;
+         }
+
+         if (std::exchange(first, false)) output << "-keep "sv;
+
+         output << node.name << ' ';
+      }
+
+      output << '\n';
+   }
 }
 
 }
