@@ -235,7 +235,7 @@ void write_clrl(Ucfb_writer& segm, const gsl::span<glm::vec4> colours)
 void write_ndxl_ndxt(Ucfb_writer& segm, const scene::Geometry& geometry)
 {
    std::optional<Indices> converted;
-   const Indices& indices = [&] {
+   const auto indices = [&]() -> const Indices& {
       if (geometry.topology != Primitive_topology::triangle_list) {
          return *(converted = convert_topology(geometry.indices, geometry.topology,
                                                Primitive_topology::triangle_list));
@@ -263,7 +263,7 @@ void write_ndxl_ndxt(Ucfb_writer& segm, const scene::Geometry& geometry)
 void write_strp(Ucfb_writer& segm, const scene::Geometry& geometry)
 {
    std::optional<Indices> converted;
-   const Indices& indices = [&] {
+   const Indices& indices = [&]() -> const Indices& {
       if (geometry.topology != Primitive_topology::triangle_strip_ps2) {
          return *(converted = convert_topology(geometry.indices, geometry.topology,
                                                Primitive_topology::triangle_strip_ps2));
