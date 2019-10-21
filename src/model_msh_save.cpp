@@ -453,15 +453,17 @@ void save_option_file(const scene::Scene& scene, File_saver& file_saver)
    }
 
    if (!scene.nodes.empty()) {
-      output << "-keepmaterial "sv;
+      bool first = true;
 
       for (const auto& material : scene.materials) {
          if (!material.reference_in_option_file) continue;
 
+         if (std::exchange(first, false)) output << "-keepmaterial "sv;
+
          output << material.name << ' ';
       }
 
-      output << '\n';
+      if (!first) output << '\n';
    }
 
    if (!scene::has_collision_geometry(scene)) {
