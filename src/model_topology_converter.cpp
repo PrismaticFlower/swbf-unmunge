@@ -145,7 +145,7 @@ auto convert<Primitive_topology::triangle_strip_ps2, Primitive_topology::triangl
    Indices triangles{};
    triangles.reserve(strips.size() * 3 - 2);
 
-   for (std::size_t i = 2; i < strips.size();) {
+   for (std::size_t i = 2; i < strips.size(); ++i) {
       if ((strips[i] & 0x7fff) && ((i + 2) >= strips.size())) {
          if (!(strips[i + 1] & 0x7fff)) continue;
 
@@ -160,8 +160,6 @@ auto convert<Primitive_topology::triangle_strip_ps2, Primitive_topology::triangl
       for (auto& index : tri) index &= 0x7fff;
 
       triangles.insert(triangles.end(), tri.cbegin(), tri.cend());
-
-      i += 1;
    }
 
    return triangles;
