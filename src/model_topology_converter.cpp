@@ -19,6 +19,18 @@ constexpr bool is_degenerate_triangle(const std::array<Type, 3> triangle) noexce
           triangle[1] == triangle[2];
 }
 
+template<typename Type>
+constexpr bool is_even(Type size)
+{
+   return (size % 2) == 0;
+}
+
+template<typename Type>
+constexpr bool is_odd(Type size)
+{
+   return !is_even(size);
+}
+
 auto count_strips(const std::vector<Indices>& strips) noexcept -> std::size_t
 {
    return std::accumulate(
@@ -85,9 +97,7 @@ auto create_triangle_strips(const Indices& tris) -> std::vector<Indices>
       for (auto& strip : strips) {
          if (strip.size() < 3) continue;
 
-         const bool even = ((strip.size() / 3) % 2) == 0;
-
-         const auto tri = even ? cw_tri : ccw_tri;
+         const auto tri = is_even(strip.size() / 3) ? cw_tri : ccw_tri;
          const std::array strip_head{*(strip.end() - 2), *(strip.end() - 1)};
 
          if (std::array{tri[0], tri[1]} == strip_head) {
@@ -141,9 +151,8 @@ auto convert<Primitive_topology::triangle_strip_ps2, Primitive_topology::triangl
          i += 2;
       }
 
-      const bool even = ((i / 3) % 2) == 0;
-      auto tri = even ? std::array{strips[i - 2], strips[i - 1], strips[i]}
-                      : std::array{strips[i], strips[i - 1], strips[i - 2]};
+      auto tri = is_even(i / 3) ? std::array{strips[i - 2], strips[i - 1], strips[i]}
+                                : std::array{strips[i], strips[i - 1], strips[i - 2]};
 
       if (is_degenerate_triangle(tri)) continue;
 
@@ -192,9 +201,9 @@ auto convert<Primitive_topology::triangle_strip, Primitive_topology::triangle_li
    triangles.reserve(strips.size() * 3 - 2);
 
    for (std::size_t i = 2; i < strips.size(); ++i) {
-      const bool even = ((i / 3) % 2) == 0;
-      const auto tri = even ? std::array{strips[i - 2], strips[i - 1], strips[i]}
-                            : std::array{strips[i], strips[i - 1], strips[i - 2]};
+      const auto tri = is_even(i / 3)
+                          ? std::array{strips[i - 2], strips[i - 1], strips[i]}
+                          : std::array{strips[i], strips[i - 1], strips[i - 2]};
 
       if (is_degenerate_triangle(tri)) continue;
 
