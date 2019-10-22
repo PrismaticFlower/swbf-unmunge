@@ -44,7 +44,7 @@ auto combine_triangle_strips(const std::vector<Indices>& strips) -> Indices
 {
    [[unlikely]] if (strips.size() == 0) return {};
 
-   const auto padding_count = (std::max(strips.size() - 1, std::size_t{1}) * 2);
+   const auto padding_count = (std::max(strips.size() - 1, std::size_t{1}) * 3);
 
    Indices indices;
    indices.reserve(count_strips(strips) + padding_count);
@@ -56,11 +56,12 @@ auto combine_triangle_strips(const std::vector<Indices>& strips) -> Indices
       if (strip.size() < 3) return;
 
       indices.push_back(strip.front());
+      if (is_odd(strip.size())) indices.push_back(strip.front());
       indices.insert(indices.end(), strip.cbegin(), strip.cend());
       indices.push_back(strip.back());
    });
 
-   if (indices.size() != (strips[0].size() + 1)) indices.pop_back();
+   indices.pop_back(); // Remove the last padding triangle.
 
    return indices;
 }
