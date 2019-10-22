@@ -142,8 +142,8 @@ auto convert<Primitive_topology::triangle_strip_ps2, Primitive_topology::triangl
       }
 
       const bool even = ((i / 3) % 2) == 0;
-      auto tri = even ? std::array{strips[i], strips[i - 1], strips[i - 2]}
-                      : std::array{strips[i - 2], strips[i - 1], strips[i]};
+      auto tri = even ? std::array{strips[i - 2], strips[i - 1], strips[i]}
+                      : std::array{strips[i], strips[i - 1], strips[i - 2]};
 
       if (is_degenerate_triangle(tri)) continue;
 
@@ -193,8 +193,8 @@ auto convert<Primitive_topology::triangle_strip, Primitive_topology::triangle_li
 
    for (std::size_t i = 2; i < strips.size(); ++i) {
       const bool even = ((i / 3) % 2) == 0;
-      const auto tri = even ? std::array{strips[i], strips[i - 1], strips[i - 2]}
-                            : std::array{strips[i - 2], strips[i - 1], strips[i]};
+      const auto tri = even ? std::array{strips[i - 2], strips[i - 1], strips[i]}
+                            : std::array{strips[i], strips[i - 1], strips[i - 2]};
 
       if (is_degenerate_triangle(tri)) continue;
 
