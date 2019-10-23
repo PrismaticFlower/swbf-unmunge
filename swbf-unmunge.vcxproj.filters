@@ -128,6 +128,9 @@
     <ClCompile Include="src\model_scene.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\model_gltf_save.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\file_saver.hpp">
@@ -209,6 +212,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\model_topology_converter.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_gltf_save.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

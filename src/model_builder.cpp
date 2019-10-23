@@ -1,6 +1,7 @@
 
 #include "model_builder.hpp"
 #include "model_basic_primitives.hpp"
+#include "model_gltf_save.hpp"
 #include "model_msh_save.hpp"
 #include "model_scene.hpp"
 #include "synced_cout.hpp"
@@ -80,7 +81,7 @@ auto insert_scene_material(scene::Scene& scene, scene::Material material) -> std
 auto make_primitive_visualization_geometry(const Collision_primitive_type type,
                                            const glm::vec3 size) -> scene::Geometry
 {
-   const auto [indices, positions, normals, texcoords] = [type] {
+   const auto [indices, positions, normals, texcoords, scale] = [=] {
       using namespace primitives;
 
       const auto as_spans = [](const auto&... args) {
@@ -89,14 +90,18 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
 
       switch (type) {
       case Collision_primitive_type::sphere:
-         return as_spans(sphere_indices, sphere_vertex_positions, sphere_vertex_normals,
-                         sphere_vertex_texcoords);
+         return std::tuple_cat(as_spans(sphere_indices, sphere_vertex_positions,
+                                        sphere_vertex_normals, sphere_vertex_texcoords),
+                               std::make_tuple(glm::vec3{size.x}));
       case Collision_primitive_type::cylinder:
-         return as_spans(cylinder_indices, cylinder_vertex_positions,
-                         cylinder_vertex_normals, cylinder_vertex_texcoords);
+         return std::tuple_cat(as_spans(cylinder_indices, cylinder_vertex_positions,
+                                        cylinder_vertex_normals,
+                                        cylinder_vertex_texcoords),
+                               std::make_tuple(glm::vec3{size.xyx}));
       case Collision_primitive_type::cube:
-         return as_spans(cube_indices, cube_vertex_positions, cube_vertex_normals,
-                         cube_vertex_texcoords);
+         return std::tuple_cat(as_spans(cube_indices, cube_vertex_positions,
+                                        cube_vertex_normals, cube_vertex_texcoords),
+                               std::make_tuple(glm::vec3{size}));
       default:
          std::terminate();
       }
@@ -110,7 +115,7 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
 
    std::transform(std::cbegin(positions), std::cend(positions),
                   geometry.vertices.positions.get(),
-                  [size](const auto pos) { return pos * size; });
+                  [scale](const auto pos) { return pos * scale; });
    std::copy(std::cbegin(normals), std::cend(normals), geometry.vertices.normals.get());
    std::copy(std::cbegin(texcoords), std::cend(texcoords),
              geometry.vertices.texcoords.get());
@@ -251,7 +256,7 @@ auto create_scene(Model model) -> scene::Scene
 
 void save_model(Model model, File_saver& file_saver, const Game_version game_version)
 {
-   msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
+   gltf::save_scene(create_scene(std::move(model)), file_saver, game_version);
 }
 }
 

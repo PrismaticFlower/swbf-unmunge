@@ -42,6 +42,7 @@
     <ClCompile Include="src\mapped_file.cpp" />
     <ClCompile Include="src\handle_object.cpp" />
     <ClCompile Include="src\model_builder.cpp" />
+    <ClCompile Include="src\model_gltf_save.cpp" />
     <ClCompile Include="src\model_msh_save.cpp" />
     <ClCompile Include="src\model_scene.cpp" />
     <ClCompile Include="src\model_topology_converter.cpp" />
@@ -76,6 +77,7 @@
     <ClInclude Include="src\math_helpers.hpp" />
     <ClInclude Include="src\model_basic_primitives.hpp" />
     <ClInclude Include="src\model_builder.hpp" />
+    <ClInclude Include="src\model_gltf_save.hpp" />
     <ClInclude Include="src\model_msh_save.hpp" />
     <ClInclude Include="src\model_scene.hpp" />
     <ClInclude Include="src\model_topology_converter.hpp" />
@@ -168,6 +170,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>4275</DisableSpecificWarnings>
+      <DiagnosticsFormat>Caret</DiagnosticsFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
