@@ -119,6 +119,38 @@ auto make_gltf_tangents(const Vertices& vertices) -> std::unique_ptr<glm::vec4[]
    return packed;
 }
 
+auto make_extended_bone_indices(const Vertices& vertices)
+   -> std::unique_ptr<glm::u8vec4[]>
+{
+   if (!vertices.bones) return nullptr;
+
+   auto extended = std::make_unique<glm::u8vec4[]>(vertices.size);
+
+   std::transform(vertices.bones.get(), vertices.bones.get() + vertices.size,
+                  extended.get(), [](const glm::u8vec3 v) {
+                     return glm::u8vec4{v, 0};
+                  });
+
+   return extended;
+}
+
+auto make_normalized_bone_weights(const Vertices& vertices)
+   -> std::unique_ptr<glm::vec4[]>
+{
+   if (!vertices.weights) return nullptr;
+
+   auto normalized = std::make_unique<glm::vec4[]>(vertices.size);
+
+   std::transform(vertices.weights.get(), vertices.weights.get() + vertices.size,
+                  normalized.get(), [](const glm::vec3 v) {
+                     const auto total = v.x + v.y + v.z;
+
+                     return glm::u8vec4{v / total, 0};
+                  });
+
+   return normalized;
+}
+
 template<typename T>
 auto add_to_buffer(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
                    const gsl::span<const T> span) -> std::int32_t
@@ -156,32 +188,42 @@ auto add_primitve_indices(fx::gltf::Document& doc, std::vector<std::uint8_t>& bu
 
 template<typename T>
 auto add_attribute_accessor(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
-                            const gsl::span<const T> span, const bool add_min_max = false)
+                            const gsl::span<const T> span,
+                            [[maybe_unused]] const bool add_min_max = false)
    -> std::uint32_t
 {
    constexpr auto type = []() {
-      if (std::is_same_v<T, glm::vec2>) return fx::gltf::Accessor::Type::Vec2;
-      if (std::is_same_v<T, glm::vec3>) return fx::gltf::Accessor::Type::Vec3;
-      if (std::is_same_v<T, glm::vec4>) return fx::gltf::Accessor::Type::Vec4;
+      if (T::length() == 2) return fx::gltf::Accessor::Type::Vec2;
+      if (T::length() == 3) return fx::gltf::Accessor::Type::Vec3;
+      if (T::length() == 4) return fx::gltf::Accessor::Type::Vec4;
+   }();
+
+   constexpr auto component_type = []() {
+      if (std::is_same_v<T::value_type, float>)
+         return fx::gltf::Accessor::ComponentType::Float;
+      if (std::is_same_v<T::value_type, glm::uint8>)
+         return fx::gltf::Accessor::ComponentType::UnsignedByte;
    }();
 
    const auto accessor_index = doc.accessors.size();
 
    doc.accessors.push_back({.bufferView = add_to_buffer(doc, buffer, span),
                             .count = static_cast<std::uint32_t>(span.size()),
-                            .componentType = fx::gltf::Accessor::ComponentType::Float,
+                            .componentType = component_type,
                             .type = type});
 
-   if (add_min_max) {
-      auto& min = doc.accessors.back().min;
-      auto& max = doc.accessors.back().max;
-      min.assign(T::length(), std::numeric_limits<float>::max());
-      max.assign(T::length(), std::numeric_limits<float>::lowest());
+   if constexpr (std::is_same_v<typename T::value_type, float>) {
+      if (add_min_max) {
+         auto& min = doc.accessors.back().min;
+         auto& max = doc.accessors.back().max;
+         min.assign(T::length(), std::numeric_limits<float>::max());
+         max.assign(T::length(), std::numeric_limits<float>::lowest());
 
-      for (auto& v : span) {
-         for (auto i = 0; i < T::length(); ++i) {
-            min[i] = std::min(min[i], v[i]);
-            max[i] = std::max(max[i], v[i]);
+         for (auto& v : span) {
+            for (auto i = 0; i < T::length(); ++i) {
+               min[i] = std::min(min[i], v[i]);
+               max[i] = std::max(max[i], v[i]);
+            }
          }
       }
    }
@@ -207,6 +249,16 @@ auto add_primitve_attributes(fx::gltf::Document& doc, std::vector<std::uint8_t>&
    add_attrib("TANGENT"s, make_gltf_tangents(vertices).get());
    add_attrib("TEXCOORD_0"s, vertices.texcoords.get());
    add_attrib("COLOR_0"s, vertices.colors.get());
+   add_attrib("JOINTS_0"s, make_extended_bone_indices(vertices).get());
+
+   if (vertices.bones && vertices.weights) {
+      add_attrib("WEIGHTS_0"s, make_normalized_bone_weights(vertices).get());
+   }
+   else if (vertices.bones) {
+      add_attrib(
+         "WEIGHTS_0"s,
+         std::vector<glm::vec4>{vertices.size, glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}}.data());
+   }
 
    return attribs;
 }
@@ -232,10 +284,30 @@ auto add_node_mesh(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
    return index;
 }
 
+auto add_skin_inverse_bind_matrices(fx::gltf::Document& doc,
+                                    std::vector<std::uint8_t>& buffer,
+                                    const scene::Scene& scene,
+                                    const std::vector<std::uint8_t>& unified_bone_map)
+   -> std::int32_t
+{
+   const auto accessor_index = doc.accessors.size();
+
+   std::vector martices{unified_bone_map.size(), glm::identity<glm::mat4>()};
+
+   doc.accessors.push_back(
+      {.bufferView = add_to_buffer(doc, buffer, gsl::make_span(std::as_const(martices))),
+       .count = static_cast<std::uint32_t>(martices.size()),
+       .componentType = fx::gltf::Accessor::ComponentType::Float,
+       .type = fx::gltf::Accessor::Type::Mat4});
+
+   return static_cast<std::uint32_t>(accessor_index);
+}
+
 }
 
 void save_scene(scene::Scene scene, File_saver& file_saver)
 {
+   const auto unified_bone_map = scene::unify_bone_maps(scene);
    unstripfy_scene_nodes_topologies(scene.nodes);
 
    fx::gltf::Document doc{};
@@ -245,8 +317,17 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
    for (const auto& node : scene.nodes) {
       doc.nodes.push_back({.name = node.name,
                            .mesh = add_node_mesh(doc, buffer, node),
+                           .skin = scene::has_skinned_geometry(node) ? 0 : -1,
                            .matrix = make_node_matrix(node.transform),
                            .children = make_node_children_list(node.name, scene.nodes)});
+   }
+
+   if (scene::has_skinned_geometry(scene)) {
+      doc.skins.push_back(
+         {.inverseBindMatrices =
+             add_skin_inverse_bind_matrices(doc, buffer, scene, unified_bone_map),
+          .skeleton = 0,
+          .joints = {unified_bone_map.cbegin(), unified_bone_map.cend()}});
    }
 
    doc.scene = 0;

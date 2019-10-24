@@ -101,4 +101,11 @@ void reverse_pretransforms(Scene& scene) noexcept;
 void recreate_aabbs(Scene& scene) noexcept;
 
 bool has_collision_geometry(const Scene& scene) noexcept;
+
+bool has_skinned_geometry(const Node& node) noexcept;
+
+bool has_skinned_geometry(const Scene& scene) noexcept;
+
+auto unify_bone_maps(Scene& scene) -> std::vector<std::uint8_t>;
+
 }

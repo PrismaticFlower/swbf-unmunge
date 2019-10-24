@@ -150,4 +150,76 @@ bool has_collision_geometry(const Scene& scene) noexcept
    return false;
 }
 
+bool has_skinned_geometry(const Node& node) noexcept
+{
+   return node.geometry && !node.geometry->bone_map.empty() &&
+          node.geometry->vertices.bones;
+}
+
+bool has_skinned_geometry(const Scene& scene) noexcept
+{
+   for (const auto& node : scene.nodes) {
+      if (has_skinned_geometry(node)) return true;
+   }
+
+   return false;
+}
+
+auto unify_bone_maps(Scene& scene) -> std::vector<std::uint8_t>
+{
+   if (scene.nodes.size() > std::numeric_limits<std::uint8_t>::max()) {
+      throw std::runtime_error{"Scene has too many nodes to unify bone maps."};
+   }
+
+   std::vector<std::uint8_t> bone_map;
+   bone_map.reserve(scene.nodes.size() * scene.nodes.size());
+
+   for (auto& node : scene.nodes) {
+      if (has_skinned_geometry(node)) {
+         bone_map.insert(bone_map.cend(), node.geometry->bone_map.cbegin(),
+                         node.geometry->bone_map.cend());
+      }
+   }
+
+   std::sort(bone_map.begin(), bone_map.end());
+   bone_map.erase(std::unique(bone_map.begin(), bone_map.end()), bone_map.end());
+
+   for (auto& node : scene.nodes) {
+      if (!node.geometry) continue;
+
+      auto& geom = node.geometry.value();
+
+      if (geom.bone_map.empty()) continue;
+
+      if (!geom.vertices.bones) {
+         geom.bone_map.clear();
+         continue;
+      }
+
+      std::array<std::uint8_t, 255> bones_lut;
+
+      if (geom.bone_map.size() > bones_lut.size()) {
+         throw std::runtime_error{"Geometry has invalid bone map."};
+      }
+
+      std::transform(
+         geom.bone_map.cbegin(), geom.bone_map.cend(), bones_lut.begin(),
+         [&](const std::uint8_t i) {
+            return static_cast<std::uint8_t>(std::distance(
+               bone_map.cbegin(), std::find(bone_map.cbegin(), bone_map.cend(), i)));
+         });
+
+      geom.bone_map = bone_map;
+
+      std::transform(geom.vertices.bones.get(),
+                     geom.vertices.bones.get() + geom.vertices.size,
+                     geom.vertices.bones.get(), [&](const glm::u8vec3 bones) {
+                        return glm::u8vec3{bones_lut.at(bones[0]), bones_lut.at(bones[1]),
+                                           bones_lut.at(bones[2])};
+                     });
+   }
+
+   return bone_map;
+}
+
 }
