@@ -7,7 +7,6 @@ class File_saver;
 
 namespace model::gltf {
 
-void save_scene(scene::Scene scene, File_saver& file_saver,
-                const Game_version game_version);
+void save_scene(scene::Scene scene, File_saver& file_saver);
 
 }

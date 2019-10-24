@@ -256,7 +256,7 @@ auto create_scene(Model model) -> scene::Scene
 
 void save_model(Model model, File_saver& file_saver, const Game_version game_version)
 {
-   gltf::save_scene(create_scene(std::move(model)), file_saver, game_version);
+   gltf::save_scene(create_scene(std::move(model)), file_saver);
 }
 }
 

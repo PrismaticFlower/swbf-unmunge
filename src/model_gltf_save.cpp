@@ -234,8 +234,7 @@ auto add_node_mesh(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
 
 }
 
-void save_scene(scene::Scene scene, File_saver& file_saver,
-                const Game_version game_version)
+void save_scene(scene::Scene scene, File_saver& file_saver)
 {
    unstripfy_scene_nodes_topologies(scene.nodes);
 
