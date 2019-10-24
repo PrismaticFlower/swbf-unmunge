@@ -40,32 +40,6 @@ auto count_strips(const std::vector<Indices>& strips) noexcept -> std::size_t
       });
 }
 
-auto combine_triangle_strips(const std::vector<Indices>& strips) -> Indices
-{
-   [[unlikely]] if (strips.size() == 0) return {};
-
-   const auto padding_count = (std::max(strips.size() - 1, std::size_t{1}) * 3);
-
-   Indices indices;
-   indices.reserve(count_strips(strips) + padding_count);
-
-   indices.insert(indices.end(), strips[0].cbegin(), strips[0].cend());
-   indices.push_back(strips[0].back());
-
-   std::for_each(strips.cbegin() + 1, strips.cend(), [&](const Indices& strip) {
-      if (strip.size() < 3) return;
-
-      indices.push_back(strip.front());
-      if (is_odd(strip.size())) indices.push_back(strip.front());
-      indices.insert(indices.end(), strip.cbegin(), strip.cend());
-      indices.push_back(strip.back());
-   });
-
-   indices.pop_back(); // Remove the last padding triangle.
-
-   return indices;
-}
-
 auto combine_triangle_strips_ps2(const std::vector<Indices>& strips) -> Indices
 {
    [[unlikely]] if (strips.size() == 0) return {};
@@ -120,13 +94,6 @@ auto convert([[maybe_unused]] const Indices& indices) -> Indices
    throw std::runtime_error{fmt::format(
       "Attempt to convert primitve topology from {} to {}. This is unsupported.",
       to_string_view(current), to_string_view(desired))};
-}
-
-template<>
-auto convert<Primitive_topology::triangle_list, Primitive_topology::triangle_strip>(
-   const Indices& tris) -> Indices
-{
-   return combine_triangle_strips(create_triangle_strips(tris));
 }
 
 template<>
@@ -199,10 +166,10 @@ auto convert<Primitive_topology::triangle_strip, Primitive_topology::triangle_li
    Indices triangles{};
    triangles.reserve(strips.size() * 3 - 2);
 
-   for (std::size_t i = 2; i < strips.size(); ++i) {
-      const auto tri = is_even(i / 3)
-                          ? std::array{strips[i - 2], strips[i - 1], strips[i]}
-                          : std::array{strips[i], strips[i - 1], strips[i - 2]};
+   for (auto i = 0; i < (strips.size() - 2); ++i) {
+      const bool even = is_even(i);
+      const auto tri = even ? std::array{strips[i], strips[i + 1], strips[i + 2]}
+                            : std::array{strips[i + 2], strips[i + 1], strips[i]};
 
       if (is_degenerate_triangle(tri)) continue;
 
@@ -258,14 +225,6 @@ auto convert<Primitive_topology::triangle_fan, Primitive_topology::triangle_list
    }
 
    return triangles;
-}
-
-template<>
-auto convert<Primitive_topology::triangle_fan, Primitive_topology::triangle_strip>(
-   const Indices& fan) -> Indices
-{
-   return convert<Primitive_topology::triangle_list, Primitive_topology::triangle_strip>(
-      convert<Primitive_topology::triangle_fan, Primitive_topology::triangle_list>(fan));
 }
 
 template<>

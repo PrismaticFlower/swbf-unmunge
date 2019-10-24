@@ -22,24 +22,18 @@ static_assert(sizeof(Collision_info) == 40);
 void triangulate_points(const std::vector<std::uint16_t>& points, model::Indices& out)
 {
    if (points.size() == 1) {
-      synced_cout::print("Found collision geometry represented as a point. Storing as "
-                         "degenerate triangle.");
-
-      out.insert(out.end(), {points[0], points[0], points[0]});
+      synced_cout::print("Found collision geometry represented as a point. Skipping.");
 
       return;
    }
    else if (points.size() == 2) {
-      synced_cout::print("Found collision geometry represented as a line. Storing as "
-                         "degenerate triangle.");
-
-      out.insert(out.end(), {points[0], points[1], points[1]});
+      synced_cout::print("Found collision geometry represented as a line. Skipping.");
 
       return;
    }
 
    for (std::size_t i = 2; i < points.size(); ++i) {
-      out.insert(out.end(), {points[0], points[i - 1], points[i]});
+      out.insert(out.end(), {points[0], points[i], points[i - 1]});
    }
 }
 

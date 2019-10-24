@@ -1,6 +1,7 @@
 
 #include "model_gltf_save.hpp"
 #include "file_saver.hpp"
+#include "model_topology_converter.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -16,6 +17,28 @@ using namespace std::literals;
 namespace model::gltf {
 
 namespace {
+
+auto unstripfy_scene_nodes_topologies(std::vector<scene::Node>& nodes)
+{
+   for (auto& node : nodes) {
+      if (node.geometry) {
+         switch (node.geometry->topology) {
+            // Not sure why but the triangle strips from the game's models don't seam to
+            // be valid in glTF, so we convert them to lists here.
+         case Primitive_topology::triangle_strip:
+            node.geometry->indices =
+               convert_topology(node.geometry->indices, node.geometry->topology,
+                                Primitive_topology::triangle_list);
+            break;
+         case Primitive_topology::triangle_strip_ps2:
+            node.geometry->indices =
+               convert_topology(node.geometry->indices, node.geometry->topology,
+                                Primitive_topology::triangle_list);
+            break;
+         }
+      }
+   }
+}
 
 auto map_primitive_topology(const Primitive_topology primitive_topology)
    -> fx::gltf::Primitive::Mode
@@ -214,6 +237,8 @@ auto add_node_mesh(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
 void save_scene(scene::Scene scene, File_saver& file_saver,
                 const Game_version game_version)
 {
+   unstripfy_scene_nodes_topologies(scene.nodes);
+
    fx::gltf::Document doc{};
    std::vector<std::uint8_t> buffer;
    buffer.reserve(1000000);
