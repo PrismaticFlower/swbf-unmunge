@@ -18,6 +18,8 @@ namespace model::gltf {
 
 namespace {
 
+constexpr bool GLTF_EXPORT_SKIN = false; // todo: Implement glTF skin support.
+
 auto unstripfy_scene_nodes_topologies(std::vector<scene::Node>& nodes)
 {
    for (auto& node : nodes) {
@@ -249,15 +251,19 @@ auto add_primitve_attributes(fx::gltf::Document& doc, std::vector<std::uint8_t>&
    add_attrib("TANGENT"s, make_gltf_tangents(vertices).get());
    add_attrib("TEXCOORD_0"s, vertices.texcoords.get());
    add_attrib("COLOR_0"s, vertices.colors.get());
-   add_attrib("JOINTS_0"s, make_extended_bone_indices(vertices).get());
 
-   if (vertices.bones && vertices.weights) {
-      add_attrib("WEIGHTS_0"s, make_normalized_bone_weights(vertices).get());
-   }
-   else if (vertices.bones) {
-      add_attrib(
-         "WEIGHTS_0"s,
-         std::vector<glm::vec4>{vertices.size, glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}}.data());
+   if constexpr (GLTF_EXPORT_SKIN) {
+      add_attrib("JOINTS_0"s, make_extended_bone_indices(vertices).get());
+
+      if (vertices.bones && vertices.weights) {
+         add_attrib("WEIGHTS_0"s, make_normalized_bone_weights(vertices).get());
+      }
+      else if (vertices.bones) {
+         add_attrib(
+            "WEIGHTS_0"s,
+            std::vector<glm::vec4>{vertices.size, glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}}
+               .data());
+      }
    }
 
    return attribs;
@@ -286,7 +292,7 @@ auto add_node_mesh(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
 
 auto add_skin_inverse_bind_matrices(fx::gltf::Document& doc,
                                     std::vector<std::uint8_t>& buffer,
-                                    const scene::Scene& scene,
+                                    [[maybe_unused]] const scene::Scene& scene,
                                     const std::vector<std::uint8_t>& unified_bone_map)
    -> std::int32_t
 {
@@ -315,14 +321,15 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
    buffer.reserve(1000000);
 
    for (const auto& node : scene.nodes) {
-      doc.nodes.push_back({.name = node.name,
-                           .mesh = add_node_mesh(doc, buffer, node),
-                           .skin = scene::has_skinned_geometry(node) ? 0 : -1,
-                           .matrix = make_node_matrix(node.transform),
-                           .children = make_node_children_list(node.name, scene.nodes)});
+      doc.nodes.push_back(
+         {.name = node.name,
+          .mesh = add_node_mesh(doc, buffer, node),
+          .skin = (GLTF_EXPORT_SKIN && scene::has_skinned_geometry(node)) ? 0 : -1,
+          .matrix = make_node_matrix(node.transform),
+          .children = make_node_children_list(node.name, scene.nodes)});
    }
 
-   if (scene::has_skinned_geometry(scene)) {
+   if constexpr (GLTF_EXPORT_SKIN && scene::has_skinned_geometry(scene)) {
       doc.skins.push_back(
          {.inverseBindMatrices =
              add_skin_inverse_bind_matrices(doc, buffer, scene, unified_bone_map),
