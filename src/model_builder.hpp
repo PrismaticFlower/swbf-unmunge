@@ -111,7 +111,8 @@ public:
    void integrate(Model model) noexcept;
 
    void save_models(File_saver& file_saver, const Game_version game_version,
-                    const Model_format format) noexcept;
+                    const Model_format format,
+                    const Model_discard_flags discard_flags) noexcept;
 
 private:
    std::mutex _mutex;

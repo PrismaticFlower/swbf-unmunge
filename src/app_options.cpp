@@ -126,6 +126,30 @@ std::istream& operator>>(std::istream& istream, Model_format& model_format)
    return istream;
 }
 
+std::istream& operator>>(std::istream& istream, Model_discard_flags& model_discard)
+{
+   std::string str;
+   istream >> std::quoted(str);
+
+   if (str == "none"sv) {
+      model_discard = Model_discard_flags::none;
+   }
+   else if (str == "lod"sv) {
+      model_discard = Model_discard_flags::lod;
+   }
+   else if (str == "collision"sv) {
+      model_discard = Model_discard_flags::collision;
+   }
+   else if (str == "lod_collision"sv) {
+      model_discard = Model_discard_flags::lod | Model_discard_flags::collision;
+   }
+   else {
+      throw std::invalid_argument{"Invalid image format specified."};
+   }
+
+   return istream;
+}
+
 std::istream& operator>>(std::istream& istream, Input_platform& platform)
 {
    std::string str;
@@ -167,6 +191,13 @@ constexpr auto image_opt_description{
 constexpr auto model_format_opt_description{
    R"(<mode> Set the output storage format of extracted models. Can be 'msh' or 'glTF'. Default is 'msh'.)"sv};
 
+constexpr auto model_discard_lod_opt_description{
+   R"(<discard> Sets what to discard from extracted models before saving them to produce cleaner scenes.
+   'none' (default) - Discard nothing.
+   'lod' - Discard LOD copies of the model, leaving only the most detailed copy of the model.
+   'collision' - Discard the model's collision information.
+   'lod_collision' - Discard both the model's collision information and LOD copies.)"sv};
+
 constexpr auto input_plat_opt_description{
    R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"sv};
 
@@ -195,6 +226,8 @@ App_options::App_options()
        image_opt_description},
       {"-modelfmt"s, [this](Istr& istr) { istr >> _model_format; },
        model_format_opt_description},
+      {"-modeldiscard"s, [this](Istr& istr) { istr >> _model_discard_flags; },
+       model_discard_lod_opt_description},
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
        input_plat_opt_description},
       {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
@@ -244,6 +277,11 @@ Image_format App_options::image_save_format() const noexcept
 Model_format App_options::model_format() const noexcept
 {
    return _model_format;
+}
+
+Model_discard_flags App_options::model_discard_flags() const noexcept
+{
+   return _model_discard_flags;
 }
 
 Input_platform App_options::input_platform() const noexcept

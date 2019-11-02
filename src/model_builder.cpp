@@ -265,6 +265,23 @@ void save_model(Model model, File_saver& file_saver, const Game_version game_ver
       gltf::save_scene(create_scene(std::move(model)), file_saver);
    }
 }
+
+void clean_model(Model& model, const Model_discard_flags discard_flags) noexcept
+{
+   if (discard_flags == Model_discard_flags::none) return;
+
+   if (are_flags_set(discard_flags, Model_discard_flags::collision)) {
+      model.collision_meshes.clear();
+      model.collision_primitives.clear();
+   }
+
+   if (are_flags_set(discard_flags, Model_discard_flags::lod)) {
+      model.parts.erase(
+         std::remove_if(model.parts.begin(), model.parts.end(),
+                        [](const Part& part) { return part.lod != Lod::zero; }),
+         model.parts.end());
+   }
+}
 }
 
 Vertices::Vertices(const std::size_t size, const Create_flags flags) : size{size}
@@ -304,13 +321,13 @@ void Models_builder::integrate(Model model) noexcept
 }
 
 void Models_builder::save_models(File_saver& file_saver, const Game_version game_version,
-                                 const Model_format format) noexcept
+                                 const Model_format format,
+                                 const Model_discard_flags discard_flags) noexcept
 {
    std::lock_guard lock{_mutex};
 
-   (void)(file_saver, game_version);
-
    tbb::parallel_for_each(_models, [&](Model& model) {
+      clean_model(model, discard_flags);
       save_model(std::move(model), file_saver, game_version, format);
    });
 

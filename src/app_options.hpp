@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bit_flags.hpp"
+
 #include <functional>
 #include <iosfwd>
 #include <string>
@@ -10,6 +12,13 @@ enum class Tool_mode { extract, explode, assemble };
 enum class Image_format { tga, png, dds };
 
 enum class Model_format { msh, gltf2 };
+
+enum class Model_discard_flags { none = 0b0, lod = 0b1, collision = 0b01, all = 0b11 };
+
+constexpr bool marked_as_enum_flag(Model_discard_flags) noexcept
+{
+   return true;
+}
 
 enum class Game_version { swbf_ii, swbf };
 
@@ -35,6 +44,8 @@ public:
    Image_format image_save_format() const noexcept;
 
    Model_format model_format() const noexcept;
+
+   Model_discard_flags model_discard_flags() const noexcept;
 
    Input_platform input_platform() const noexcept;
 
@@ -63,6 +74,7 @@ private:
    Game_version _output_game_version = Game_version::swbf_ii;
    Image_format _img_save_format = Image_format::tga;
    Model_format _model_format = Model_format::msh;
+   Model_discard_flags _model_discard_flags = Model_discard_flags::none;
    Input_platform _input_platform = Input_platform::pc;
    bool _verbose = false;
 };

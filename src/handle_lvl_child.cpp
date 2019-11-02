@@ -28,5 +28,6 @@ void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
    tbb::parallel_for_each(children_parents, processor);
 
    model_builders.save_models(file_saver, app_options.output_game_version(),
-                              app_options.model_format());
+                              app_options.model_format(),
+                              app_options.model_discard_flags());
 }

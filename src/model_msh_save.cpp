@@ -474,7 +474,7 @@ void save_option_file(const scene::Scene& scene, File_saver& file_saver)
 }
 
 void save_scene(scene::Scene scene, File_saver& file_saver,
-                const Game_version game_version)
+                [[maybe_unused]] const Game_version game_version)
 {
    auto output = file_saver.open_save_file("msh"sv, scene.name, ".msh"sv);
 
