@@ -267,9 +267,11 @@ auto add_primitve_attributes(fx::gltf::Document& doc, std::vector<std::uint8_t>&
 }
 
 auto add_mesh_primitve(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
-                       const scene::Geometry& geometry) -> fx::gltf::Primitive
+                       const scene::Geometry& geometry, const std::int32_t material_index)
+   -> fx::gltf::Primitive
 {
    return {.indices = add_primitve_indices(doc, buffer, geometry.indices),
+           .material = material_index,
            .mode = map_primitive_topology(geometry.topology),
            .attributes = add_primitve_attributes(doc, buffer, geometry.vertices)};
 }
@@ -282,9 +284,95 @@ auto add_node_mesh(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
    const auto index = static_cast<std::int32_t>(doc.meshes.size());
 
    doc.meshes.push_back({.name = node.name,
-                         .primitives = {add_mesh_primitve(doc, buffer, *node.geometry)}});
+                         .primitives = {add_mesh_primitve(doc, buffer, *node.geometry,
+                                                          node.material_index)}});
 
    return index;
+}
+
+auto add_texture_image(fx::gltf::Document& doc, const std::string_view name)
+   -> std::int32_t
+{
+   const auto index = static_cast<std::int32_t>(doc.images.size());
+
+   doc.images.push_back(
+      {.name = std::string{name}, .uri = fmt::format("./{}.png"sv, name)});
+
+   return index;
+}
+
+auto add_material_texture(fx::gltf::Document& doc, const std::string_view name)
+   -> std::int32_t
+{
+   const auto index = static_cast<std::int32_t>(doc.textures.size());
+
+   doc.textures.push_back(
+      {.name = std::string{name}, .source = add_texture_image(doc, name)});
+
+   return index;
+}
+
+auto add_material_normal_texture(fx::gltf::Document& doc, const scene::Material& material)
+   -> fx::gltf::Material::NormalTexture
+{
+   if ((material.rendertype != Render_type::bumpmap &&
+        material.rendertype != Render_type::bumpmap_specular) ||
+       material.textures[1].empty()) {
+      return {};
+   }
+
+   fx::gltf::Material::NormalTexture tex;
+
+   tex.index = add_material_texture(doc, material.textures[1]);
+
+   return tex;
+}
+
+auto add_material_pbr(fx::gltf::Document& doc, const scene::Material& material)
+   -> fx::gltf::Material::PBRMetallicRoughness
+{
+   fx::gltf::Material::PBRMetallicRoughness pbr;
+
+   pbr.baseColorFactor = {material.diffuse_colour[0], material.diffuse_colour[1],
+                          material.diffuse_colour[2], material.diffuse_colour[3]};
+
+   if (!material.textures[0].empty()) {
+      pbr.baseColorTexture.index = add_material_texture(doc, material.textures[0]);
+   }
+
+   // Guess with extreme disregard for reality what the roughness and metallic factors
+   // should be.
+   if (const float spec_strength =
+          glm::clamp(glm::dot(glm::vec3{material.specular_colour},
+                              glm::vec3{0.2126f, 0.7152f, 0.0722f}),
+                     0.0f, 1.0f);
+       are_flags_set(material.flags, Render_flags::specular) ||
+       material.rendertype == Render_type::specular ||
+       material.rendertype == Render_type::bumpmap_specular) {
+      pbr.roughnessFactor = 1.0f - ((1.0f - 0.4f) * spec_strength);
+   }
+   else if (material.rendertype == Render_type::env_map) {
+      pbr.roughnessFactor = 1.0f - spec_strength;
+      pbr.metallicFactor = 1.0f - ((1.0f - 0.4f) * spec_strength);
+   }
+
+   return pbr;
+}
+
+auto add_material(fx::gltf::Document& doc, const scene::Material& material)
+   -> fx::gltf::Material
+
+{
+   return {.alphaCutoff = 0.5f,
+           .alphaMode = are_flags_set(material.flags, Render_flags::hardedged)
+                           ? fx::gltf::Material::AlphaMode::Mask
+                           : are_flags_set(material.flags, Render_flags::transparent)
+                                ? fx::gltf::Material::AlphaMode::Blend
+                                : fx::gltf::Material::AlphaMode::Opaque,
+           .doubleSided = are_flags_set(material.flags, Render_flags::doublesided),
+           .normalTexture = add_material_normal_texture(doc, material),
+           .pbrMetallicRoughness = add_material_pbr(doc, material),
+           .name = material.name};
 }
 
 auto add_skin_inverse_bind_matrices(fx::gltf::Document& doc,
@@ -314,6 +402,9 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
    unstripfy_scene_nodes_topologies(scene.nodes);
 
    fx::gltf::Document doc{};
+
+   doc.buffers.emplace_back(); // embedded buffer
+
    std::vector<std::uint8_t> buffer;
    buffer.reserve(1000000);
 
@@ -326,6 +417,10 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
           .children = make_node_children_list(node.name, scene.nodes)});
    }
 
+   for (const auto& material : scene.materials) {
+      doc.materials.push_back(add_material(doc, material));
+   }
+
    if constexpr (GLTF_EXPORT_SKIN && scene::has_skinned_geometry(scene)) {
       doc.skins.push_back(
          {.inverseBindMatrices =
@@ -336,8 +431,8 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
 
    doc.scene = 0;
    doc.scenes.push_back({.name = scene.name, .nodes = {0}});
-   doc.buffers.push_back({.byteLength = gsl::narrow<std::uint32_t>(buffer.size()),
-                          .data = std::move(buffer)});
+   doc.buffers.front() = {.byteLength = gsl::narrow<std::uint32_t>(buffer.size()),
+                          .data = std::move(buffer)};
 
    fx::gltf::Save(doc, file_saver.build_file_path(""sv, scene.name, ".glb"sv).string(),
                   true);
