@@ -232,6 +232,17 @@ void write_clrl(Ucfb_writer& segm, const gsl::span<glm::vec4> colours)
    for (const auto c : colours) clrl.write<std::uint32_t>(glm::packUnorm4x8(c.bgra));
 }
 
+void write_uv(Ucfb_writer& parent, const Magic_number mn,
+              const gsl::span<glm::vec2> texcoords)
+{
+
+   auto uv = parent.emplace_child(mn);
+
+   uv.write(static_cast<std::uint32_t>(texcoords.size()));
+
+   for (glm::vec2 coords : texcoords) uv.write(coords *= glm::vec2{1.0f, -1.0f});
+}
+
 void write_ndxl_ndxt(Ucfb_writer& segm, const scene::Geometry& geometry)
 {
    std::optional<Indices> converted;
@@ -305,8 +316,8 @@ void write_segm(Ucfb_writer& geom, const scene::Geometry& geometry,
    }
 
    if (geometry.vertices.texcoords) {
-      segm.emplace_child("UV0L"_mn).write(
-         vertex_count, gsl::make_span(geometry.vertices.texcoords.get(), vertex_count));
+      write_uv(segm, "UV0L"_mn,
+               gsl::make_span(geometry.vertices.texcoords.get(), vertex_count));
    }
 
    write_ndxl_ndxt(segm, geometry);
@@ -370,9 +381,10 @@ void write_clth(Ucfb_writer& geom, const scene::Cloth_geometry& cloth_geometry)
    clth.emplace_child("CPOS"_mn).write(
       vertex_count,
       gsl::make_span(cloth_geometry.vertices.positions.get(), vertex_count));
-   clth.emplace_child("CUV0"_mn).write(
-      vertex_count,
-      gsl::make_span(cloth_geometry.vertices.texcoords.get(), vertex_count));
+
+   write_uv(clth, "CUV0"_mn,
+            gsl::make_span(cloth_geometry.vertices.texcoords.get(), vertex_count));
+
    clth.emplace_child("FIDX"_mn).write(
       static_cast<std::uint32_t>(cloth_geometry.fixed_points.size()),
       gsl::make_span(cloth_geometry.fixed_points));
