@@ -25,17 +25,14 @@ auto unstripfy_scene_nodes_topologies(std::vector<scene::Node>& nodes)
    for (auto& node : nodes) {
       if (node.geometry) {
          switch (node.geometry->topology) {
-            // Not sure why but the triangle strips from the game's models don't seam to
-            // be valid in glTF, so we convert them to lists here.
+            // Not sure why but blender doesn't seam to like the triangle strips from the
+            // game's models, so we convert them to lists here.
          case Primitive_topology::triangle_strip:
-            node.geometry->indices =
-               convert_topology(node.geometry->indices, node.geometry->topology,
-                                Primitive_topology::triangle_list);
-            break;
          case Primitive_topology::triangle_strip_ps2:
             node.geometry->indices =
                convert_topology(node.geometry->indices, node.geometry->topology,
                                 Primitive_topology::triangle_list);
+            node.geometry->topology = Primitive_topology::triangle_list;
             break;
          }
       }
