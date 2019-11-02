@@ -131,6 +131,9 @@
     <ClCompile Include="src\model_gltf_save.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\save_image_tga.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\file_saver.hpp">
@@ -215,6 +218,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\model_gltf_save.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\save_image_tga.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

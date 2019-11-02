@@ -1,6 +1,7 @@
 
 #include "app_options.hpp"
 #include "file_saver.hpp"
+#include "save_image_tga.hpp"
 #include "string_helpers.hpp"
 
 #include "DirectXTex.h"
@@ -80,16 +81,16 @@ void save_image(std::string_view name, DirectX::ScratchImage image,
 
    file_saver.create_dir(dir);
 
-   if (save_format == Image_format::png) {
+   if (save_format == Image_format::tga) {
+      ensure_basic_format(image);
+
+      save_image_tga(path, *image.GetImage(0, 0, 0));
+   }
+   else if (save_format == Image_format::png) {
       ensure_basic_format(image);
 
       DirectX::SaveToWICFile(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
                              DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), path.c_str());
-   }
-   else if (save_format == Image_format::tga) {
-      ensure_basic_format(image);
-
-      DirectX::SaveToTGAFile(*image.GetImage(0, 0, 0), path.c_str());
    }
    else if (save_format == Image_format::dds) {
       DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(),
