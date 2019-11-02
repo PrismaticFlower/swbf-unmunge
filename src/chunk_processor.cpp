@@ -220,19 +220,22 @@ const auto chunk_processors = Chunk_processor_map{
    {"tex_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_texture(args.chunk, args.file_saver, args.app_options.image_save_format());
+        handle_texture(args.chunk, args.file_saver, args.app_options.image_save_format(),
+                       args.app_options.model_format());
      }}},
    {"tex_"_mn,
     {Input_platform::ps2, Game_version::swbf_ii,
      [](Args_pack args) {
         handle_texture_ps2(args.chunk, args.parent_reader, args.file_saver,
-                           args.app_options.image_save_format());
+                           args.app_options.image_save_format(),
+                           args.app_options.model_format());
      }}},
    {"tex_"_mn,
     {Input_platform::xbox, Game_version::swbf_ii,
      [](Args_pack args) {
         handle_texture_xbox(args.chunk, args.file_saver,
-                            args.app_options.image_save_format());
+                            args.app_options.image_save_format(),
+                            args.app_options.model_format());
      }}},
    // World chunks
    {"wrld"_mn,

@@ -9,6 +9,8 @@ enum class Tool_mode { extract, explode, assemble };
 
 enum class Image_format { tga, png, dds };
 
+enum class Model_format { msh, gltf2 };
+
 enum class Game_version { swbf_ii, swbf };
 
 enum class Input_platform { pc, ps2, xbox };
@@ -31,6 +33,8 @@ public:
    Game_version output_game_version() const noexcept;
 
    Image_format image_save_format() const noexcept;
+
+   Model_format model_format() const noexcept;
 
    Input_platform input_platform() const noexcept;
 
@@ -58,6 +62,7 @@ private:
    Game_version _game_version = Game_version::swbf_ii;
    Game_version _output_game_version = Game_version::swbf_ii;
    Image_format _img_save_format = Image_format::tga;
+   Model_format _model_format = Model_format::msh;
    Input_platform _input_platform = Input_platform::pc;
    bool _verbose = false;
 };

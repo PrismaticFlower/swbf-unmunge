@@ -108,6 +108,24 @@ std::istream& operator>>(std::istream& istream, Image_format& image_type)
    return istream;
 }
 
+std::istream& operator>>(std::istream& istream, Model_format& model_format)
+{
+   std::string str;
+   istream >> std::quoted(str);
+
+   if (str == "msh"sv) {
+      model_format = Model_format::msh;
+   }
+   else if (str == "glTF"sv) {
+      model_format = Model_format::gltf2;
+   }
+   else {
+      throw std::invalid_argument{"Invalid image format specified."};
+   }
+
+   return istream;
+}
+
 std::istream& operator>>(std::istream& istream, Input_platform& platform)
 {
    std::string str;
@@ -146,11 +164,13 @@ constexpr auto gameout_ver_opt_description{
 constexpr auto image_opt_description{
    R"(<format> Set the output image format for textures. Can be 'tga', 'png' or 'dds'. Default is 'tga'.)"sv};
 
+constexpr auto model_format_opt_description{
+   R"(<mode> Set the output storage format of extracted models. Can be 'msh' or 'glTF'. Default is 'msh'.)"sv};
+
 constexpr auto input_plat_opt_description{
    R"(<platform> Set the platform the input file was munged for. Can be 'pc', 'ps2' or 'xbox'. Default is 'pc'.)"sv};
 
-constexpr auto verbose_opt_description{
-   R"(Enable verbose output.)"sv};
+constexpr auto verbose_opt_description{R"(Enable verbose output.)"sv};
 
 constexpr auto mode_opt_description{
    R"(<mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
@@ -173,6 +193,8 @@ App_options::App_options()
        gameout_ver_opt_description},
       {"-imgfmt"s, [this](Istr& istr) { istr >> _img_save_format; },
        image_opt_description},
+      {"-modelfmt"s, [this](Istr& istr) { istr >> _model_format; },
+       model_format_opt_description},
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
        input_plat_opt_description},
       {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
@@ -217,6 +239,11 @@ Game_version App_options::output_game_version() const noexcept
 Image_format App_options::image_save_format() const noexcept
 {
    return _img_save_format;
+}
+
+Model_format App_options::model_format() const noexcept
+{
+   return _model_format;
 }
 
 Input_platform App_options::input_platform() const noexcept

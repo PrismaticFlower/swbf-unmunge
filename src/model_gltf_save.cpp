@@ -434,8 +434,10 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
    doc.buffers.front() = {.byteLength = gsl::narrow<std::uint32_t>(buffer.size()),
                           .data = std::move(buffer)};
 
-   fx::gltf::Save(doc, file_saver.build_file_path(""sv, scene.name, ".glb"sv).string(),
-                  true);
+   file_saver.create_dir("models"sv);
+
+   fx::gltf::Save(
+      doc, file_saver.build_file_path("models"sv, scene.name, ".glb"sv).string(), true);
 }
 
 }

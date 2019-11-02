@@ -136,7 +136,9 @@ auto create_scene(Model model) -> scene::Scene
 {
    scene::Scene scene{.name = std::move(model.name)};
 
-   scene.materials.push_back({.name = "default_material"});
+   scene.materials.push_back({.name = "default_material",
+                              .diffuse_colour = {0.5f, 0.5f, 0.5f, 0.33f},
+                              .flags = Render_flags::transparent});
 
    if (model.bones.empty()) {
       scene.nodes.push_back({.name = "root"s,
@@ -254,9 +256,15 @@ auto create_scene(Model model) -> scene::Scene
    return scene;
 }
 
-void save_model(Model model, File_saver& file_saver, const Game_version game_version)
+void save_model(Model model, File_saver& file_saver, const Game_version game_version,
+                const Model_format format)
 {
-   gltf::save_scene(create_scene(std::move(model)), file_saver);
+   if (format == Model_format::msh) {
+      msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
+   }
+   else if (format == Model_format::gltf2) {
+      gltf::save_scene(create_scene(std::move(model)), file_saver);
+   }
 }
 }
 
@@ -296,15 +304,15 @@ void Models_builder::integrate(Model model) noexcept
    }
 }
 
-void Models_builder::save_models(File_saver& file_saver,
-                                 const Game_version game_version) noexcept
+void Models_builder::save_models(File_saver& file_saver, const Game_version game_version,
+                                 const Model_format format) noexcept
 {
    std::lock_guard lock{_mutex};
 
    (void)(file_saver, game_version);
 
    tbb::parallel_for_each(_models, [&](Model& model) {
-      save_model(std::move(model), file_saver, game_version);
+      save_model(std::move(model), file_saver, game_version, format);
    });
 
    _models.clear();

@@ -152,9 +152,9 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
 }
 
 void handle_texture_xbox(Ucfb_reader texture, File_saver& file_saver,
-                         Image_format save_format)
+                         Image_format save_format, Model_format model_format)
 {
    auto [name, image] = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture});
 
-   save_image(name, std::move(image), file_saver, save_format);
+   save_image(name, std::move(image), file_saver, save_format, model_format);
 }

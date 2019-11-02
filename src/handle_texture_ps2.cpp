@@ -248,10 +248,11 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> tex, Ucfb_reader parent_reader)
 }
 
 void handle_texture_ps2(Ucfb_reader texture, Ucfb_reader parent_reader,
-                        File_saver& file_saver, Image_format save_format)
+                        File_saver& file_saver, Image_format save_format,
+                        Model_format model_format)
 {
    auto [name, image] =
       read_texture(Ucfb_reader_strict<"tex_"_mn>{texture}, parent_reader);
 
-   save_image(name, std::move(image), file_saver, save_format);
+   save_image(name, std::move(image), file_saver, save_format, model_format);
 }

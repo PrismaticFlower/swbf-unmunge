@@ -110,7 +110,8 @@ class Models_builder {
 public:
    void integrate(Model model) noexcept;
 
-   void save_models(File_saver& file_saver, const Game_version game_version) noexcept;
+   void save_models(File_saver& file_saver, const Game_version game_version,
+                    const Model_format format) noexcept;
 
 private:
    std::mutex _mutex;

@@ -6,4 +6,5 @@
 #include "DirectXTex.h"
 
 void save_image(std::string_view name, DirectX::ScratchImage image,
-                File_saver& file_saver, Image_format save_format);
+                File_saver& file_saver, Image_format save_format,
+                Model_format model_format);

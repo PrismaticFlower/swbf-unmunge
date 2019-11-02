@@ -65,23 +65,31 @@ auto image_extension(const Image_format format) noexcept -> std::string_view
 }
 
 void save_image(std::string_view name, DirectX::ScratchImage image,
-                File_saver& file_saver, Image_format save_format)
+                File_saver& file_saver, Image_format save_format,
+                Model_format model_format)
 {
-   const auto path =
-      file_saver.build_file_path("textures"sv, name, image_extension(save_format));
+   // Windows' 3D Viewer doesn't handle relative texture paths, so we have to put the
+   // textures in the same folder as the glTF files if we want them to be previewable in
+   // it.
+   const auto dir = model_format == Model_format::gltf2 ? "models"sv : "textures"sv;
 
-   file_saver.create_dir("textures"sv);
+   // glTF doesn't support .tga files.
+   save_format = model_format == Model_format::gltf2 ? Image_format::png : save_format;
 
-   if (save_format == Image_format::tga) {
-      ensure_basic_format(image);
+   const auto path = file_saver.build_file_path(dir, name, image_extension(save_format));
 
-      DirectX::SaveToTGAFile(*image.GetImage(0, 0, 0), path.c_str());
-   }
-   else if (save_format == Image_format::png) {
+   file_saver.create_dir(dir);
+
+   if (save_format == Image_format::png) {
       ensure_basic_format(image);
 
       DirectX::SaveToWICFile(*image.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE,
                              DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), path.c_str());
+   }
+   else if (save_format == Image_format::tga) {
+      ensure_basic_format(image);
+
+      DirectX::SaveToTGAFile(*image.GetImage(0, 0, 0), path.c_str());
    }
    else if (save_format == Image_format::dds) {
       DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(),
