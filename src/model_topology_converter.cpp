@@ -192,19 +192,32 @@ auto convert<Primitive_topology::triangle_strip, Primitive_topology::triangle_st
    ps2_strips[0] |= 0x8000;
    ps2_strips[1] |= 0x8000;
 
-   for (std::size_t i = 3; i < strips.size();) {
-      if ((strips[i] == ps2_strips.back()) && (i + 3 >= strips.size()) &&
-          (strips[i + 1] != strips[i + 2])) {
+   std::array strip_head{strips[1], strips[2]};
 
-         ps2_strips.push_back(strips[i + 2] | 0x8000);
-         ps2_strips.push_back(strips[i + 3] | 0x8000);
+   for (std::size_t i = 3; i < strips.size(); ++i) {
+      if (is_degenerate_triangle(std::array{strip_head[0], strip_head[1], strips[i]})) {
+         for (; i < strips.size(); ++i) {
+            std::array tri{strip_head[0], strip_head[1], strips[i]};
 
-         i += 3;
-         continue;
+            strip_head = {tri[1], tri[2]};
+
+            if (is_degenerate_triangle(tri)) {
+               continue;
+            }
+
+            tri[0] |= 0x8000;
+            tri[1] |= 0x8000;
+
+            ps2_strips.insert(ps2_strips.cend(), tri.cbegin(), tri.cend());
+
+            break;
+         }
       }
       else {
+         strip_head[0] = strip_head[1];
+         strip_head[1] = strips[i];
+
          ps2_strips.push_back(strips[i]);
-         i += 1;
       }
    }
 
