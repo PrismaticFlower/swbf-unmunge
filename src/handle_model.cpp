@@ -54,7 +54,7 @@ enum class Material_flags : std::uint32_t {
    specular = 128,
    env_map = 256,
    vertex_lighting = 512,
-   wireframe = 2048, // Name based off msh flags, may produce some other effect.
+   tiled_normalmap = 2048, // Name based off msh flags, may produce some other effect.
    doublesided = 65536,
 
    scrolling = 16777216,
@@ -456,8 +456,8 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, model::Material& out)
    if (are_flags_set(info.flags, Material_flags::env_map)) {
       out.type = model::Render_type::env_map;
    }
-   if (are_flags_set(info.flags, Material_flags::wireframe)) {
-      out.type = model::Render_type::wireframe;
+   if (are_flags_set(info.flags, Material_flags::tiled_normalmap)) {
+      out.type = model::Render_type::tiled_normalmap;
    }
    if (are_flags_set(info.flags, Material_flags::doublesided)) {
       out.flags = set_flags(out.flags, model::Render_flags::doublesided);

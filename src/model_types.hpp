@@ -35,7 +35,7 @@ enum class Render_type : std::uint8_t {
    detail = glow,
    refraction = 22,
    camouflage = 23,
-   wireframe = 24,
+   tiled_normalmap = 24,
    energy = 25,
    bumpmap = 27,
    bumpmap_specular = 28
