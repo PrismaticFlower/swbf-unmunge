@@ -13,10 +13,6 @@
   <ItemGroup>
     <ClCompile Include="src\app_options.cpp" />
     <ClCompile Include="src\assemble_chunks.cpp" />
-    <ClCompile Include="src\cloth_converter.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\explode_chunk.cpp" />
     <ClCompile Include="src\handle_cloth.cpp" />
     <ClCompile Include="src\handle_collision.cpp" />
@@ -46,10 +42,6 @@
     <ClCompile Include="src\model_msh_save.cpp" />
     <ClCompile Include="src\model_scene.cpp" />
     <ClCompile Include="src\model_topology_converter.cpp" />
-    <ClCompile Include="src\msh_builder.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\save_image.cpp" />
     <ClCompile Include="src\save_image_tga.cpp" />
     <ClCompile Include="src\swbf_fnv_hashes.cpp">
@@ -66,10 +58,6 @@
     <ClInclude Include="src\assemble_chunks.hpp" />
     <ClInclude Include="src\bit_flags.hpp" />
     <ClInclude Include="src\chunk_processor.hpp" />
-    <ClInclude Include="src\cloth_converter.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="src\explode_chunk.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
     <ClInclude Include="src\magic_number.hpp" />

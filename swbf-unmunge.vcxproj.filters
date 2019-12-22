@@ -65,9 +65,6 @@
     <ClCompile Include="src\vbuf_reader.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\msh_builder.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\ucfb_builder.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -93,9 +90,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\handle_cloth.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\cloth_converter.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\handle_misc.cpp">
@@ -182,9 +176,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\synced_cout.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\cloth_converter.hpp">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\explode_chunk.hpp">
