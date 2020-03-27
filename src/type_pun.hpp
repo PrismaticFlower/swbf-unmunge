@@ -43,8 +43,8 @@ inline auto to_byte_pointer(const Type* const pointer) noexcept -> const std::by
 template<typename Type>
 inline auto view_object_as_string(const Type& pod) noexcept -> std::string_view
 {
-   static_assert(std::is_pod_v<std::remove_reference_t<Type>>,
-                 "Type must be plain-old-data.");
+   static_assert(std::is_trivially_copyable_v<std::remove_reference_t<Type>>,
+                 "Type must be trivially copyable.");
    static_assert(!std::is_pointer_v<std::remove_reference_t<Type>>,
                  "Type can not be a pointer.");
 
@@ -54,8 +54,8 @@ inline auto view_object_as_string(const Type& pod) noexcept -> std::string_view
 template<typename Type>
 inline auto view_object_as_string(Type&& pod) noexcept -> std::string
 {
-   static_assert(std::is_pod_v<std::remove_reference_t<Type>>,
-                 "Type must be plain-old-data.");
+   static_assert(std::is_trivially_copyable_v<std::remove_reference_t<Type>>,
+                 "Type must be trivially copyable.");
    static_assert(!std::is_pointer_v<std::remove_reference_t<Type>>,
                  "Type can not be rvalue to pointer.");
 
@@ -66,8 +66,8 @@ template<typename Type>
 inline auto view_object_span_as_string(gsl::span<const Type> array) noexcept
    -> std::string_view
 {
-   static_assert(std::is_pod_v<std::remove_reference_t<Type>>,
-                 "Type must be plain-old-data.");
+   static_assert(std::is_trivially_copyable_v<std::remove_reference_t<Type>>,
+                 "Type must be trivially copyable.");
    static_assert(!std::is_pointer_v<std::remove_reference_t<Type>>,
                  "Type can not be a pointer.");
 

@@ -26,7 +26,7 @@ struct Node_info {
    float radius;
 };
 
-static_assert(std::is_pod_v<Node_info>);
+static_assert(std::is_trivially_copyable_v<Node_info>);
 static_assert(sizeof(Node_info) == 32);
 
 enum class Arc_type_flags : std::uint32_t { one_way = 1, jump = 2, jet_jump = 4 };

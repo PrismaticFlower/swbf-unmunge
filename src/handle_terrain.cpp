@@ -42,7 +42,7 @@ struct Terrain_info {
    std::uint16_t unknown;
 };
 
-static_assert(std::is_pod_v<Terrain_info>);
+static_assert(std::is_trivially_copyable_v<Terrain_info>);
 static_assert(sizeof(Terrain_info) == 28);
 
 struct Vbuf_info {
@@ -51,7 +51,7 @@ struct Vbuf_info {
    Vbuf_type element_type;
 };
 
-static_assert(std::is_pod_v<Vbuf_info>);
+static_assert(std::is_trivially_copyable_v<Vbuf_info>);
 static_assert(sizeof(Vbuf_info) == 12);
 
 struct Terrain_vbuf_entry {
@@ -61,7 +61,7 @@ struct Terrain_vbuf_entry {
    std::uint32_t colour;
 };
 
-static_assert(std::is_pod_v<Terrain_vbuf_entry>);
+static_assert(std::is_trivially_copyable_v<Terrain_vbuf_entry>);
 static_assert(sizeof(Terrain_vbuf_entry) == 28);
 
 struct Texture_vbuf_entry {
@@ -78,7 +78,7 @@ struct Texture_vbuf_entry {
    std::uint32_t colour;
 };
 
-static_assert(std::is_pod_v<Texture_vbuf_entry>);
+static_assert(std::is_trivially_copyable_v<Texture_vbuf_entry>);
 static_assert(sizeof(Texture_vbuf_entry) == 16);
 
 struct Texture_vbuf_extra_entry {
@@ -90,7 +90,7 @@ struct Texture_vbuf_extra_entry {
    std::uint8_t texture_value;
 };
 
-static_assert(std::is_pod_v<Texture_vbuf_extra_entry>);
+static_assert(std::is_trivially_copyable_v<Texture_vbuf_extra_entry>);
 static_assert(sizeof(Texture_vbuf_extra_entry) == 16);
 
 const static std::array<std::array<int, 2>, 81> patch_index_table{

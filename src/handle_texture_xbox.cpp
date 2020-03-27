@@ -59,7 +59,7 @@ const DirectX::DDS_PIXELFORMAT pixel_format_a4l4 = {
 // DDS_LUMINANCEA, 0, 16, 0x00ff, 0x0000, 0x0000, 0xff00
 
 static_assert(sizeof(Texture_info) == 20);
-static_assert(std::is_pod_v<Texture_info>);
+static_assert(std::is_trivially_copyable_v<Texture_info>);
 
 std::uint32_t get_8bit_mip_chain_size(const Texture_info& info)
 {

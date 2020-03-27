@@ -58,7 +58,7 @@ public:
 
    void write(std::string_view str, bool null_terminate = true, bool aligned = true);
 
-   template<typename Type, typename = std::enable_if_t<std::is_pod_v<Type>>>
+   template<typename Type, typename = std::enable_if_t<std::is_trivially_copyable_v<Type>>>
    void write(const Type& pod)
    {
       _contents += view_object_as_string(pod);

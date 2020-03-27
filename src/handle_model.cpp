@@ -90,7 +90,7 @@ struct Material_info {
    // unset.
 };
 
-static_assert(std::is_pod_v<Material_info>);
+static_assert(std::is_trivially_copyable_v<Material_info>);
 static_assert(sizeof(Material_info) == 24);
 
 struct Model_info {
@@ -166,27 +166,6 @@ void read_texture_name(Ucfb_reader_strict<"TNAM"_mn> texture_name,
    if (index < out.size()) {
       out[index] = name;
    }
-}
-
-auto read_vertex_strip_ps2(gsl::span<const std::uint16_t> indices, std::int64_t& pos)
-   -> std::vector<std::uint16_t>
-{
-   if (pos + 1 >= indices.size()) throw std::out_of_range{"Index buffer invalid"};
-
-   std::vector<std::uint16_t> strip;
-   strip.reserve(32);
-
-   strip.push_back(indices[pos] & ~(0x8000ui16));
-   strip.push_back(indices[pos + 1] & ~(0x8000ui16));
-   pos += 2;
-
-   for (; pos < indices.size(); ++pos) {
-      if ((indices[pos] & 0x8000ui16) == 0x8000ui16) break;
-
-      strip.push_back(indices[pos]);
-   }
-
-   return strip;
 }
 
 auto read_segment_info_ps2(Ucfb_reader_strict<"INFO"_mn> info) -> Segment_info

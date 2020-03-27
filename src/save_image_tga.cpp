@@ -53,13 +53,16 @@ void save_image_tga(const std::filesystem::path& save_path, DirectX::Image image
 
    Tga_header header{};
 
-   header.image_width = image.width;
-   header.image_height = image.height;
+   header.image_width = static_cast<std::uint16_t>(image.width);
+   header.image_height = static_cast<std::uint16_t>(image.height);
 
    out.write(to_char_pointer(&header), sizeof(header));
 
-   for (int y = image.height - 1; y >= 0; --y) {
-      for (int x = 0; x < image.width; ++x) {
+   const auto height = static_cast<std::ptrdiff_t>(image.height);
+   const auto width = static_cast<std::ptrdiff_t>(image.width);
+
+   for (std::ptrdiff_t y = height - 1; y >= 0; --y) {
+      for (std::ptrdiff_t x = 0; x < width; ++x) {
          std::array<std::uint8_t, 4> rgba;
 
          std::memcpy(&rgba,

@@ -317,7 +317,7 @@ public:
 
       if (!unaligned) align_head();
 
-      return {&_data[cur_pos], gsl::narrow_cast<std::ptrdiff_t>(size)};
+      return {&_data[cur_pos], size};
    }
 
    //! \brief Reads an unaligned variable-length array of bytes from the chunk.
@@ -432,7 +432,7 @@ public:
    auto read_child_strict(const bool unaligned = false) -> Ucfb_reader_strict<type_mn>
    {
       return {read_child_strict(type_mn, unaligned),
-              Ucfb_reader_strict<type_mn>::Unchecked_tag{}};
+              typename Ucfb_reader_strict<type_mn>::Unchecked_tag{}};
    }
 
    //! \brief Reads an unaligned child if it's magic number matches an expected
@@ -472,7 +472,7 @@ public:
       const auto child = read_child_strict_optional(type_mn, unaligned);
 
       if (child) {
-         return {{*child, Ucfb_reader_strict<type_mn>::Unchecked_tag{}}};
+         return {{*child, typename Ucfb_reader_strict<type_mn>::Unchecked_tag{}}};
       }
 
       return {};

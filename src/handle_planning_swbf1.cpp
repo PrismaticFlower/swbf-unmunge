@@ -23,7 +23,7 @@ struct Planning_info {
    std::uint16_t branch_count;
 };
 
-static_assert(std::is_pod_v<Planning_info>);
+static_assert(std::is_trivially_copyable_v<Planning_info>);
 static_assert(sizeof(Planning_info) == 6);
 
 struct Node_info {
@@ -37,7 +37,7 @@ struct Node_info {
    std::byte unknown_1[8];
 };
 
-static_assert(std::is_pod_v<Node_info>);
+static_assert(std::is_trivially_copyable_v<Node_info>);
 static_assert(sizeof(Node_info) == 40);
 
 struct Hub_info {

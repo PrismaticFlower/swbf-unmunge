@@ -27,7 +27,7 @@ struct Xframe {
    glm::vec3 position;
 };
 
-static_assert(std::is_pod_v<Xframe>);
+static_assert(std::is_trivially_copyable_v<Xframe>);
 static_assert(sizeof(Xframe) == 48);
 
 struct Animation_key {

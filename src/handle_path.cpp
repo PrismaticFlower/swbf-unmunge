@@ -19,7 +19,7 @@ struct Path_info {
    std::uint16_t unknown_1;
 };
 
-static_assert(std::is_pod_v<Path_info>);
+static_assert(std::is_trivially_copyable_v<Path_info>);
 static_assert(sizeof(Path_info) == 6);
 
 struct Path_node {
@@ -27,7 +27,7 @@ struct Path_node {
    glm::vec4 rotation;
 };
 
-static_assert(std::is_pod_v<Path_node>);
+static_assert(std::is_trivially_copyable_v<Path_node>);
 static_assert(sizeof(Path_node) == 28);
 
 struct Path {
