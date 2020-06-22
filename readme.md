@@ -59,8 +59,11 @@ to grab these libraries and you'll be good to go.
 * [{fmt}](https://github.com/fmtlib/fmt)
 
 You want the 64-bit versions of these libraries.
+
 After you've installed vcpkg, you'll run the following command (in powershell) in the vcpkg directory:
-   .\vcpkg install fmt:x64-windows nlohmann-json:x64-windows tbb:x64-windows ms-gsl:x64-windows DirectXTex:x64-windows glm:x64-windows 
+
+   PS> ***.\vcpkg install fmt:x64-windows nlohmann-json:x64-windows tbb:x64-windows ms-gsl:x64-windows DirectXTex:x64-windows glm:x64-windows*** 
+   
 And... it's C++, you might have to fix some build errors. But hey, it works on my box!
 
 Otherwise things are going to be a bit more complicated if you're wanting to build it
