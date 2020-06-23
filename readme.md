@@ -58,6 +58,12 @@ to grab these libraries and you'll be good to go.
 * [json](https://github.com/nlohmann/json/)
 * [{fmt}](https://github.com/fmtlib/fmt)
 
+You want the 64-bit versions of these libraries.
+
+After you've installed vcpkg, you'll run the following command (in powershell) in the vcpkg directory:
+
+    .\vcpkg install fmt:x64-windows nlohmann-json:x64-windows tbb:x64-windows ms-gsl:x64-windows DirectXTex:x64-windows glm:x64-windows
+   
 Otherwise things are going to be a bit more complicated if you're wanting to build it
 for a platform that isn't Windows. Most of the code is clean standard C++ though, save a
 couple `#pragma` directives.
