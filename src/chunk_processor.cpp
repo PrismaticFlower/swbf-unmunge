@@ -213,7 +213,7 @@ const auto chunk_processors = Chunk_processor_map{
    {"mcfg"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_config(args.chunk, args.file_saver, ".mcfg"sv, "config"sv);
+        handle_config(args.chunk, args.file_saver, ".mcfg"sv, "config"sv, true);
      }}},
 
    // Texture chunks

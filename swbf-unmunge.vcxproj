@@ -83,6 +83,9 @@
     <ClInclude Include="src\ucfb_writer.hpp" />
     <ClInclude Include="src\vbuf_reader.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="dictionary.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{E1F91B29-6CDE-4385-9FB6-1C587E1B26E6}</ProjectGuid>

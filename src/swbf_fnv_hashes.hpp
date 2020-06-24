@@ -26,3 +26,7 @@ constexpr std::uint32_t operator""_fnv(const char* str, const std::size_t length
 }
 
 std::string lookup_fnv_hash(std::uint32_t hash);
+
+// using  "user_hashes.txt"
+// read line by line
+void read_dictionary();

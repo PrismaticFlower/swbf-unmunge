@@ -5,6 +5,7 @@
 #include "explode_chunk.hpp"
 #include "file_saver.hpp"
 #include "mapped_file.hpp"
+#include "swbf_fnv_hashes.hpp"
 #include "synced_cout.hpp"
 #include "ucfb_reader.hpp"
 
@@ -109,6 +110,14 @@ int main(int argc, char* argv[])
       std::cout << "Error: No input file specified.\n"s;
 
       return 0;
+   }
+   std::cout << "read in dictionary\n";
+
+   std::string result =
+      lookup_fnv_hash(0x8d39bde6 /* "name" */); // initialize the dictionary
+                                  // before the threads start.
+   if (result.length() != 4 ) {
+      std::cout << "Missing dictionary.txt! strings will not resolve now!\n";
    }
 
    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
