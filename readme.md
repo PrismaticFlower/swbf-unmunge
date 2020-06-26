@@ -36,7 +36,7 @@ Would save the extracted contents of `test.lvl` into a folder named `test`.
 File Type | Notes
 ------------ | -------------
 Object Definitions | Recovered nearly perfectly.
-Config Files (*.fx, *,sky, etc) | Depending on the file type, recovered perfectly or for certain types poorly. In all cases the name of the file is not recovered.
+Config Files (*.fx, *,sky, *.mcfg etc) | Recovered nearly perfectly.
 Textures | Recovered nearly perfectly.
 World Info | Most world info is recovered in a very good quality fashion. 
 Path Planning | All info is recovered except dynamic pathing groups and path weights.
