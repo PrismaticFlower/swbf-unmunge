@@ -343,7 +343,7 @@ std::vector<std::uint8_t> read_bone_map(Ucfb_reader_strict<"BMAP"_mn> bone_map)
 
 void read_material_swbf1(Ucfb_reader_strict<"MTRL"_mn> material, model::Material& out)
 {
-   const auto flags = material.read_trivial<Material_flags_swbf1>();
+   /*const auto flags = material.read_trivial<Material_flags_swbf1>();
 
    if (are_flags_set(flags, Material_flags_swbf1::hardedged)) {
       out.flags = set_flags(out.flags, model::Render_flags::hardedged);
@@ -387,7 +387,9 @@ void read_material_swbf1(Ucfb_reader_strict<"MTRL"_mn> material, model::Material
    }
    if (are_flags_set(flags, Material_flags_swbf1::refraction)) {
       out.type = model::Render_type::refraction;
-   }
+   }*/
+
+   return;
 }
 
 void read_material(Ucfb_reader_strict<"MTRL"_mn> material, model::Material& out)
@@ -396,6 +398,8 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, model::Material& out)
    // the chunk. swbf1 uses a varying sized chunk that never matches the size
    // of the swbfii one (which is a fixed size, save a trailing string whose purpose I
    // am unsure of).
+
+   /*
    if (material.size() < sizeof(Material_info)) {
       return read_material_swbf1(material, out);
    }
@@ -453,6 +457,8 @@ void read_material(Ucfb_reader_strict<"MTRL"_mn> material, model::Material& out)
    if (are_flags_set(info.flags, Material_flags::attached_light)) {
       out.attached_light = attached_light;
    }
+   */
+   return;
 }
 
 void read_material_name(Ucfb_reader_strict<"MNAM"_mn> mnam, model::Part& out)

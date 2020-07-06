@@ -2,41 +2,57 @@ cmake_minimum_required(VERSION 3.2)
 
 project(unmunging)
 
-OPTION(xbox)
-OPTION(ps2)
-
+option(BUILD_SHARED_LIB "Build shared lib" OFF)
+option(BUILD_STATIC_LIB "Build static lib" OFF)
 
 if (BUILD_SHARED_LIB)
 	add_library(unmunge SHARED)
-elif(BUILD_STATIC_LIB)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") #not sure how this works with executables
+elseif (BUILD_STATIC_LIB)
 	add_library(unmunge STATIC)
 else()
-	add_executable(unmunge SHARED)
+	add_executable(unmunge)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") #not sure how this works with executables
 endif()
 
-set_property(TARGET basement PROPERTY CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") #not sure how this works with executables
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
 
+add_compile_definitions(GLM_SWIZZLE)
 
 if (UNIX AND NOT APPLE)
-	target_link_libraries(basement PUBLIC "-Wl,--no-as-needed")
+	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")
 elseif(APPLE)
-	target_link_options(basement PUBLIC -undefined dynamic_lookup)
+	target_link_options(unmunge PUBLIC -undefined dynamic_lookup)
 endif()
 
-find_package(PkgConfig REQUIRED)
 
 
 include_directories(unmunge PUBLIC src)
-
-add_subdirectory(src)
-
+include_directories(unmunge PRIVATE /home/will/projects/cpprtx/libs/glm)
 
 
+file(GLOB SOURCE_FILES src/*.cpp)
+file(GLOB TEXTURE_FILES src/handle_texture*)
+file(GLOB IMAGE_FILES src/save_image*)
+
+list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
+list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
+
+message(STATUS "Filtered source files: ${SOURCE_FILES}")
+
+target_sources(unmunge PUBLIC ${SOURCE_FILES})
 
 if (UNIX AND NOT APPLE)
-	target_link_libraries(basement PUBLIC -ldl) #handled automatically on Mac
+	target_link_libraries(unmunge PUBLIC -ldl) #handled automatically on Mac
 endif()
 
-target_link_libraries(basement PUBLIC -lpthread)
-target_link_libraries(basement PUBLIC m)
+target_link_libraries(unmunge PUBLIC -lpthread)
+target_link_libraries(unmunge PUBLIC m)
+
+target_link_directories(unmunge PUBLIC /usr/lib/x86_64-linux-gnu)
+target_link_libraries(unmunge PUBLIC libboost_iostreams)
+
+target_link_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm/build/glm)
+target_link_libraries(unmunge PUBLIC glm_static)

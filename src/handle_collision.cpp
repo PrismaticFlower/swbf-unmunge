@@ -84,6 +84,19 @@ void handle_collision(Ucfb_reader collision, model::Models_builder& builders)
    auto posi = collision.read_child_strict<"POSI"_mn>();
    auto tree = collision.read_child_strict<"TREE"_mn>();
 
+   //model::Collsion_mesh mod_coll{};
+   //mod_coll.flags = flags;
+   //mod_coll.indices = read_tree(tree, info.index_count * 3);
+   //mod_coll.positions = posi.read_array<glm::vec3>(info.vertex_count);
+   //std::vector<model::Collsion_mesh> coll_meshes = { mod_coll };
+
+   model::Model mod{};
+   //mod.name = std::string(name);
+   //mod.collision_meshes = coll_meshes;
+
+   builders.integrate(std::move(mod));
+
+   /*
    builders.integrate(
       {.name = std::string{name},
        .collision_meshes = {model::Collsion_mesh{
@@ -92,4 +105,5 @@ void handle_collision(Ucfb_reader collision, model::Models_builder& builders)
                                         3), // over reserve more memory than needed
                                             // to account for triangulation results
           .positions = posi.read_array<glm::vec3>(info.vertex_count)}}});
+    */
 }
