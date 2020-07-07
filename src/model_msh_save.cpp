@@ -229,7 +229,7 @@ void write_clrl(Ucfb_writer& segm, const gsl::span<glm::vec4> colours)
 
    clrl.write(static_cast<std::uint32_t>(colours.size()));
 
-   for (const auto c : colours) clrl.write<std::uint32_t>(glm::packUnorm4x8(c.bgra));
+   for (const auto c : colours) clrl.write<std::uint32_t>(glm::packUnorm4x8(c.bgra()));
 }
 
 void write_uv(Ucfb_writer& parent, const Magic_number mn,

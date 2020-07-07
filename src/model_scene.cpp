@@ -32,9 +32,13 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
 {
    glm::mat4 matrix = child.transform;
 
-   /*Problem here likely*/
-
+#ifndef __linux__ 
    matrix[3].xyz = matrix[3].xyz * -1.0f;
+#else
+   for (int i=3; i<6; i++) //could be slicker safe for now
+      matrix[i] *= -1.0f;
+#endif
+
    std::string_view next_parent = child.parent;
 
    const auto is_next_parent = [&next_parent](const Node& node) {

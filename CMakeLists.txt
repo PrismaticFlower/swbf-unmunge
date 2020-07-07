@@ -19,8 +19,8 @@ set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
 set_property(TARGET unmunge PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET unmunge PROPERTY CMAKE_CXX_EXTENSIONS ON)
 
-add_compile_definitions(GLM_SWIZZLE)
-#add_compile_definitions(GLM_FORCE_CXX17)
+add_compile_definitions(GLM_FORCE_SWIZZLE)
+add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
 add_compile_definitions(NOMINMAX)
 
