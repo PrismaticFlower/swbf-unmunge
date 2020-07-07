@@ -8,7 +8,7 @@
 #include "synced_cout.hpp"
 #include "ucfb_reader.hpp"
 
-//#include "tbb/parallel_for_each.h"
+#include "tbb/parallel_for_each.h"
 
 #include <cstddef>
 #include <exception>

@@ -31,6 +31,9 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
    -> glm::mat4x3
 {
    glm::mat4 matrix = child.transform;
+
+   /*Problem here likely*/
+
    matrix[3].xyz = matrix[3].xyz * -1.0f;
    std::string_view next_parent = child.parent;
 

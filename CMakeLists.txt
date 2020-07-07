@@ -15,11 +15,14 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") #not sure how this works with executables
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
+set_property(TARGET unmunge PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET unmunge PROPERTY CMAKE_CXX_EXTENSIONS ON)
 
 add_compile_definitions(GLM_SWIZZLE)
+#add_compile_definitions(GLM_FORCE_CXX17)
+add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
+add_compile_definitions(NOMINMAX)
 
 if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")
@@ -36,9 +39,11 @@ include_directories(unmunge PRIVATE /home/will/projects/cpprtx/libs/glm)
 file(GLOB SOURCE_FILES src/*.cpp)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
+file(GLOB WINDOWS_DEP src/mapped_file.cpp)
 
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
+list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
 
 message(STATUS "Filtered source files: ${SOURCE_FILES}")
 

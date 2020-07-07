@@ -97,7 +97,7 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
          return std::tuple_cat(as_spans(cylinder_indices, cylinder_vertex_positions,
                                         cylinder_vertex_normals,
                                         cylinder_vertex_texcoords),
-                               std::make_tuple(glm::vec3{size.xyx}));
+                               std::make_tuple(glm::vec3{size.xyx()}));
       case Collision_primitive_type::cube:
          return std::tuple_cat(as_spans(cube_indices, cube_vertex_positions,
                                         cube_vertex_normals, cube_vertex_texcoords),

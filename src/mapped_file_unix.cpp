@@ -19,7 +19,8 @@ Mapped_file::Mapped_file(fs::path path)
    
    _size = static_cast<std::uint32_t>(file_size);
 
-   file.open(path.wstring().c_str(), _size);
+   const char *path_str = (const char *) path.wstring().c_str();
+   file.open(path_str, _size);
 
    if (!file.is_open())
       throw std::runtime_error{"Couldn't open file."};
@@ -41,14 +42,14 @@ Mapped_file::Mapped_file(fs::path path)
             unmapper};
    */
 
-   _view = static_cast<std::byte*>(file.data());
+   _view = reinterpret_cast<const std::byte *>(file.data());
 
    if (_view == nullptr)
-      throw std::runtime_error{"Shared ptr from file data failed"};
+      throw std::runtime_error{"Ptr from file data failed"};
 }
 
 
 gsl::span<const std::byte> Mapped_file::bytes() const noexcept
 {
-   return {_view.get(), _size};
+   return {_view, _size};
 }

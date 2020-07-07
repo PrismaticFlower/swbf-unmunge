@@ -10,6 +10,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string_view>
+#include <stdint.h>
 
 using namespace std::literals;
 
@@ -131,7 +132,7 @@ auto find_geometry_name(
    const std::vector<std::pair<std::uint32_t, std::string_view>>& properties)
    -> std::optional<std::string>
 {
-   constexpr auto geometry_name_hash = 0x47c86b4aui32;
+   constexpr auto geometry_name_hash = (uint32_t) 0x47c86b4a;// ui32;
 
    const auto result =
       std::find_if(std::cbegin(properties), std::cend(properties),

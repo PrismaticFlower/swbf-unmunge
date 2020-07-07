@@ -17,8 +17,12 @@ public:
 
    gsl::span<const std::byte> bytes() const noexcept;
 
+   ~Mapped_file(){
+   	   file.close();
+   }
+
 private:
-   std::shared_ptr<std::byte> _view;
+   const std::byte *_view;
    std::uint32_t _size = 0;
 
 #ifdef __linux__

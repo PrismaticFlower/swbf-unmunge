@@ -54,7 +54,7 @@ struct Part {
 
    std::vector<std::uint8_t> bone_map;
 
-   Part(Part&& p) = default;
+   //Part(Part&& p) = default;
 };
 
 struct Collision_primitive {
@@ -76,7 +76,7 @@ struct Collsion_mesh {
    Indices indices;
    std::vector<glm::vec3> positions;
 
-   Collsion_mesh(Collsion_mesh&& c) = default;
+   //Collsion_mesh(Collsion_mesh&& c) = default;
 };
 
 struct Cloth {
@@ -96,9 +96,6 @@ struct Cloth {
    std::vector<std::array<std::uint32_t, 2>> bend_constraints;
 
    std::vector<Cloth_collision_primitive> collision;
-
-   Cloth(Cloth&& c) = default;
-   Cloth() = default;
 };
 
 struct Model {
@@ -110,7 +107,7 @@ struct Model {
    std::vector<Collision_primitive> collision_primitives;
    std::vector<Cloth> cloths;
 
-   Model(Model&& m) = default;
+   //Model(Model&& m) = default;
 
    void merge_with(Model other) noexcept;
 };
