@@ -197,7 +197,7 @@ namespace gltf
         inline void ReadRequiredField(TKey && key, nlohmann::json const & json, TTarget & target)
 #endif
         {
-            const nlohmann::json::const_iterator iter = json.find(key.data());
+            const nlohmann::json::const_iterator iter = json.find(key);
             if (iter == json.end())
             {
                 throw invalid_gltf_document("Required field not found", std::string(key));
@@ -214,7 +214,7 @@ namespace gltf
         inline void ReadOptionalField(TKey && key, nlohmann::json const & json, TTarget & target)
 #endif
         {
-            const nlohmann::json::const_iterator iter = json.find(key.data());
+            const nlohmann::json::const_iterator iter = json.find(key);
             if (iter != json.end())
             {
                 target = iter->get<TTarget>();
@@ -1916,20 +1916,6 @@ namespace gltf
         Save(document, output, detail::GetDocumentRootPath(documentFilePath), useBinaryFormat);
     }
 } // namespace gltf
-
-// A general-purpose utility to format an exception hierarchy into a string for output
-inline void FormatException(std::string & output, std::exception const & ex, int level = 0)
-{
-    output.append(std::string(level, ' ')).append(ex.what());
-    try
-    {
-        std::rethrow_if_nested(ex);
-    }
-    catch (std::exception const & e)
-    {
-        FormatException(output.append("\n"), e, level + 2);
-    }
-}
 
 } // namespace fx
 

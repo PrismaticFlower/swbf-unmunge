@@ -17,12 +17,12 @@ endif()
 
 set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
 set_property(TARGET unmunge PROPERTY CXX_STANDARD_REQUIRED ON)
-set_property(TARGET unmunge PROPERTY CMAKE_CXX_EXTENSIONS ON)
+#set_property(TARGET unmunge PROPERTY CMAKE_CXX_EXTENSIONS ON)
 
 add_compile_definitions(GLM_FORCE_SWIZZLE)
 add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
-add_compile_definitions(NOMINMAX)
+#add_compile_definitions(FX_GLTF_HAS_CPP_17)
 
 if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")

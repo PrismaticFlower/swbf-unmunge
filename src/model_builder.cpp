@@ -12,6 +12,7 @@
 #include <tuple>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <gsl/gsl>
 #include <tbb/tbb.h>
 
@@ -164,9 +165,12 @@ auto create_scene(Model model) -> scene::Scene
              .light = std::move(part.material.attached_light.value())});
       }
 
+      std::string_view mp = "mesh_part{}{}"sv;  
+      std::string mp_str = mp.data();
+
       scene.nodes.push_back(
          {.name = part.name ? std::move(*part.name)
-                            : fmt::format("mesh_part{}{}"sv, ++name_counter,
+                            : fmt::format(mp_str.c_str()/*"mesh_part{}{}"sv*/, ++name_counter,
                                           lod_suffix(part.lod)),
           .parent = std::move(part.parent),
           .material_index = insert_scene_material(
@@ -190,9 +194,12 @@ auto create_scene(Model model) -> scene::Scene
 
    name_counter = 0;
 
+   std::string_view cm = "collision_-{}-mesh{}"sv;  
+   std::string cm_str = cm.data();   
+
    for (auto& mesh : model.collision_meshes) {
       scene.nodes.push_back(
-         {.name = fmt::format("collision_-{}-mesh{}"sv,
+         {.name = fmt::format(cm_str.c_str()/*"collision_-{}-mesh{}"sv*/,
                               collision_flags_string(mesh.flags), ++name_counter),
           .parent = scene.nodes.front().name, // take the dangerous assumption that the
                                               // first node we added is root
@@ -237,10 +244,13 @@ auto create_scene(Model model) -> scene::Scene
 
    name_counter = 0;
 
+   std::string_view matf = "material{}"sv;  
+   std::string mat_str = matf.data();     
+
    for (auto& material : scene.materials) {
       if (!material.name.empty()) continue;
 
-      material.name = fmt::format("material{}"sv, ++name_counter);
+      material.name = fmt::format(mat_str.c_str()/*"material{}"sv*/, ++name_counter);
    }
 
    for (const auto& node : scene.nodes) {

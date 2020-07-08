@@ -119,6 +119,21 @@ public:
       if (alignment == Alignment::aligned) align_file();
    }
 
+
+   /*
+   Workaround while I decrypt error messages and learn templates
+   
+   void write(const std::string_view string, Alignment alignment = Alignment::aligned)
+   {
+      _out.write(string.data(), string.size());
+      _out.put('\0');
+
+      increase_size(string.length() + 1ll);
+
+      if (alignment == Alignment::aligned) align_file();
+   }
+   */
+
    void write(const std::string& string, Alignment alignment = Alignment::aligned)
    {
       write(std::string_view{string}, alignment);

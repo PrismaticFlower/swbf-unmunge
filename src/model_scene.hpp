@@ -32,7 +32,11 @@ struct Material {
 
    bool reference_in_option_file = false;
 
-   bool operator==(const Material&) const = default;
+   //bool operator==(const Material&) const = default;
+   auto operator==(const Material&) const {
+      return false;
+   }//= default;
+
 };
 
 struct Geometry {
