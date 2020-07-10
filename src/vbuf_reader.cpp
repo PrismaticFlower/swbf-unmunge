@@ -151,14 +151,14 @@ glm::vec4 read_colour(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
    const auto colour = vbuf.read_trivial_unaligned<std::uint32_t>();
 
-   return glm::unpackUnorm4x8(colour).bgra;
+   return glm::unpackUnorm4x8(colour).bgra();
 }
 
 glm::vec3 read_compressed_normal_pc(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
 {
    return (glm::unpackUnorm4x8(vbuf.read_trivial_unaligned<std::uint32_t>()) * 2.0f -
            1.0f)
-      .zyx;
+      .zyx();
 }
 
 glm::vec3 read_compressed_normal_xbox(Ucfb_reader_strict<"VBUF"_mn>& vbuf)

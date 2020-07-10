@@ -22,7 +22,7 @@ set_property(TARGET unmunge PROPERTY CXX_STANDARD_REQUIRED ON)
 add_compile_definitions(GLM_FORCE_SWIZZLE)
 add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
-#add_compile_definitions(FX_GLTF_HAS_CPP_17)
+add_compile_definitions(FX_GLTF_HAS_CPP_17)
 
 if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")

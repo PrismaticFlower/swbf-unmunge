@@ -7,6 +7,11 @@
 
 using namespace std::literals;
 
+
+int16_t operator "" i16(unsigned long long int lit);
+int32_t operator "" i32(unsigned long long int lit);
+
+
 Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_scale,
                                  const std::uint16_t grid_size,
                                  const std::uint32_t default_colour)

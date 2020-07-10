@@ -16,6 +16,8 @@ template<typename Type>
 void vertices_aabb(const Type& vertices, AABB& global_aabb,
                    const glm::mat4x3 local_to_global, AABB& local_aabb) noexcept
 {
+#ifndef __linux__
+   
    std::for_each_n(vertices.positions.get(), vertices.size, [&](const glm::vec3 pos) {
       const auto global_pos = local_to_global * glm::vec4{pos, 1.0f};
 
@@ -25,6 +27,24 @@ void vertices_aabb(const Type& vertices, AABB& global_aabb,
       local_aabb.min = glm::min(local_aabb.min, pos);
       local_aabb.max = glm::max(local_aabb.max, pos);
    });
+
+#else
+
+   auto positionsPtr = vertices.positions.get();
+   for (int i = 0; i < vertices.size; i++){
+
+    glm::vec3 pos = positionsPtr[i];
+
+    auto global_pos = local_to_global * glm::vec4(pos, 1.0f);
+
+    global_aabb.min = glm::min(global_aabb.min, global_pos);
+    global_aabb.max = glm::max(global_aabb.max, global_pos);
+
+    local_aabb.min = glm::min(local_aabb.min, pos);
+    local_aabb.max = glm::max(local_aabb.max, pos);
+   }
+
+#endif
 }
 
 auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexcept
