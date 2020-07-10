@@ -24,6 +24,7 @@ add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
 add_compile_definitions(FX_GLTF_HAS_CPP_17)
 
+
 if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")
 elseif(APPLE)
@@ -31,9 +32,8 @@ elseif(APPLE)
 endif()
 
 
-
 include_directories(unmunge PUBLIC src)
-include_directories(unmunge PRIVATE /home/will/projects/cpprtx/libs/glm)
+include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
 
 
 file(GLOB SOURCE_FILES src/*.cpp)
@@ -56,8 +56,10 @@ endif()
 target_link_libraries(unmunge PUBLIC -lpthread)
 target_link_libraries(unmunge PUBLIC m)
 
-target_link_directories(unmunge PUBLIC /usr/lib/x86_64-linux-gnu)
-target_link_libraries(unmunge PUBLIC libboost_iostreams)
+target_link_libraries(unmunge PUBLIC /usr/lib/x86_64-linux-gnu/libtbb.so)
+target_link_libraries(unmunge PUBLIC /usr/lib/x86_64-linux-gnu/libboost_iostreams.so.1.65.1)
+
+target_link_libraries(unmunge PUBLIC /usr/lib/libfmt.a)
 
 target_link_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm/build/glm)
 target_link_libraries(unmunge PUBLIC glm_static)

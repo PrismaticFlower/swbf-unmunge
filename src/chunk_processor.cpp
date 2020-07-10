@@ -16,6 +16,16 @@
 
 using namespace std::literals;
 
+void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format,
+                    Model_format model_format){return;}
+
+void handle_texture_xbox(Ucfb_reader texture, File_saver& file_saver,
+                         Image_format save_format, Model_format model_format){return;}
+
+void handle_texture_ps2(Ucfb_reader texture, Ucfb_reader parent_reader,
+                        File_saver& file_saver, Image_format save_format,
+                        Model_format model_format){return;}
+
 namespace {
 
 struct Args_pack {

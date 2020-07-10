@@ -8,15 +8,15 @@
 using namespace std::literals;
 
 
-int16_t operator "" i16(unsigned long long int lit);
-int32_t operator "" i32(unsigned long long int lit);
+constexpr int16_t operator "" i16(unsigned long long int lit){return ((int16_t) lit);}
+constexpr int32_t operator "" i32(unsigned long long int lit){return ((int32_t) lit);}
 
 
 Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_scale,
                                  const std::uint16_t grid_size,
                                  const std::uint32_t default_colour)
    : _grid_unit_size{grid_unit_size}, _height_granularity{height_scale},
-     _grid_size{grid_size}, _heightmap(grid_size * grid_size, 0i16),
+     _grid_size{grid_size}, _heightmap(grid_size * grid_size, (int16_t) 0), //0i16),
      _colourmap(grid_size * grid_size, default_colour),
      _texturemap(grid_size * grid_size, Texture_values{}),
      _patch_infomap((grid_size / 4) * (grid_size / 4), {Render_types::normal, 0})

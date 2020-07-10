@@ -269,10 +269,10 @@ void save_model(Model model, File_saver& file_saver, const Game_version game_ver
                 const Model_format format)
 {
    if (format == Model_format::msh) {
-      msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
+      //msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
    }
    else if (format == Model_format::gltf2) {
-      gltf::save_scene(create_scene(std::move(model)), file_saver);
+      //gltf::save_scene(create_scene(std::move(model)), file_saver);
    }
 }
 
