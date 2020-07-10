@@ -3,27 +3,41 @@
 #include <iostream>
 #include <limits>
 
+#define COUT(x) std::cout << x << std::endl;
 
 namespace fs = std::filesystem;
 
 
 Mapped_file::Mapped_file(fs::path path)
 {
+   COUT("Checking existence")
+
    if (!fs::exists(path) || fs::is_directory(path))
       throw std::runtime_error{"File does not exist."};
    
    const auto file_size = fs::file_size(path);
+
+   COUT("Checking size")
 
    if (file_size > std::numeric_limits<std::uint32_t>::max())
       throw std::runtime_error{"File too large."};
    
    _size = static_cast<std::uint32_t>(file_size);
 
-   const char *path_str = (const char *) path.wstring().c_str();
-   file.open(path_str, _size);
+   COUT("About to open")
+
+   boost::iostreams::mapped_file_params parameters;
+   parameters.path = path.string();
+   parameters.length = static_cast<size_t>(file_size);
+   parameters.flags = boost::iostreams::mapped_file::mapmode::readonly;
+   parameters.offset = static_cast<boost::iostreams::stream_offset>(0);
+
+   file.open(parameters);
 
    if (!file.is_open())
       throw std::runtime_error{"Couldn't open file."};
+
+   COUT("Opened")
 
    /*
    Raii_handle file = CreateFileW(path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ,
