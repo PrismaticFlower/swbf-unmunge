@@ -1,6 +1,4 @@
 
-#ifdef GLTFSAVE
-
 #include "model_gltf_save.hpp"
 #include "file_saver.hpp"
 #include "model_topology_converter.hpp"
@@ -15,10 +13,6 @@
 #include <gsl/gsl>
 
 using namespace std::literals;
-
-
-std::string_view pngext = "./{}.png"sv;
-std::string png_str = pngext.data();
 
 namespace model::gltf {
 
@@ -302,7 +296,7 @@ auto add_texture_image(fx::gltf::Document& doc, const std::string_view name)
    const auto index = static_cast<std::int32_t>(doc.images.size());
 
    doc.images.push_back(
-      {.name = std::string{name}, .uri = fmt::format(png_str.c_str()/*"./{}.png"sv*/, name)});
+      {.name = std::string{name}, .uri = fmt::format("./{}.png"sv, name)});
 
    return index;
 }
@@ -447,5 +441,3 @@ void save_scene(scene::Scene scene, File_saver& file_saver)
 }
 
 }
-
-#endif

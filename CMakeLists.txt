@@ -50,10 +50,12 @@ file(GLOB SOURCE_FILES_UNIX src/*unix*)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
+file(GLOB GLTF_FILES src/*gltf*)
 
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
+list(REMOVE_ITEM SOURCE_FILES ${GLTF_FILES})
 list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
 
 message(STATUS "Filtered source files (UNIX): ${SOURCE_FILES_UNIX}")
