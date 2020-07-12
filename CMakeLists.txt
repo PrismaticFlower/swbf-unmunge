@@ -31,12 +31,22 @@ elseif(APPLE)
 	target_link_options(unmunge PUBLIC -undefined dynamic_lookup)
 endif()
 
+if (APPLE)
+	find_package(OpenCV REQUIRED)
+else ()
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(OpenCV REQUIRED opencv)
+endif()
+
+target_include_directories(unmunge PUBLIC ${OpenCV_INCLUDE_DIRS})
+
 
 include_directories(unmunge PUBLIC src)
 include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
 
 
 file(GLOB SOURCE_FILES src/*.cpp)
+file(GLOB SOURCE_FILES_UNIX src/*unix*)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
@@ -44,14 +54,18 @@ file(GLOB WINDOWS_DEP src/mapped_file.cpp)
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
+list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
 
-message(STATUS "Filtered source files: ${SOURCE_FILES}")
+message(STATUS "Filtered source files (UNIX): ${SOURCE_FILES_UNIX}")
 
 target_sources(unmunge PUBLIC ${SOURCE_FILES})
 
 if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC -ldl) #handled automatically on Mac
 endif()
+
+target_link_directories(unmunge PUBLIC ${OpenCV_LIBRARY_DIRS})
+target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
 
 target_link_libraries(unmunge PUBLIC -lpthread)
 target_link_libraries(unmunge PUBLIC m)

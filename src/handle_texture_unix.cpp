@@ -2,12 +2,12 @@
 #include "app_options.hpp"
 #include "file_saver.hpp"
 #include "magic_number.hpp"
-#include "save_image.hpp"
+#include "save_image_unix.hpp"
 #include "synced_cout.hpp"
 #include "ucfb_reader.hpp"
 
-#include <DirectXTex.h>
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 
 #include <algorithm>
 #include <array>
@@ -16,8 +16,12 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include <D3D9Types.h>
+#include <opencv2/opencv.hpp> 
+
+#define COUT(x) std::cout << x << std::endl;
 
 using namespace std::literals;
 
@@ -36,9 +40,11 @@ struct Texture_info {
    std::uint32_t type;
 };
 
-static_assert(sizeof(Texture_info) == 16);
 
-static_assert(sizeof(D3DFORMAT) == sizeof(std::uint32_t));
+//static_assert(sizeof(Texture_info) == 16);
+
+//static_assert(sizeof(D3DFORMAT) == sizeof(std::uint32_t));
+
 
 constexpr std::array format_rankings{D3DFMT_A32B32G32R32F,
                                      D3DFMT_A16B16G16R16F,
@@ -82,6 +88,89 @@ constexpr std::array format_rankings{D3DFMT_A32B32G32R32F,
                                      D3DFMT_UYVY,
                                      D3DFMT_YUY2};
 
+
+std::string D3DToString(D3DFORMAT d3dFormat) {
+                                  switch (d3dFormat) {
+                                    case D3DFMT_A8R8G8B8:
+                                        return "D3DFMT_A8R8G8B8";
+                                    case D3DFMT_X8R8G8B8:
+                                        return "D3DFMT_X8R8G8B8";
+                                    case D3DFMT_R5G6B5:
+                                        return "D3DFMT_R5G6B5";
+                                    case D3DFMT_A1R5G5B5:
+                                        return "D3DFMT_A1R5G5B5";
+                                    case D3DFMT_X1R5G5B5:
+                                        return "D3DFMT_X1R5G5B5";
+                                    case D3DFMT_A4R4G4B4:
+                                        return "D3DFMT_A4R4G4B4";
+                                    case D3DFMT_A8:
+                                        return "D3DFMT_A8";
+                                    case D3DFMT_A2B10G10R10:
+                                        return "D3DFMT_A2B10G10R10";
+                                    case D3DFMT_A8B8G8R8:
+                                        return "D3DFMT_A8B8G8R8";
+                                    case D3DFMT_G16R16:
+                                        return "D3DFMT_G16R16";
+                                    case D3DFMT_A16B16G16R16:
+                                        return "D3DFMT_A16B16G16R16";
+                                    case D3DFMT_V8U8:
+                                        return "D3DFMT_V8U8";
+                                    case D3DFMT_Q8W8V8U8:
+                                        return "D3DFMT_Q8W8V8U8";
+                                    case D3DFMT_V16U16:
+                                        return "D3DFMT_V16U16";
+                                    case D3DFMT_R8G8_B8G8:
+                                        return "D3DFMT_R8G8_B8G8";
+                                    case D3DFMT_G8R8_G8B8:
+                                        return "D3DFMT_G8R8_G8B8";
+                                    case D3DFMT_DXT1:
+                                        return "D3DFMT_DXT1";
+                                    case D3DFMT_DXT2:
+                                        return "D3DFMT_DXT2";
+                                    case D3DFMT_DXT3:
+                                        return "D3DFMT_DXT3";
+                                    case D3DFMT_DXT4:
+                                        return "D3DFMT_DXT4";
+                                    case D3DFMT_DXT5:
+                                        return "D3DFMT_DXT5";
+                                    case D3DFMT_D16_LOCKABLE:
+                                        return "D3DFMT_D16_LOCKABLE";
+                                    case D3DFMT_D16:
+                                        return "D3DFMT_D16";
+                                    case D3DFMT_D24S8:
+                                        return "D3DFMT_D24S8";
+                                    case D3DFMT_D32:
+                                        return "D3DFMT_D32";
+                                    case D3DFMT_D32F_LOCKABLE:
+                                        return "D3DFMT_D32F_LOCKABLE";
+                                    case D3DFMT_Q16W16V16U16:
+                                        return "D3DFMT_Q16W16V16U16";
+                                    case D3DFMT_R16F:
+                                        return "D3DFMT_R16F";
+                                    case D3DFMT_G16R16F:
+                                        return "D3DFMT_G16R16F";
+                                    case D3DFMT_A16B16G16R16F:
+                                        return "D3DFMT_A16B16G16R16F";
+                                    case D3DFMT_R32F:
+                                        return "D3DFMT_R32F";
+                                    case D3DFMT_G32R32F:
+                                        return "D3DFMT_G32R32F";
+                                    case D3DFMT_A32B32G32R32F:
+                                        return "D3DFMT_A32B32G32R32F";
+                                    case D3DFMT_A2B10G10R10_XR_BIAS:
+                                        return "D3DFMT_A2B10G10R10_XR_BIAS";
+                                    case D3DFMT_L8:
+                                        return "D3DFMT_L8";
+                                    case D3DFMT_A8L8:
+                                        return "D3DFMT_A8L8";
+                                    case D3DFMT_L16:
+                                        return "D3DFMT_L16";
+                                    default:
+                                        return fmt::format("Unknown Format: {}", d3dFormat).c_str();
+                                  }
+}
+
+/*
 auto d3d_to_dxgi_format(const D3DFORMAT format) -> DXGI_FORMAT
 {
    switch (format) {
@@ -158,6 +247,7 @@ auto d3d_to_dxgi_format(const D3DFORMAT format) -> DXGI_FORMAT
       throw std::runtime_error{"Texture has unknown or unsupported format."};
    }
 }
+*/
 
 bool is_luminance_format(const D3DFORMAT format)
 {
@@ -188,6 +278,7 @@ auto sort_formats(std::vector<D3DFORMAT> formats) -> std::vector<D3DFORMAT>
    return formats;
 }
 
+/*
 auto patch_luminance_format(DirectX::ScratchImage input, const D3DFORMAT format)
    -> DirectX::ScratchImage
 {
@@ -236,6 +327,7 @@ auto patch_luminance_format(DirectX::ScratchImage input, const D3DFORMAT format)
 
    return result;
 }
+*/
 
 auto read_format_list(Ucfb_reader_strict<"INFO"_mn> info) -> std::vector<D3DFORMAT>
 {
@@ -245,7 +337,7 @@ auto read_format_list(Ucfb_reader_strict<"INFO"_mn> info) -> std::vector<D3DFORM
 }
 
 auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT format)
-   -> DirectX::ScratchImage
+   -> cv::Mat
 {
    while (texture) {
       auto fmt = texture.read_child_strict_optional<"FMT_"_mn>();
@@ -257,12 +349,15 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
 
       if (texture_info.format != format) continue;
 
-      DirectX::ScratchImage image;
+      
+      cv::Mat image;
+      //cv::Size imageSize(texture_info.width, texture_info.height);
+      //cv::resize(image, image, imageSize);
 
-      if (FAILED(image.Initialize2D(d3d_to_dxgi_format(texture_info.format),
-                                    texture_info.width, texture_info.height, 1, 1))) {
-         throw Badformat_exception{"bad format"};
-      }
+      //if (FAILED(image.Initialize2D(d3d_to_dxgi_format(texture_info.format),
+      //                              texture_info.width, texture_info.height, 1, 1))) {
+      //   throw Badformat_exception{"bad format"};
+      //}
 
       // Pretend like 2D textures are the only thing that exist.
       auto lvl = fmt->read_child_strict<"FACE"_mn>().read_child_strict<"LVL_"_mn>();
@@ -271,12 +366,15 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
       auto body = lvl.read_child_strict<"BODY"_mn>();
-      body.read_array_to_span(
-         body.size(), gsl::make_span(image.GetImage(0, 0, 0)->pixels, body.size()));
+      //body.read_array_to_span(
+      //   body.size(), gsl::make_span(image.GetImage(0, 0, 0)->pixels, body.size()));
 
-      if (is_luminance_format(format)) {
+      std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}", texture_info.width, texture_info.height, body.size(), D3DToString(texture_info.format));
+      COUT(imgInfo)
+
+      /*if (is_luminance_format(format)) {
          return patch_luminance_format(std::move(image), format);
-      }
+      }*/
 
       return image;
    }
@@ -285,7 +383,7 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
 }
 
 auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
-   -> std::pair<std::string, DirectX::ScratchImage>
+   -> std::pair<std::string, cv::Mat>
 {
    const auto name = texture.read_child_strict<"NAME"_mn>().read_string();
 
@@ -300,7 +398,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
       }
    }
 
-   throw std::runtime_error{fmt::format("Texture {} has no usable formats!"sv, name)};
+   throw std::runtime_error{fmt::format("Texture {} has no usable formats!", name)};
 }
 }
 
@@ -309,5 +407,5 @@ void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format sa
 {
    auto [name, image] = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture});
 
-   save_image(name, std::move(image), file_saver, save_format, model_format);
+   //save_image(name, std::move(image), file_saver, save_format, model_format);
 }

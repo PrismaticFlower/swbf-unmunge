@@ -1,4 +1,3 @@
-
 #include "chunk_processor.hpp"
 #include "chunk_handlers.hpp"
 #include "file_saver.hpp"
@@ -16,8 +15,8 @@
 
 using namespace std::literals;
 
-void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format,
-                    Model_format model_format){return;}
+//void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format,
+//                    Model_format model_format){return;}
 
 void handle_texture_xbox(Ucfb_reader texture, File_saver& file_saver,
                          Image_format save_format, Model_format model_format){return;}
