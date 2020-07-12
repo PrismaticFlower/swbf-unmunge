@@ -21,7 +21,7 @@ cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src) {
         for(int j = 0; j < width; j++) {
 
         	int index = i * width + j;
-            int outIndex = 3 * index;
+            int outIndex = 3 * (i * width + j); 
 
         	unsigned short rgb565 = srcUS[index];
             uchar r5 = (rgb565 & RED_MASK)   >> 11;
