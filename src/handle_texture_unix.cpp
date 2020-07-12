@@ -19,7 +19,8 @@
 #include <iostream>
 
 #include <D3D9Types.h>
-#include <opencv2/opencv.hpp> 
+
+#include "image_converters_unix.h"
 
 #define COUT(x) std::cout << x << std::endl;
 
@@ -349,32 +350,34 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
 
       if (texture_info.format != format) continue;
 
-      
-      cv::Mat image;
-      //cv::Size imageSize(texture_info.width, texture_info.height);
-      //cv::resize(image, image, imageSize);
-
-      //if (FAILED(image.Initialize2D(d3d_to_dxgi_format(texture_info.format),
-      //                              texture_info.width, texture_info.height, 1, 1))) {
-      //   throw Badformat_exception{"bad format"};
-      //}
-
       // Pretend like 2D textures are the only thing that exist.
       auto lvl = fmt->read_child_strict<"FACE"_mn>().read_child_strict<"LVL_"_mn>();
 
       [[maybe_unused]] const auto [mip_level, bytes_size] =
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
-      auto body = lvl.read_child_strict<"BODY"_mn>();
-      //body.read_array_to_span(
-      //   body.size(), gsl::make_span(image.GetImage(0, 0, 0)->pixels, body.size()));
+      cv::Mat image(texture_info.height, texture_info.width, CV_8UC3, cv::Scalar(100, 10, 100));
+      static unsigned char *pixelDump = new unsigned char[1024 * 1024 * 8];
 
-      std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}", texture_info.width, texture_info.height, body.size(), D3DToString(texture_info.format));
+
+      auto body = lvl.read_child_strict<"BODY"_mn>();
+
+      std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
+                                        texture_info.width, texture_info.height, 
+                                        body.size(), 
+                                        D3DToString(texture_info.format));
       COUT(imgInfo)
 
-      /*if (is_luminance_format(format)) {
+      body.read_array_to_span(body.size(), gsl::make_span(pixelDump, body.size()), true);
+
+      if (texture_info.format == D3DFMT_R5G6B5)
+        image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
+
+      /*
+      if (is_luminance_format(format)) {
          return patch_luminance_format(std::move(image), format);
-      }*/
+      }
+      */
 
       return image;
    }
@@ -407,5 +410,5 @@ void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format sa
 {
    auto [name, image] = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture});
 
-   //save_image(name, std::move(image), file_saver, save_format, model_format);
+   save_image(name, std::move(image), file_saver, save_format, model_format);
 }

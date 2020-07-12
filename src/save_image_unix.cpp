@@ -79,7 +79,9 @@ void save_image(std::string_view name, cv::Mat image,
    const auto dir = model_format == Model_format::gltf2 ? "models"sv : "textures"sv;
 
    // glTF doesn't support .tga files.
-   save_format = model_format == Model_format::gltf2 ? Image_format::png : save_format;
+   //save_format = model_format == Model_format::gltf2 ? Image_format::png : save_format;
+
+   save_format = Image_format::png;
 
    const auto path = file_saver.build_file_path(dir, name, image_extension(save_format));
 
