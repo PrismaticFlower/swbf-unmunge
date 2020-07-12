@@ -357,7 +357,7 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
       cv::Mat image(texture_info.height, texture_info.width, CV_8UC3, cv::Scalar(100, 10, 100));
-      static unsigned char *pixelDump = new unsigned char[1024 * 1024 * 8];
+      unsigned char *pixelDump = new unsigned char[texture_info.height * texture_info.width * 8];
 
 
       auto body = lvl.read_child_strict<"BODY"_mn>();
@@ -378,6 +378,8 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
          return patch_luminance_format(std::move(image), format);
       }
       */
+
+      delete pixelDump;
 
       return image;
    }
