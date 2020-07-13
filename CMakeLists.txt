@@ -43,6 +43,7 @@ target_include_directories(unmunge PUBLIC ${OpenCV_INCLUDE_DIRS})
 
 include_directories(unmunge PUBLIC src)
 include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
+include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/gli)
 
 
 file(GLOB SOURCE_FILES src/*.cpp)

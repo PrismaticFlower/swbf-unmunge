@@ -41,3 +41,25 @@ cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src) {
 
     return imageRGB;
 }
+
+
+cv::Mat a8r8g8b8ToRBG(int height, int width, unsigned char *src) { 
+
+    cv::Mat imageRGB(height, width, CV_8UC3, cv::Scalar(10, 100, 150));
+    unsigned char *sink = imageRGB.data;
+
+    for(int i = 0; i < height; i++) {
+
+        for(int j = 0; j < width; j++) {
+
+            int index = 4 * i * width + j;
+            int outIndex = 3 * (i * width + j); 
+
+            sink[outIndex] = src[index + 1];
+            sink[outIndex + 1] = src[index + 2];
+            sink[outIndex + 2] = src[index + 3];
+        }
+    }
+
+    return imageRGB;
+}
