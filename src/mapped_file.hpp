@@ -6,9 +6,10 @@
 #include <filesystem>
 #include <memory>
 
-#ifdef __linux__
+//#if defined(__linux__) || defined(__APPLE__) 
 #include <boost/iostreams/device/mapped_file.hpp>
-#endif
+//#endif
+
 
 class Mapped_file {
 public:
@@ -25,8 +26,8 @@ private:
    const std::byte *_view;
    std::uint32_t _size = 0;
 
-#ifdef __linux__
+//#if defined(__linux__) || defined(__APPLE__)
 	boost::iostreams::mapped_file_source file;
-#endif
+//#endif
 
 };

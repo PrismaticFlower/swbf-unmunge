@@ -22,6 +22,24 @@ inline auto reinterpret_span_as(const gsl::span<const std::byte, extent> data) n
    return type;
 }
 
+
+template<typename Type, std::size_t extent>
+inline auto reinterpret_span_as(const gsl::span<const std::byte, extent> data) noexcept
+   -> Type
+{
+   static_assert(std::is_trivially_copyable_v<Type>, "Type must be trivially copyable!");
+   static_assert(sizeof(Type) == extent, "Type and span must be the same size!");
+   static_assert(std::is_default_constructible_v<Type>,
+                 "Type must be default constructible!");
+
+   Type type;
+
+   std::memcpy(&type, data.data(), sizeof(Type));
+
+   return type;
+}
+
+
 template<typename Type>
 inline auto to_char_pointer(const Type* const pointer) noexcept -> const char*
 {

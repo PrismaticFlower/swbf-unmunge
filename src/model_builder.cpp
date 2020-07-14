@@ -108,6 +108,9 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
       }
    }();
 
+   //TODO: FIX MESSY
+   auto scale_ = scale; 
+
    scene::Geometry geometry{
       .topology = primitives::primitive_topology,
       .indices = Indices{std::cbegin(indices), std::cend(indices)},
@@ -116,7 +119,7 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
 
    std::transform(std::cbegin(positions), std::cend(positions),
                   geometry.vertices.positions.get(),
-                  [scale](const auto pos) { return pos * scale; });
+                  [scale_](const auto pos) { return pos * scale_; });
    std::copy(std::cbegin(normals), std::cend(normals), geometry.vertices.normals.get());
    std::copy(std::cbegin(texcoords), std::cend(texcoords),
              geometry.vertices.texcoords.get());

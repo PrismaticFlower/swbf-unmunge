@@ -29,10 +29,13 @@ if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")
 elseif(APPLE)
 	target_link_options(unmunge PUBLIC -undefined dynamic_lookup)
+	target_compile_options(unmunge PUBLIC "-Wno-user-defined-literals")
 endif()
 
 if (APPLE)
 	find_package(OpenCV REQUIRED)
+	include_directories(unmunge PUBLIC src)
+	include_directories(unmunge PUBLIC /Users/will/projects/cpprtx/libs/glm)
 else ()
 	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(OpenCV REQUIRED opencv)
@@ -41,9 +44,9 @@ endif()
 target_include_directories(unmunge PUBLIC ${OpenCV_INCLUDE_DIRS})
 
 
-include_directories(unmunge PUBLIC src)
-include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
-include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/gli)
+include_directories(unmunge PUBLIC /usr/local/include)
+#include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
+#include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/gli)
 
 
 file(GLOB SOURCE_FILES src/*.cpp)
@@ -73,10 +76,23 @@ target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
 target_link_libraries(unmunge PUBLIC -lpthread)
 target_link_libraries(unmunge PUBLIC m)
 
+
+if(NOT APPLE)
+
 target_link_libraries(unmunge PUBLIC /usr/lib/x86_64-linux-gnu/libtbb.so)
 target_link_libraries(unmunge PUBLIC /usr/lib/x86_64-linux-gnu/libboost_iostreams.so.1.65.1)
-
 target_link_libraries(unmunge PUBLIC /usr/lib/libfmt.a)
-
 target_link_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm/build/glm)
+
+else()
+
+target_link_directories(unmunge PUBLIC /usr/local/lib/)
+
+target_link_libraries(unmunge PUBLIC -ltbb)
+target_link_libraries(unmunge PUBLIC -lboost_iostreams)
+target_link_libraries(unmunge PUBLIC -lfmt)
+target_link_directories(unmunge PUBLIC /Users/will/projects/cpprtx/libs/glm/build/glm)
+
+endif()
+
 target_link_libraries(unmunge PUBLIC glm_static)

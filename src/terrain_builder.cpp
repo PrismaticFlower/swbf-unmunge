@@ -8,8 +8,8 @@
 using namespace std::literals;
 
 
-constexpr int16_t operator "" i16(unsigned long long int lit){return ((int16_t) lit);}
-constexpr int32_t operator "" i32(unsigned long long int lit){return ((int32_t) lit);}
+constexpr int16_t operator "" _i16(unsigned long long int lit){return ((int16_t) lit);}
+constexpr int32_t operator "" _i32(unsigned long long int lit){return ((int32_t) lit);}
 
 
 Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_scale,
@@ -132,9 +132,9 @@ void Terrain_builder::save(Game_version version, std::string_view name,
 
    // version number
    if (version == Game_version::swbf_ii)
-      buffer += view_object_as_string(22i32);
+      buffer += view_object_as_string(22_i32);
    else
-      buffer += view_object_as_string(21i32);
+      buffer += view_object_as_string(21_i32);
 
    // grid extent
    const auto extent = static_cast<std::int16_t>(_grid_size / 2);
@@ -145,7 +145,7 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    buffer += view_object_as_string(extent);
 
    // unknown
-   buffer += view_object_as_string(164i32);
+   buffer += view_object_as_string(164_i32);
 
    // texture scales
    static_assert(sizeof(_texture_scales) == 64);
@@ -166,13 +166,13 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    buffer += view_object_as_string(_grid_unit_size);
 
    // prelit
-   buffer += view_object_as_string(0i32);
+   buffer += view_object_as_string(0_i32);
 
    // world size
    buffer += view_object_as_string(std::uint32_t{_grid_size});
 
    // grids per foliage
-   buffer += view_object_as_string(2i32);
+   buffer += view_object_as_string(2_i32);
 
    // munge flags
    if (version == Game_version::swbf_ii) buffer += static_cast<char>(_terrain_flags);
@@ -189,7 +189,7 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    buffer.append(32 * max_decal_textures, '\0');
 
    // decal tile count
-   buffer += view_object_as_string(0i32);
+   buffer += view_object_as_string(0_i32);
 
    // unknown decal options(?)
    buffer.append(8, '\0');

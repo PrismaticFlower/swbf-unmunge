@@ -183,8 +183,12 @@ auto read_segment_info_pc(Ucfb_reader_strict<"INFO"_mn> info) -> Segment_info
    const auto [primitive_topology_d3d, vertex_count, primitive_count] =
       info.read_multi<Primitive_topology_d3d, std::uint32_t, std::uint32_t>();
 
-   const auto primitive_topology = [primitive_topology_d3d] {
-      switch (primitive_topology_d3d) {
+   //Clang cant capture vars in std::pairs in lambda expressions, so this explicit 
+   //copy is needed...
+   auto primitive_topology_d3d_frompair = primitive_topology_d3d;
+
+   const auto primitive_topology = [primitive_topology_d3d_frompair] {
+      switch (primitive_topology_d3d_frompair) {
       case Primitive_topology_d3d::point_list:
          return model::Primitive_topology::point_list;
       case Primitive_topology_d3d::line_list:
@@ -212,8 +216,11 @@ auto read_segment_info_xbox(Ucfb_reader_strict<"INFO"_mn> info) -> Segment_info
    const auto [primitive_topology_xbox, vertex_count, primitive_count] =
       info.read_multi<Primitive_topology_xbox, std::uint32_t, std::uint32_t>();
 
-   const auto primitive_topology = [primitive_topology_xbox] {
-      switch (primitive_topology_xbox) {
+   //^
+   auto primitive_topology_xbox_frompair = primitive_topology_xbox;
+
+   const auto primitive_topology = [primitive_topology_xbox_frompair] {
+      switch (primitive_topology_xbox_frompair) {
       case Primitive_topology_xbox::point_list:
          return model::Primitive_topology::point_list;
       case Primitive_topology_xbox::line_list:

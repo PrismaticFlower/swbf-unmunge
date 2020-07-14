@@ -17,8 +17,8 @@
 #include <iostream>
 #include <stdexcept>
 
-#ifndef __linux__
-#include <Windows.h>
+#if defined(__linux__) || defined(__APPLE__)
+//#include <Windows.h>
 #endif
 
 #define COUT(x) std::cout << x << std::endl;

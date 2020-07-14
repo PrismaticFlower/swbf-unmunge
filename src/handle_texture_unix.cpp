@@ -374,7 +374,9 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
         image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
       } else if (texture_info.format == D3DFMT_A8R8G8B8) {
         image = a8r8g8b8ToRBG(texture_info.height, texture_info.width, pixelDump);
-      } else if (texture_info.format == D3DFMT_DXT3)
+      } else if (texture_info.format == D3DFMT_DXT3){
+        //
+      }
 
       /*
       if (is_luminance_format(format)) {
@@ -382,7 +384,7 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
       }
       */
 
-      delete pixelDump;
+      delete[] pixelDump;
 
       return image;
    }

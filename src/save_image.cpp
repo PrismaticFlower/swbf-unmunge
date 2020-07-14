@@ -1,4 +1,3 @@
-
 #include "app_options.hpp"
 #include "file_saver.hpp"
 #include "save_image_tga.hpp"
