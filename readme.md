@@ -70,14 +70,20 @@ After you've installed vcpkg, you'll run the following command (in powershell) i
 Shares the same depencencies listed above, except:
 
 * [GL Image](https://github.com/bagobor/gli) (must use master branch on this fork) in place of DirectXTex
+* [Boost](https://www.boost.org/) in place of Windows mapped files  
+
+To install depencies, clone the GLI repo, and run these to install the other packages:
+
+	MacOS: brew install fmt nlohmann-json tbb cpp-gsl glm boost
+	Linux: sudo apt install fmt nlohmann-json-dev tbb libmsgsl-dev libglm-dev libboost-iostreams1.65-dev
 
 To build, cd into the source directory, create a directory "build", cd into "build" and run "cmake ..".  This will generate the required makefiles
 for building on your system.  While in "build," run "make all -jx", where x is the number of logical cores on your machine.  If you wish to build
 shared or static libraries instead of the default executable, run "cmake .. -DBUILD_SHARED/STATIC_LIB=ON" from "build."  If you get errors involving missing libraries or nonexistent paths, drop an issue and tag WHSnyder, or take some time to learn CMake, it's worth it IMHO.
 
-The Unix port excised Visual C++(17/20) specific features, mostly having to do with designated initializers, implicit casts from string views, and 
-some user defined literals.  I had to abandon GLTF capabilities, since the GLTF library used here doesn't compile with the required json headers (due to 
-compiler errors related to C++20 syntax I don't understand yet...).  Despite being an explicitly MS library, gsl works with no problems on Mac/Linux.
+The Unix port excised Visual C++(17/20) specific features, mostly having to do with some designated initializers, implicit casts from string views, and 
+a few user defined literals.  I had to abandon GLTF capabilities, since I couldn't get the GLTF library to compile with the required json headers (confusing C++20 errors).
+Despite being an explicitly MS library, gsl works with no problems on Mac/Linux.
 
 The Unix port shares all functionality of the Windows version, but cannot:
 
