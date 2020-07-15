@@ -1,8 +1,13 @@
 #include "image_converters_unix.h"
+//#include "gli/gli.hpp"
 
 #define RED_MASK 0xF800
 #define GREEN_MASK 0x07E0
 #define BLUE_MASK 0x001F
+
+/*
+TODO: REMOVE CODE DUPLICATION WITH LAMBDA BASED SOLUTION
+*/
 
 
 //Adapted from  https://stackoverflow.com/questions/34042112/opencv-mat-data-member-access
@@ -41,6 +46,16 @@ cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src) {
 
     return imageRGB;
 }
+
+/*
+cv::Mat dxt3ToRBG(std::size_t size, char *src) {
+
+    gli::texture texTest = gli::load(const_cast<const char*>(src), size);
+
+
+}
+*/
+
 
 
 cv::Mat a8r8g8b8ToRBG(int height, int width, unsigned char *src) { 

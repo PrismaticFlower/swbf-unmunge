@@ -168,12 +168,9 @@ auto create_scene(Model model) -> scene::Scene
              .light = std::move(part.material.attached_light.value())});
       }
 
-      std::string_view mp = "mesh_part{}{}"sv;  
-      std::string mp_str = mp.data();
-
       scene.nodes.push_back(
          {.name = part.name ? std::move(*part.name)
-                            : fmt::format(mp_str.c_str()/*"mesh_part{}{}"sv*/, ++name_counter,
+                            : fmt::format("mesh_part{}{}", ++name_counter,
                                           lod_suffix(part.lod)),
           .parent = std::move(part.parent),
           .material_index = insert_scene_material(
@@ -197,12 +194,9 @@ auto create_scene(Model model) -> scene::Scene
 
    name_counter = 0;
 
-   std::string_view cm = "collision_-{}-mesh{}"sv;  
-   std::string cm_str = cm.data();   
-
    for (auto& mesh : model.collision_meshes) {
       scene.nodes.push_back(
-         {.name = fmt::format(cm_str.c_str()/*"collision_-{}-mesh{}"sv*/,
+         {.name = fmt::format("collision_-{}-mesh{}",
                               collision_flags_string(mesh.flags), ++name_counter),
           .parent = scene.nodes.front().name, // take the dangerous assumption that the
                                               // first node we added is root
@@ -245,15 +239,12 @@ auto create_scene(Model model) -> scene::Scene
           }});
    }
 
-   name_counter = 0;
-
-   std::string_view matf = "material{}"sv;  
-   std::string mat_str = matf.data();     
+   name_counter = 0;   
 
    for (auto& material : scene.materials) {
       if (!material.name.empty()) continue;
 
-      material.name = fmt::format(mat_str.c_str()/*"material{}"sv*/, ++name_counter);
+      material.name = fmt::format("material{}", ++name_counter);
    }
 
    for (const auto& node : scene.nodes) {
@@ -274,9 +265,11 @@ void save_model(Model model, File_saver& file_saver, const Game_version game_ver
    if (format == Model_format::msh) {
       //msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
    }
+   #if !(defined(__APPLE__) || defined(__linux__))
    else if (format == Model_format::gltf2) {
       //gltf::save_scene(create_scene(std::move(model)), file_saver);
    }
+   #endif
 }
 
 void clean_model(Model& model, const Model_discard_flags discard_flags) noexcept
