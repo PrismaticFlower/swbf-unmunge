@@ -4,6 +4,8 @@ project(unmunging)
 
 option(BUILD_SHARED_LIB "Build shared lib" OFF)
 option(BUILD_STATIC_LIB "Build static lib" OFF)
+option(GLMDIR "Full path to GLM static/shared lib" "/home/will/projects/cpprtx/libs/glm/build/glm")
+
 
 
 
@@ -31,14 +33,8 @@ add_compile_definitions(FX_GLTF_HAS_CPP_17)
 
 
 
-#INCLUDES
 
-if (UNIX AND NOT APPLE)
-	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")
-elseif(APPLE)
-	target_link_options(unmunge PUBLIC -undefined dynamic_lookup)
-	target_compile_options(unmunge PUBLIC "-Wno-user-defined-literals")
-endif()
+#INCLUDES
 
 if (APPLE)
 	find_package(OpenCV REQUIRED)
@@ -56,13 +52,17 @@ include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
 include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/gli)
 
 
+
+
+
+#SOURCES
+
 file(GLOB SOURCE_FILES src/*.cpp)
 file(GLOB SOURCE_FILES_UNIX src/*unix*)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
 file(GLOB GLTF_FILES src/*gltf*)
-
 
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
@@ -77,25 +77,27 @@ target_sources(unmunge PUBLIC ${SOURCE_FILES})
 
 
 
+
 #LINKING
 
-if (NOT APPLE)
-	target_link_libraries(unmunge PUBLIC -ldl) #handled automatically on Mac
+if (APPLE)
+	target_link_options(unmunge PUBLIC -undefined dynamic_lookup)
+elseif (NOT APPLE)
+	target_link_libraries(unmunge PUBLIC -ldl)
+	target_link_libraries(unmunge PUBLIC "-Wl,--no-as-needed")
 endif()
-
 
 target_link_directories(unmunge PUBLIC ${OpenCV_LIBRARY_DIRS})
 target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
 
-
-if(NOT APPLE)
+if (NOT APPLE)
 	target_link_directories(unmunge PUBLIC /usr/lib/x86_64-linux-gnu)
 	target_link_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm/build/glm)
 else()
-	target_link_directories(unmunge PUBLIC /usr/local/lib/)
+	target_link_directories(unmunge PUBLIC /usr/local/lib/) #Not too sure how include pathing works on Mac,
+															#I usually include this to be safe
 	target_link_directories(unmunge PUBLIC /Users/will/projects/cpprtx/libs/glm/build/glm)
 endif()
-
 
 target_link_libraries(unmunge PUBLIC tbb)
 target_link_libraries(unmunge PUBLIC boost_iostreams)
