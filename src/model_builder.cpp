@@ -45,7 +45,11 @@ auto lod_suffix(const Lod lod) -> std::string_view
    case Lod::lowres:
       return "_lowres"sv;
    default:
+#ifdef _WIN32
       std::terminate();
+#else
+      return "_undefined"sv;
+#endif
    }
 }
 
@@ -104,7 +108,15 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
                                         cube_vertex_normals, cube_vertex_texcoords),
                                std::make_tuple(glm::vec3{size}));
       default:
-         std::terminate(); //
+//TODO: FIX MESSY
+#ifdef _WIN32
+        std::terminate(); //Not sure how to make this portable, terminates entire process
+                          //on Mac/Linux. Will look deeper into it someday...
+#else
+        return std::tuple_cat(as_spans(cube_indices, cube_vertex_positions,
+                                        cube_vertex_normals, cube_vertex_texcoords),
+                               std::make_tuple(glm::vec3{size}));
+#endif
       }
    }();
 

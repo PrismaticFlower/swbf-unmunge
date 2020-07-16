@@ -57,7 +57,7 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
 
 //TODO: FIX MESSY
 #ifndef _WIN32 
-   matrix[3] *= -1.0f;
+   matrix[3] *= glm::vec4(-1.0,-1.0,-1.0,1.0);
 #else
    matrix[3].xyz = matrix[3].xyz * -1.0f;
 #endif

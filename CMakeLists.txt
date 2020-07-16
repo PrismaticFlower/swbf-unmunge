@@ -4,8 +4,11 @@ project(unmunging)
 
 option(BUILD_SHARED_LIB "Build shared lib" OFF)
 option(BUILD_STATIC_LIB "Build static lib" OFF)
-option(GLMDIR "Full path to GLM static/shared lib" "/home/will/projects/cpprtx/libs/glm/build/glm")
 
+
+if (NOT GLMDIR OR NOT FMTDIR)
+	message(FATAL_ERROR "Please define paths to glm and fmt binaries (-DGLMDIR=... -DFMTDIR=...)")
+endif()
 
 
 
@@ -19,7 +22,7 @@ elseif (BUILD_STATIC_LIB)
 	add_library(unmunge STATIC)
 else()
 	add_executable(unmunge)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
 set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
@@ -73,8 +76,6 @@ list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
 list(REMOVE_ITEM SOURCE_FILES ${GLTF_FILES})
 list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
 
-message(STATUS "Unix source files: ${SOURCE_FILES_UNIX}")
-
 target_sources(unmunge PUBLIC ${SOURCE_FILES})
 
 
@@ -95,8 +96,8 @@ target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
 
 if (NOT APPLE)
 	target_link_directories(unmunge PUBLIC /usr/lib/x86_64-linux-gnu)
-	target_link_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm/build/glm)
-	target_link_directories(unmunge PUBLIC /media/will/dual/sharedprojects/fmt/build)
+	target_link_directories(unmunge PUBLIC "${GLMDIR}")
+	target_link_directories(unmunge PUBLIC "${FMTDIR}")
 else()
 	target_link_directories(unmunge PUBLIC /usr/local/lib/) #Not too sure how include pathing works on Mac,
 															#I usually include this to be safe
