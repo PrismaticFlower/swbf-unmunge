@@ -70,6 +70,8 @@ if (UNIX AND NOT APPLE)
 	target_link_libraries(unmunge PUBLIC -ldl) #handled automatically on Mac
 endif()
 
+target_include_directories(unmunge PUBLIC /Users/will/projects/swbf2/gli)
+
 target_link_directories(unmunge PUBLIC ${OpenCV_LIBRARY_DIRS})
 target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
 

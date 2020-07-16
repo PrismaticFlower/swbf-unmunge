@@ -366,16 +366,18 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
                                         texture_info.width, texture_info.height, 
                                         body.size(), 
                                         D3DToString(texture_info.format));
-      COUT(imgInfo)
+      //COUT(imgInfo)
 
       body.read_array_to_span(body.size(), gsl::make_span(pixelDump, body.size()));
 
       if (texture_info.format == D3DFMT_R5G6B5){
-        image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
+        //image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
       } else if (texture_info.format == D3DFMT_A8R8G8B8) {
-        image = a8r8g8b8ToRBG(texture_info.height, texture_info.width, pixelDump);
+        //image = a8r8g8b8ToRGB(texture_info.height, texture_info.width, pixelDump);
       } else if (texture_info.format == D3DFMT_DXT3){
-        //
+        COUT(imgInfo)
+        image = dxt3ToRGB(texture_info.height, texture_info.width, pixelDump, body.size());
+        COUT("DDS PARSED")
       }
 
       /*

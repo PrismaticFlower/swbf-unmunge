@@ -22,7 +22,7 @@ inline auto reinterpret_span_as(const gsl::span<const std::byte, extent> data) n
    return type;
 }
 
-
+//Fixes Clang errors
 template<typename Type, std::size_t extent>
 inline auto reinterpret_span_as(const gsl::span<const std::byte, extent> data) noexcept
    -> Type

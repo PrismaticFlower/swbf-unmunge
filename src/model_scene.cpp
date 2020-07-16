@@ -18,7 +18,6 @@ void vertices_aabb(const Type& vertices, AABB& global_aabb,
 {
 
 //TODO: FIX MESSY
-
 #if defined(__linux__) || defined(__APPLE__) 
   
   auto positionsPtr = vertices.positions.get();
@@ -37,6 +36,7 @@ void vertices_aabb(const Type& vertices, AABB& global_aabb,
   
 #else
 
+  //Visual C++ seems to autocast the positions ptr to an iterable parameter...
   std::for_each_n(vertices.positions.get(), vertices.size, [&](const glm::vec3 pos) {
       const auto global_pos = local_to_global * glm::vec4{pos, 1.0f};
 

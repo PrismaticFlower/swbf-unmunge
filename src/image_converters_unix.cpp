@@ -1,9 +1,16 @@
 #include "image_converters_unix.h"
 //#include "gli/gli.hpp"
+//#include "gli/texture.hpp"
+#include <iostream>
+
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 
 #define RED_MASK 0xF800
 #define GREEN_MASK 0x07E0
 #define BLUE_MASK 0x001F
+
+#define COUT(x) std::cout << x << std::endl;
 
 /*
 TODO: REMOVE CODE DUPLICATION WITH LAMBDA BASED SOLUTION
@@ -48,17 +55,30 @@ cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src) {
 }
 
 /*
-cv::Mat dxt3ToRBG(std::size_t size, char *src) {
+cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size) {
 
-    gli::texture texTest = gli::load(const_cast<const char*>(src), size);
+    static cv::Mat imageRGB(200, 200, CV_8UC3, cv::Scalar(200, 0, 0));
+    if (src == nullptr){
+        COUT("DXT3 DATA NULL")
+        return imageRGB;
+    }
+    gli::texture texTest = gli::load_dds_raw(src, width, height, size);
+    //gli::texture::extent_type dims = texTest.extent(0);
+    //COUT(fmt::format("DDS Tex dims: {} by {}",dims.x, dims.y))
 
-
+    return imageRGB;
 }
 */
 
+cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size){
+
+    
+}
 
 
-cv::Mat a8r8g8b8ToRBG(int height, int width, unsigned char *src) { 
+
+
+cv::Mat a8r8g8b8ToRGB(int height, int width, unsigned char *src) { 
 
     cv::Mat imageRGB(height, width, CV_8UC3, cv::Scalar(10, 100, 150));
     unsigned char *sink = imageRGB.data;
