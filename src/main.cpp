@@ -17,11 +17,9 @@
 #include <iostream>
 #include <stdexcept>
 
-#if defined(__linux__) || defined(__APPLE__)
-//#include <Windows.h>
+#if !(defined(__linux__) || defined(__APPLE__))
+#include <Windows.h>
 #endif
-
-#define COUT(x) std::cout << x << std::endl;
 
 namespace fs = std::filesystem;
 using namespace std::literals;
@@ -115,17 +113,17 @@ int main(int argc, char* argv[])
       return 0;
    }
 
-   //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-
+#ifdef _WIN32
+   CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+#endif
+   
    const auto processor = get_file_processor(app_options.tool_mode());
-
-   COUT("Starting parse")
 
    tbb::parallel_for_each(input_files, [&app_options, &processor](const auto& file) {
       processor(app_options, file);
    });
 
-   COUT("End parse")
-
-   //CoUninitialize();
+#ifdef _WIN32
+   CoUninitialize();
+#endif
 }

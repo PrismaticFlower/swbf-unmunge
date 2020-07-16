@@ -99,8 +99,6 @@ struct Vertices {
    };
 
    Vertices() = default;
-   //Vertices(Vertices&& v) = default;
-
    Vertices(const std::size_t size, const Create_flags flags);
 
    std::size_t size = 0;
@@ -121,7 +119,6 @@ using Cloth_indices = std::vector<std::array<std::uint32_t, 3>>;
 
 struct Cloth_vertices {
    Cloth_vertices() = default;
-   //Cloth_vertices(Cloth_vertices&& c) = default;
 
    Cloth_vertices(const std::size_t size)
       : size{size}, positions{std::make_unique<glm::vec3[]>(size)},

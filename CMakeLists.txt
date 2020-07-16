@@ -24,11 +24,13 @@ endif()
 
 set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
 set_property(TARGET unmunge PROPERTY CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE Debug)
 
 add_compile_definitions(GLM_FORCE_SWIZZLE)
 add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
 add_compile_definitions(FX_GLTF_HAS_CPP_17)
+#target_compile_options(unmunge PUBLIC "-fms-extensions")
 
 
 
@@ -50,6 +52,7 @@ target_include_directories(unmunge PUBLIC ${OpenCV_INCLUDE_DIRS})
 include_directories(unmunge PUBLIC src)
 include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
 include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/gli)
+include_directories(unmunge PUBLIC /media/will/dual/sharedprojects/fmt/include) 
 
 
 
@@ -93,6 +96,7 @@ target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
 if (NOT APPLE)
 	target_link_directories(unmunge PUBLIC /usr/lib/x86_64-linux-gnu)
 	target_link_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm/build/glm)
+	target_link_directories(unmunge PUBLIC /media/will/dual/sharedprojects/fmt/build)
 else()
 	target_link_directories(unmunge PUBLIC /usr/local/lib/) #Not too sure how include pathing works on Mac,
 															#I usually include this to be safe

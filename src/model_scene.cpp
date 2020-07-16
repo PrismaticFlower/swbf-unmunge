@@ -17,9 +17,8 @@ void vertices_aabb(const Type& vertices, AABB& global_aabb,
                    const glm::mat4x3 local_to_global, AABB& local_aabb) noexcept
 {
 
-//TODO: FIX MESSY
-
-#if defined(__linux__) || defined(__APPLE__) 
+//TODO: FIX MESSY, ITERABLE PTRs SEEMS TO BE VISUAL C++ FEATURE
+#ifndef _WIN32
   
   auto positionsPtr = vertices.positions.get();
   for (int i = 0; i < vertices.size; i++){
@@ -37,14 +36,15 @@ void vertices_aabb(const Type& vertices, AABB& global_aabb,
   
 #else
 
+  //Visual C++ seems to convert pointers to simple iterators...
   std::for_each_n(vertices.positions.get(), vertices.size, [&](const glm::vec3 pos) {
-      const auto global_pos = local_to_global * glm::vec4{pos, 1.0f};
+    const auto global_pos = local_to_global * glm::vec4{pos, 1.0f};
 
-      global_aabb.min = glm::min(global_aabb.min, global_pos);
-      global_aabb.max = glm::max(global_aabb.max, global_pos);
+    global_aabb.min = glm::min(global_aabb.min, global_pos);
+    global_aabb.max = glm::max(global_aabb.max, global_pos);
 
-      local_aabb.min = glm::min(local_aabb.min, pos);
-      local_aabb.max = glm::max(local_aabb.max, pos);
+    local_aabb.min = glm::min(local_aabb.min, pos);
+    local_aabb.max = glm::max(local_aabb.max, pos);
   });
 
 #endif
@@ -56,12 +56,10 @@ auto build_node_matrix(const std::vector<Node>& nodes, const Node& child) noexce
    glm::mat4 matrix = child.transform;
 
 //TODO: FIX MESSY
-
-#if defined(__linux__) || defined(__APPLE__) 
-    for (int i=3; i<6; i++) //could be slicker, safe for now
-      matrix[i] *= -1.0f;
+#ifndef _WIN32 
+   matrix[3] *= -1.0f;
 #else
-    matrix[3].xyz = matrix[3].xyz * -1.0f;
+   matrix[3].xyz = matrix[3].xyz * -1.0f;
 #endif
 
    std::string_view next_parent = child.parent;
