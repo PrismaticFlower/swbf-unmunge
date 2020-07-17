@@ -8,7 +8,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include "fx/gltf_ms.h"
+#include "fx/gltf.h"
 #include <fmt/format.h>
 #include <gsl/gsl>
 
