@@ -1,9 +1,6 @@
 #include "mapped_file.hpp"
-
 #include <iostream>
 #include <limits>
-
-#define COUT(x) std::cout << x << std::endl;
 
 namespace fs = std::filesystem;
 
@@ -20,9 +17,6 @@ Mapped_file::Mapped_file(fs::path path)
    
    _size = static_cast<std::uint32_t>(file_size);
 
-   COUT("About to open")
-   COUT(path.string())
-
    boost::iostreams::mapped_file_params parameters;
    parameters.path = path.string();
    parameters.length = static_cast<size_t>(file_size);
@@ -33,8 +27,6 @@ Mapped_file::Mapped_file(fs::path path)
 
    if (!file.is_open())
       throw std::runtime_error{"Couldn't open file."};
-
-   COUT("Opened")
 
    _view = reinterpret_cast<const std::byte *>(file.data());
 
