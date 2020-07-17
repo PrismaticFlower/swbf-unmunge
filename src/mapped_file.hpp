@@ -21,7 +21,7 @@ public:
 
 
 //TODO: FIX MESSY
-#ifndef _WIN32
+#ifndef _WIN32 //for UNIX
 
     ~Mapped_file(){
    	   file.close();
@@ -32,7 +32,7 @@ private:
     const std::byte *_view;
 	boost::iostreams::mapped_file_source file;	
 
-#else
+#else //for WINDOWS
 
 private:
     std::uint32_t _size = 0;

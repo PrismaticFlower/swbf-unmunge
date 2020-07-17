@@ -1923,7 +1923,10 @@ inline void FormatException(std::string & output, std::exception const & ex, int
     output.append(std::string(level, ' ')).append(ex.what());
     try
     {
+//TODO: FIX WINDOWS COMPILE ERROR
+#ifndef _WIN32
         std::rethrow_if_nested(ex);
+#endif
     }
     catch (std::exception const & e)
     {

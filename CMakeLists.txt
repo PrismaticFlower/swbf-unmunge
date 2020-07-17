@@ -5,11 +5,6 @@ project(unmunging)
 option(BUILD_SHARED_LIB "Build shared lib" OFF)
 option(BUILD_STATIC_LIB "Build static lib" OFF)
 
-if (NOT GLMDIR OR NOT FMTDIR)
-	message(STATUS "Please define paths to glm and fmt binaries if they aren't in your paths already (-DGLMDIR=... -DFMTDIR=...)")
-endif()
-
-
 
 
 #SETTINGS
@@ -31,7 +26,6 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_definitions(GLM_FORCE_SWIZZLE)
 add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
-#add_compile_definitions(FX_GLTF_HAS_CPP_17)
 target_compile_options(unmunge PUBLIC "-fms-extensions")
 
 
@@ -43,19 +37,14 @@ target_compile_options(unmunge PUBLIC "-fms-extensions")
 if (APPLE)
 	find_package(OpenCV REQUIRED)
 	include_directories(unmunge PUBLIC /usr/local/include)
-	include_directories(unmunge PUBLIC /Users/will/projects/cpprtx/libs/glm)
 else ()
 	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(OpenCV REQUIRED opencv)
 endif()
 
 target_include_directories(unmunge PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(unmunge PUBLIC src)
 
-include_directories(unmunge PUBLIC src)
-include_directories(unmunge PUBLIC /home/will/projects/cpprtx/libs/glm)
-include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/gli)
-include_directories(unmunge PUBLIC /media/will/dual/sharedprojects/fmt/include) 
-include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/json/include)
 
 
 
@@ -68,11 +57,9 @@ file(GLOB SOURCE_FILES_UNIX src/*unix*)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
-file(GLOB GLTF_FILES src/*gltf*)
 
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
-#list(REMOVE_ITEM SOURCE_FILES ${GLTF_FILES})
 list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
 list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
 
@@ -93,9 +80,6 @@ endif()
 
 target_link_directories(unmunge PUBLIC ${OpenCV_LIBRARY_DIRS})
 target_link_libraries(unmunge PUBLIC ${OpenCV_LIBRARIES})
-
-target_link_directories(unmunge PUBLIC "${GLMDIR}")
-target_link_directories(unmunge PUBLIC "${FMTDIR}")
 
 if (APPLE)
 	target_link_directories(unmunge PUBLIC /usr/local/lib/)

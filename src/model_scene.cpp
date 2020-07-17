@@ -2,6 +2,7 @@
 #include "model_scene.hpp"
 
 #include <limits>
+#include <stdexcept>
 
 namespace model::scene {
 
