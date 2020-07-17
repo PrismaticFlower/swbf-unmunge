@@ -356,28 +356,29 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
       [[maybe_unused]] const auto [mip_level, bytes_size] =
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
-      cv::Mat image(texture_info.height, texture_info.width, CV_8UC3, cv::Scalar(100, 10, 100));
+      cv::Mat image(texture_info.height, texture_info.width, CV_8UC3, cv::Scalar(0, 0, 0));
       unsigned char *pixelDump = new unsigned char[texture_info.height * texture_info.width * 8];
 
 
       auto body = lvl.read_child_strict<"BODY"_mn>();
 
+      /*
       std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
                                         texture_info.width, texture_info.height, 
                                         body.size(), 
                                         D3DToString(texture_info.format));
-      //COUT(imgInfo)
+      */
 
       body.read_array_to_span(body.size(), gsl::make_span(pixelDump, body.size()));
 
       if (texture_info.format == D3DFMT_R5G6B5){
-        //image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
+        image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
       } else if (texture_info.format == D3DFMT_A8R8G8B8) {
-        //image = a8r8g8b8ToRGB(texture_info.height, texture_info.width, pixelDump);
+        image = a8r8g8b8ToRGB(texture_info.height, texture_info.width, pixelDump);
       } else if (texture_info.format == D3DFMT_DXT3){
-        COUT(imgInfo)
-        image = dxt3ToRGB(texture_info.height, texture_info.width, pixelDump, body.size());
-        COUT("DDS PARSED")
+        //COUT(imgInfo)
+        //image = dxt3ToRGB(texture_info.height, texture_info.width, pixelDump, body.size());
+        //COUT("DDS PARSED")
       }
 
       /*

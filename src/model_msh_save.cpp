@@ -1,7 +1,3 @@
-
-#ifdef SAVEMSH
-
-
 #include "model_msh_save.hpp"
 #include "file_saver.hpp"
 #include "model_topology_converter.hpp"
@@ -18,8 +14,6 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-#include <iostream>
-#define COUT(x) std::cout << x << std::endl;
 
 using namespace std::literals;
 
@@ -179,15 +173,8 @@ void write_matd(Ucfb_writer& matl, const scene::Material& material)
    for (auto i = 0; i < material.textures.size(); ++i) {
       if (material.textures[i].empty()) continue;
 
-      std::basic_string_view<char> testsv = "{}.tga"sv;
-      std::string ts = testsv.data();
-      COUT("Str view nonsense")
       matd.emplace_child(tx_d_magic_numbers.at(i))
-         .write(fmt::format(ts.c_str(), material.textures[i])); //probable segfault? lets compile first
-      COUT("Str view no segfault so far")
-
-      //matd.emplace_child(tx_d_magic_numbers.at(i))
-      //   .write(fmt::format("{}.tga"sv, material.textures[i]));
+         .write(fmt::format("{}.tga"sv, material.textures[i]));
    }
 }
 
@@ -377,44 +364,20 @@ void write_coll(Ucfb_writer& clth,
 
    coll.write(static_cast<std::uint32_t>(collision.size()));
 
-
-
-
-
-   std::basic_string_view<char> testsv = "cloth_collision{}"sv;
-   std::string ts = testsv.data();
-
    for (std::size_t i = 0; i < collision.size(); ++i) {
-      coll.write(fmt::format(ts.c_str(), i));
-      coll.write(collision[i].parent);
-      coll.write(collision[i].type);
-      coll.write(collision[i].size);
-   }
-
-
-
-
-
-   /*for (std::size_t i = 0; i < collision.size(); ++i) {
       coll.write(fmt::format("cloth_collision{}"sv, i));
       coll.write(collision[i].parent);
       coll.write(collision[i].type);
       coll.write(collision[i].size);
-   }*/
+   }
 }
 
 void write_clth(Ucfb_writer& geom, const scene::Cloth_geometry& cloth_geometry)
 {
    auto clth = geom.emplace_child("CLTH"_mn);
 
-   std::basic_string_view<char> testsv = "{}.tga"sv;
-   std::string ts = testsv.data();
-
    clth.emplace_child("CTEX"_mn).write(
-      fmt::format(ts.c_str(), cloth_geometry.texture_name));
-
-   //clth.emplace_child("CTEX"_mn).write(
-   //   fmt::format("{}.tga"sv, cloth_geometry.texture_name));
+      fmt::format("{}.tga"sv, cloth_geometry.texture_name));
 
    const auto vertex_count = static_cast<std::uint32_t>(cloth_geometry.vertices.size);
 
@@ -555,5 +518,3 @@ void save_scene(scene::Scene scene, File_saver& file_saver,
    save_option_file(scene, file_saver);
 }
 }
-
-#endif

@@ -45,9 +45,9 @@ cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src) {
             uchar g8 = floor((g6 * factor6Bit) + 0.5);
             uchar b8 = floor((b5 * factor5Bit) + 0.5);
 
-            sink[outIndex] = r8;
+            sink[outIndex] = b8;
             sink[outIndex + 1] = g8;
-            sink[outIndex + 2] = b8;
+            sink[outIndex + 2] = r8;
         }
     }
 
@@ -70,10 +70,10 @@ cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size) {
 }
 */
 
-cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size){
+//cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size){
 
     
-}
+//}
 
 
 

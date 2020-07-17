@@ -45,7 +45,11 @@ auto lod_suffix(const Lod lod) -> std::string_view
    case Lod::lowres:
       return "_lowres"sv;
    default:
+#ifdef _WIN32
       std::terminate();
+#else
+      return "_undefined"sv;
+#endif
    }
 }
 
@@ -104,11 +108,19 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
                                         cube_vertex_normals, cube_vertex_texcoords),
                                std::make_tuple(glm::vec3{size}));
       default:
-         std::terminate();
+//TODO: FIX MESSY
+#ifdef _WIN32
+        std::terminate(); //Not sure how to make this portable, terminates entire process
+                          //on Mac/Linux. Will look deeper into it someday...
+#else
+        return std::tuple_cat(as_spans(cube_indices, cube_vertex_positions,
+                                        cube_vertex_normals, cube_vertex_texcoords),
+                               std::make_tuple(glm::vec3{size}));
+#endif
       }
    }();
 
-   //TODO: FIX MESSY
+   //TODO: FIX MESSY (lambda can't capture "scale" when it's not copied out of the pair, Clang error)
    auto scale_ = scale; 
 
    scene::Geometry geometry{
@@ -170,7 +182,7 @@ auto create_scene(Model model) -> scene::Scene
 
       scene.nodes.push_back(
          {.name = part.name ? std::move(*part.name)
-                            : fmt::format("mesh_part{}{}", ++name_counter,
+                            : fmt::format("mesh_part{}{}"sv, ++name_counter,
                                           lod_suffix(part.lod)),
           .parent = std::move(part.parent),
           .material_index = insert_scene_material(
@@ -196,7 +208,7 @@ auto create_scene(Model model) -> scene::Scene
 
    for (auto& mesh : model.collision_meshes) {
       scene.nodes.push_back(
-         {.name = fmt::format("collision_-{}-mesh{}",
+         {.name = fmt::format("collision_-{}-mesh{}"sv,
                               collision_flags_string(mesh.flags), ++name_counter),
           .parent = scene.nodes.front().name, // take the dangerous assumption that the
                                               // first node we added is root
@@ -240,11 +252,10 @@ auto create_scene(Model model) -> scene::Scene
    }
 
    name_counter = 0;   
-
    for (auto& material : scene.materials) {
       if (!material.name.empty()) continue;
 
-      material.name = fmt::format("material{}", ++name_counter);
+      material.name = fmt::format("material{}"sv, ++name_counter);
    }
 
    for (const auto& node : scene.nodes) {
@@ -263,13 +274,13 @@ void save_model(Model model, File_saver& file_saver, const Game_version game_ver
                 const Model_format format)
 {
    if (format == Model_format::msh) {
-      //msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
+      msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
    }
-   #if !(defined(__APPLE__) || defined(__linux__))
+#ifdef _WIN32
    else if (format == Model_format::gltf2) {
-      //gltf::save_scene(create_scene(std::move(model)), file_saver);
+      gltf::save_scene(create_scene(std::move(model)), file_saver);
    }
-   #endif
+#endif
 }
 
 void clean_model(Model& model, const Model_discard_flags discard_flags) noexcept

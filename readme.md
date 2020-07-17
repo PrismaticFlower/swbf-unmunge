@@ -46,7 +46,7 @@ Localization | Barely recovered, it will save a dump of the hash keys and their 
 
 For everything else it will be saved as a `chunk_*.munged` that can be passed back to levelpack, or in some cases it will have a pretty name and the correct extension. It depends on the type of chunk. In either case it can be passed to levelpack.
 
-## Building
+## Building on Windows
 
 If you have Visual Studio 2019 all you need to do is use [vcpkg](https://github.com/Microsoft/vcpkg)
 to grab these libraries and you'll be good to go.
@@ -64,10 +64,31 @@ After you've installed vcpkg, you'll run the following command (in powershell) i
 
     .\vcpkg install fmt:x64-windows nlohmann-json:x64-windows tbb:x64-windows ms-gsl:x64-windows DirectXTex:x64-windows glm:x64-windows
    
-Otherwise things are going to be a bit more complicated if you're wanting to build it
-for a platform that isn't Windows. Most of the code is clean standard C++ though, save a
-couple `#pragma` directives.
 
-If you for some reason do want to build it on Linux or something feel free to get in
-touch I am happy to help point out what bits of the codebase are non-portable and what
-could be done.
+
+## Building on Unix (Mac/Linux)
+
+Shares the same depencencies listed above, except:
+
+* [GL Image](https://github.com/bagobor/gli) (must use master branch on this fork) in place of DirectXTex
+* [Boost](https://www.boost.org/) in place of Windows mapped files  
+
+To install depencies, clone the GLI repo, and run these to install the other packages:
+
+	MacOS: brew install fmt nlohmann-json tbb cpp-gsl glm boost
+	Linux: sudo apt install fmt nlohmann-json-dev tbb libmsgsl-dev libglm-dev libboost-iostreams1.65-dev
+
+To build, cd into the source directory, create a directory "build", cd into "build" and run "cmake ..".  This will generate the required makefiles
+for building on your system.  While in "build," run "make all -jx", where x is the number of logical cores on your machine.  If you wish to build
+shared or static libraries instead of the default executable, run "cmake .. -DBUILD_SHARED/STATIC_LIB=ON" from "build."  If you get errors involving missing libraries or nonexistent paths, drop an issue and tag WHSnyder, or take some time to learn CMake, it's worth it IMHO.
+
+The Unix port excised Visual C++(17/20) specific features, mostly having to do with some designated initializers, implicit casts from string views, and 
+a few user defined literals.  I had to abandon GLTF capabilities, since I couldn't get the GLTF library to compile with the required json headers (confusing C++20 errors).
+Despite being an explicitly MS library, gsl works with no problems on Mac/Linux.
+
+The Unix port shares all functionality of the Windows version, but cannot:
+
+* Write models in GLTF mode
+* Write anything other than DDS textures (you'll have to run a shell script on the output using something like imagemagick to convert each DDS to PNG/TGA, see "magickconvert.sh")
+
+Tested on MacOS Catalina and Ubuntu 18.04
