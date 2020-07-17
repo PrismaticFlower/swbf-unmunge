@@ -198,9 +198,9 @@ auto add_attribute_accessor(fx::gltf::Document& doc, std::vector<std::uint8_t>& 
    }();
 
    constexpr auto component_type = []() {
-      if (std::is_same_v<T::value_type, float>)
+      if (std::is_same_v<typename T::value_type, float>)
          return fx::gltf::Accessor::ComponentType::Float;
-      if (std::is_same_v<T::value_type, glm::uint8>)
+      if (std::is_same_v<typename T::value_type, glm::uint8>)
          return fx::gltf::Accessor::ComponentType::UnsignedByte;
    }();
 

@@ -276,11 +276,11 @@ void save_model(Model model, File_saver& file_saver, const Game_version game_ver
    if (format == Model_format::msh) {
       msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
    }
-#ifdef _WIN32
+//#ifdef _WIN32
    else if (format == Model_format::gltf2) {
       gltf::save_scene(create_scene(std::move(model)), file_saver);
    }
-#endif
+//#endif
 }
 
 void clean_model(Model& model, const Model_discard_flags discard_flags) noexcept

@@ -197,7 +197,7 @@ namespace gltf
         inline void ReadRequiredField(TKey && key, nlohmann::json const & json, TTarget & target)
 #endif
         {
-            const nlohmann::json::const_iterator iter = json.find(key.data());
+            const nlohmann::json::const_iterator iter = json.find(key);
             if (iter == json.end())
             {
                 throw invalid_gltf_document("Required field not found", std::string(key));
@@ -214,7 +214,7 @@ namespace gltf
         inline void ReadOptionalField(TKey && key, nlohmann::json const & json, TTarget & target)
 #endif
         {
-            const nlohmann::json::const_iterator iter = json.find(key.data());
+            const nlohmann::json::const_iterator iter = json.find(key);
             if (iter != json.end())
             {
                 target = iter->get<TTarget>();
@@ -1923,7 +1923,10 @@ inline void FormatException(std::string & output, std::exception const & ex, int
     output.append(std::string(level, ' ')).append(ex.what());
     try
     {
+//TODO: FIX WINDOWS COMPILE ERROR
+#ifndef _WIN32
         std::rethrow_if_nested(ex);
+#endif
     }
     catch (std::exception const & e)
     {
