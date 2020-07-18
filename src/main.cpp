@@ -117,17 +117,14 @@ int main(int argc, char* argv[])
    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 #endif
    
-   std::cout << "BEGINNING PARSE" << std::endl;
-
    const auto processor = get_file_processor(app_options.tool_mode());
 
    tbb::parallel_for_each(input_files, [&app_options, &processor](const auto& file) {
       processor(app_options, file);
    });
 
-   std::cout << "END PARSE" << std::endl;
-
 #ifdef _WIN32
    CoUninitialize();
 #endif
+   
 }

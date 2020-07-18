@@ -66,29 +66,19 @@ After you've installed vcpkg, you'll run the following command (in powershell) i
    
 
 
-## Building on Unix (Mac/Linux)
+## Building on Mac/Linux
 
-Shares the same depencencies listed above, except:
-
-* [GL Image](https://github.com/bagobor/gli) (must use master branch on this fork) in place of DirectXTex
-* [Boost](https://www.boost.org/) in place of Windows mapped files  
-
-To install depencies, clone the GLI repo, and run these to install the other packages:
-
-	MacOS: brew install fmt nlohmann-json tbb cpp-gsl glm boost
-	Linux: sudo apt install fmt nlohmann-json-dev tbb libmsgsl-dev libglm-dev libboost-iostreams1.65-dev
+Shares the same depencencies listed above, though you need the master branches of fmt, json, and glm directly from the git repos
+as the apt and brew packages do not work.
 
 To build, cd into the source directory, create a directory "build", cd into "build" and run "cmake ..".  This will generate the required makefiles
 for building on your system.  While in "build," run "make all -jx", where x is the number of logical cores on your machine.  If you wish to build
 shared or static libraries instead of the default executable, run "cmake .. -DBUILD_SHARED/STATIC_LIB=ON" from "build."  If you get errors involving missing libraries or nonexistent paths, drop an issue and tag WHSnyder, or take some time to learn CMake, it's worth it IMHO.
 
-The Unix port excised Visual C++(17/20) specific features, mostly having to do with some designated initializers, implicit casts from string views, and 
-a few user defined literals.  I had to abandon GLTF capabilities, since I couldn't get the GLTF library to compile with the required json headers (confusing C++20 errors).
-Despite being an explicitly MS library, gsl works with no problems on Mac/Linux.
 
-The Unix port shares all functionality of the Windows version, but cannot:
+The Unix port shares all functionality of the Windows version, but:
 
-* Write models in GLTF mode
-* Write anything other than DDS textures (you'll have to run a shell script on the output using something like imagemagick to convert each DDS to PNG/TGA, see "magickconvert.sh")
+* cannot write DDS files
+* can only parse textures encoded with the EXT3, A8R8G8B8, or R5G6R5 formats 
 
-Tested on MacOS Catalina and Ubuntu 18.04
+Tested on MacOS Catalina, Windows 10, and Ubuntu 18.04
