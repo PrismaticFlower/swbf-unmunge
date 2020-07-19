@@ -1,5 +1,8 @@
 #include "image_converters_unix.h"
 
+#define DETEX_VERSION 1
+#include "detex.h"
+
 #include <math.h>
 
 #define BMASK 0x001f
@@ -38,7 +41,7 @@ void a8r8g8b8ToRBGA(int w, int h, unsigned char *src, uint32_t *sink) {
 
     uint32_t *inPixels = reinterpret_cast<uint32_t *>(src);
 
-    for(int i = 0; i < w * h; i++) {
+    for (int i = 0; i < w * h; i++) {
 
         uint32_t inPixel = inPixels[i];
         uint32_t outPixel = 0;
@@ -54,6 +57,7 @@ void a8r8g8b8ToRBGA(int w, int h, unsigned char *src, uint32_t *sink) {
 
 
 void bc2ToRGBA(int w, int h, unsigned char *src, uint32_t *sink){
-
-    
+    for (int i = 0; i < w * h; i+=1) {
+        detexDecompressBlockBC2(src + i, 1, 1, reinterpret_cast<unsigned char *>(sink+i));
+    }
 }

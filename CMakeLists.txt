@@ -26,6 +26,8 @@ add_compile_definitions(GLM_FORCE_SWIZZLE)
 add_compile_definitions(GLM_FORCE_CXX17)
 add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
 
+target_compile_options(unmunge PUBLIC "-ffunction-sections")
+
 
 
 
@@ -44,13 +46,19 @@ list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
 list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
 
 target_sources(unmunge PUBLIC ${SOURCE_FILES})
+target_sources(unmunge PUBLIC /home/will/projects/swbf2wine/detex/decompress-bc.c)
+target_sources(unmunge PUBLIC /home/will/projects/swbf2wine/detex/division-tables.c)
+
 target_include_directories(unmunge PUBLIC src)
+target_include_directories(unmunge PUBLIC /home/will/projects/swbf2wine/detex)
 
 
 
 
 
 #LINKING
+
+target_link_options(unmunge PUBLIC "-Wl,--gc-sections")
 
 if (APPLE)
 	target_link_options(unmunge PUBLIC -undefined dynamic_lookup)

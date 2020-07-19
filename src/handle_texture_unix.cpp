@@ -364,21 +364,20 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
       w = texture_info.width;
       h = texture_info.height;
 
-      /*
+      
       std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
                                         texture_info.width, texture_info.height, 
                                         body.size(), 
                                         D3DToString(texture_info.format));
       COUT(imgInfo)
-      */
+      
 
       if (texture_info.format == D3DFMT_R5G6B5){
         r5g6b5ToRGBA(w, h, sourceData, rgbaData);
       } else if (texture_info.format == D3DFMT_A8R8G8B8) {
         a8r8g8b8ToRBGA(w, h, sourceData, rgbaData);
       } else if (texture_info.format == D3DFMT_DXT3){
-        w = 0;
-        h = 0;
+        bc2ToRGBA(w, h, sourceData, rgbaData);
       } else {
         w = 0;
         h = 0;
