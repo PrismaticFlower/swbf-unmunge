@@ -364,10 +364,8 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
       w = texture_info.width;
       h = texture_info.height;
 
-      
       std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
-                                        texture_info.width, texture_info.height, 
-                                        body.size(), 
+                                        w, h, body.size(), 
                                         D3DToString(texture_info.format));
       COUT(imgInfo)
       
