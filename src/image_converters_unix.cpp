@@ -1,98 +1,60 @@
 #include "image_converters_unix.h"
-//#include "gli/gli.hpp"
-//#include "gli/texture.hpp"
-#include <iostream>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#define RED_MASK 0xF800
-#define GREEN_MASK 0x07E0
-#define BLUE_MASK 0x001F
+#define DETEX_VERSION 1
+#include "detex/detex.h"
 
-#define COUT(x) std::cout << x << std::endl;
+#include <math.h>
 
-/*
-TODO: REMOVE CODE DUPLICATION WITH LAMBDA BASED SOLUTION
-*/
+#define BMASK 0x001f
+#define GMASK 0x07e0
+#define RMASK 0xf800
+#define MASK 0xff000000
+#define BITMULT5 8.226
+#define BITMULT6 4.048
 
 
-//Adapted from  https://stackoverflow.com/questions/34042112/opencv-mat-data-member-access
-cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src) {
+void r5g6b5ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
 
-	auto *srcUS = reinterpret_cast<unsigned short*>(src);
+	uint16_t *inPixels = reinterpret_cast<uint16_t *>(src);
 
-	cv::Mat imageRGB(height, width, CV_8UC3, cv::Scalar(10, 100, 150));
-	auto *sink = imageRGB.data;
+    for(int i = 0; i < w * h; i++) {
 
-    float factor5Bit = 255.0 / 31.0;
-    float factor6Bit = 255.0 / 63.0;
+        uint32_t outPixel = 0;
 
-    for(int i = 0; i < height; i++) {
-        for(int j = 0; j < width; j++) {
+    	auto inPixel = inPixels[i];
 
-        	int index = i * width + j;
-            int outIndex = 3 * (i * width + j); 
+        uint32_t b8 = floor(( inPixel & BMASK)        * BITMULT5 + 0.1);
+        uint32_t g8 = floor(((inPixel & GMASK) >> 5)  * BITMULT6 + 0.1);
+        uint32_t r8 = floor(((inPixel & RMASK) >> 11) * BITMULT5 + 0.1);
 
-        	auto rgb565 = srcUS[index];
-            uchar r5 = (rgb565 & RED_MASK)   >> 11;
-            uchar g6 = (rgb565 & GREEN_MASK) >> 5;
-            uchar b5 = (rgb565 & BLUE_MASK);
+        outPixel |= (MASK >> 8  & b8 << 16);
+        outPixel |= (MASK >> 16 & g8 << 8);
+        outPixel |= (MASK >> 24 & r8);
+        outPixel |= MASK;
 
-            // round answer to closest intensity in 8-bit space...
-            uchar r8 = floor((r5 * factor5Bit) + 0.5);
-            uchar g8 = floor((g6 * factor6Bit) + 0.5);
-            uchar b8 = floor((b5 * factor5Bit) + 0.5);
-
-            sink[outIndex] = b8;
-            sink[outIndex + 1] = g8;
-            sink[outIndex + 2] = r8;
-        }
+        sink[i] = outPixel;     
     }
-
-    return imageRGB;
 }
 
-/*
-cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size) {
 
-    static cv::Mat imageRGB(200, 200, CV_8UC3, cv::Scalar(200, 0, 0));
-    if (src == nullptr){
-        COUT("DXT3 DATA NULL")
-        return imageRGB;
+void a8r8g8b8ToRBGA(int w, int h, unsigned char *src, uint32_t *sink) { 
+
+    uint32_t *inPixels = reinterpret_cast<uint32_t *>(src);
+
+    for (int i = 0; i < w * h; i++) {
+
+        uint32_t inPixel = inPixels[i];
+        uint32_t outPixel = 0;
+
+        outPixel |= (MASK >> 8    & inPixel << 16);
+        outPixel |= (MASK >> 16   & inPixel << 8);
+        outPixel |= (MASK >> 24   & inPixel << 0);
+        outPixel |= (MASK - (MASK & inPixel << 24));
+
+        sink[i] = outPixel;       
     }
-    gli::texture texTest = gli::load_dds_raw(src, width, height, size);
-    //gli::texture::extent_type dims = texTest.extent(0);
-    //COUT(fmt::format("DDS Tex dims: {} by {}",dims.x, dims.y))
-
-    return imageRGB;
 }
-*/
 
-//cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size){
-
-    
-//}
-
-
-
-
-cv::Mat a8r8g8b8ToRGB(int height, int width, unsigned char *src) { 
-
-    cv::Mat imageRGB(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
-    auto *sink = imageRGB.data;
-
-    for(int i = 0; i < height; i++) {
-        for(int j = 0; j < width; j++) {
-
-            int index = 4 * (i * width + j);
-            int outIndex = 3 * (i * width + j); 
-
-            sink[outIndex] = src[index + 3];
-            sink[outIndex + 1] = src[index + 2];
-            sink[outIndex + 2] = src[index + 1];
-        }
-    }
-
-    return imageRGB;
-}

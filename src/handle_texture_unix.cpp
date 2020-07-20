@@ -42,9 +42,8 @@ struct Texture_info {
 };
 
 
-//static_assert(sizeof(Texture_info) == 16);
-
-//static_assert(sizeof(D3DFORMAT) == sizeof(std::uint32_t));
+static_assert(sizeof(Texture_info) == 16);
+static_assert(sizeof(D3DFORMAT) == sizeof(std::uint32_t));
 
 
 constexpr std::array format_rankings{D3DFMT_A32B32G32R32F,
@@ -337,8 +336,8 @@ auto read_format_list(Ucfb_reader_strict<"INFO"_mn> info) -> std::vector<D3DFORM
    return info.read_array<D3DFORMAT>(count);
 }
 
-auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT format)
-   -> cv::Mat
+auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT format, int& w, int& h)
+   -> uint32_t *
 {
    while (texture) {
       auto fmt = texture.read_child_strict_optional<"FMT_"_mn>();
@@ -356,29 +355,28 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
       [[maybe_unused]] const auto [mip_level, bytes_size] =
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
-      cv::Mat image(texture_info.height, texture_info.width, CV_8UC3, cv::Scalar(0, 0, 0));
-      unsigned char *pixelDump = new unsigned char[texture_info.height * texture_info.width * 8];
-
+      thread_local static unsigned char *sourceData = new unsigned char[1024 * 1024 * 4]; //max SWBF2 tex size
+      thread_local static uint32_t *rgbaData = new uint32_t[1024 * 1024];
 
       auto body = lvl.read_child_strict<"BODY"_mn>();
+      body.read_array_to_span(body.size(), gsl::make_span(sourceData, body.size()));
 
-      /*
+      w = texture_info.width;
+      h = texture_info.height;
+
       std::string imgInfo = fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
-                                        texture_info.width, texture_info.height, 
-                                        body.size(), 
-                                        D3DToString(texture_info.format));
-      */
-
-      body.read_array_to_span(body.size(), gsl::make_span(pixelDump, body.size()));
+                                        w, h, body.size(), D3DToString(texture_info.format));
+      COUT(imgInfo)
 
       if (texture_info.format == D3DFMT_R5G6B5){
-        image = r5g6b5ToRGB(texture_info.height, texture_info.width, pixelDump);
+        r5g6b5ToRGBA(w, h, sourceData, rgbaData);
       } else if (texture_info.format == D3DFMT_A8R8G8B8) {
-        image = a8r8g8b8ToRGB(texture_info.height, texture_info.width, pixelDump);
+        a8r8g8b8ToRBGA(w, h, sourceData, rgbaData);
       } else if (texture_info.format == D3DFMT_DXT3){
-        //COUT(imgInfo)
-        //image = dxt3ToRGB(texture_info.height, texture_info.width, pixelDump, body.size());
-        //COUT("DDS PARSED")
+        bc2ToRGBA(w, h, sourceData, rgbaData);
+      } else {
+        w = 0;
+        h = 0;
       }
 
       /*
@@ -387,16 +385,14 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
       }
       */
 
-      delete[] pixelDump;
-
-      return image;
+      return rgbaData;
    }
 
    throw Badformat_exception{"bad format"};
 }
 
-auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
-   -> std::pair<std::string, cv::Mat>
+auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture, int& w, int& h)
+   -> std::pair<std::string, uint32_t *>
 {
    const auto name = texture.read_child_strict<"NAME"_mn>().read_string();
 
@@ -405,7 +401,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
 
    for (const auto format : formats) {
       try {
-         return {std::string{name}, read_texture_format(texture, format)};
+         return {std::string{name}, read_texture_format(texture, format, w, h)};
       }
       catch (Badformat_exception&) {
       }
@@ -418,7 +414,9 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
 void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format,
                     Model_format model_format)
 {
-   auto [name, image] = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture});
+   int w,h;
+   auto [name, image] = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture}, w, h);
 
-   save_image(name, std::move(image), file_saver, save_format, model_format);
+   if (w * h > 0)
+    save_image(name, image, file_saver, save_format, model_format, w, h);
 }

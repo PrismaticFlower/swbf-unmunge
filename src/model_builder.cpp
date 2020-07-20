@@ -47,7 +47,8 @@ auto lod_suffix(const Lod lod) -> std::string_view
    default:
 #ifdef _WIN32
       std::terminate();
-#else
+#else //Will fix when I learn how to terminate individual threads
+      //on linux
       return "_undefined"sv;
 #endif
    }

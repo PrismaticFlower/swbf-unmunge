@@ -1,9 +1,9 @@
 /*
-Naive image conversion methods. Will work tbb in soon...
+Naive format conversion functions
 */
 
-#include <opencv2/opencv.hpp> 
+#include <stdint.h>
 
-cv::Mat r5g6b5ToRGB(int height, int width, unsigned char *src);
-cv::Mat a8r8g8b8ToRGB(int height, int width, unsigned char *src);
-//cv::Mat dxt3ToRGB(int height, int width, unsigned char *src, int size);
+void r5g6b5ToRGBA(int height, int width, unsigned char *src, uint32_t *sink);
+void a8r8g8b8ToRBGA(int height, int width, unsigned char *src, uint32_t *sink);
+void bc2ToRGBA(int height, int width, unsigned char *src, uint32_t *sink);

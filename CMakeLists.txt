@@ -18,7 +18,6 @@ elseif (BUILD_STATIC_LIB)
 	add_library(unmunge STATIC)
 else()
 	add_executable(unmunge)
-	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
 set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
@@ -37,22 +36,24 @@ add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
 
 target_include_directories(unmunge PUBLIC src)
 
+if(APPLE)
+	target_include_directories(unmunge PUBLIC /usr/local/include)
+endif()
+
 file(GLOB SOURCE_FILES src/*.cpp)
 file(GLOB SOURCE_FILES_UNIX src/*unix*)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
+file(GLOB DETEX_FILES src/detex/*.c)
 
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
 list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
+list(APPEND SOURCE_FILES ${DETEX_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
 
 target_sources(unmunge PUBLIC ${SOURCE_FILES})
-
-if (UNIX AND NOT APPLE)
-	target_link_libraries(unmunge PUBLIC -ldl) #handled automatically on Mac
-endif()
 
 
 
