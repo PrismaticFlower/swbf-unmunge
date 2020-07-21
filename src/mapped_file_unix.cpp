@@ -1,6 +1,19 @@
 #include "mapped_file.hpp"
-#include <iostream>
+
 #include <limits>
+#include <memory>
+
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <errno.h>
+
+#include <iostream>
+
+
+#define COUT(x) std::cout << x << std::endl;
 
 namespace fs = std::filesystem;
 
@@ -8,30 +21,32 @@ namespace fs = std::filesystem;
 Mapped_file::Mapped_file(fs::path path)
 {
    if (!fs::exists(path) || fs::is_directory(path))
-      throw std::runtime_error{"File does not exist."};
+      throw std::runtime_error{"File does not exist"};
    
    const auto file_size = fs::file_size(path);
 
    if (file_size > std::numeric_limits<std::uint32_t>::max())
-      throw std::runtime_error{"File too large."};
+      throw std::runtime_error{"File too large"};
    
    _size = static_cast<std::uint32_t>(file_size);
+   const char *fname = path.string().c_str();
+   
+   unsigned char *result;
 
-   boost::iostreams::mapped_file_params parameters;
-   parameters.path = path.string();
-   parameters.length = static_cast<size_t>(file_size);
-   parameters.flags = boost::iostreams::mapped_file::mapmode::readonly;
-   parameters.offset = static_cast<boost::iostreams::stream_offset>(0);
 
-   file.open(parameters);
+   int fd = open(fname, O_RDONLY);
 
-   if (!file.is_open())
-      throw std::runtime_error{"Couldn't open file."};
+   if (fd < 0)
+      throw std::runtime_error{"Couldn't open file"};
 
-   _view = reinterpret_cast<const std::byte *>(file.data());
-
-   if (_view == nullptr)
-      throw std::runtime_error{"Ptr from file data failed"};
+   _view = (std::byte *) mmap(0,_size,PROT_READ,MAP_FILE|MAP_PRIVATE,fd,0);
+   
+   if (result == MAP_FAILED){
+      COUT(std::strerror(errno));
+      throw std::runtime_error{"Memory map failed"};
+   }
+    
+   close(fd);
 }
 
 

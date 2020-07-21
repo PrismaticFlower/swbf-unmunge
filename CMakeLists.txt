@@ -4,6 +4,8 @@ project(unmunging)
 
 option(BUILD_SHARED_LIB "Build shared lib" OFF)
 option(BUILD_STATIC_LIB "Build static lib" OFF)
+option(DEBUG "Debug build" OFF)
+
 
 
 
@@ -22,7 +24,12 @@ endif()
 
 set_property(TARGET unmunge PROPERTY CXX_STANDARD 20)
 set_property(TARGET unmunge PROPERTY CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BUILD_TYPE Debug)
+
+if (DEBUG)
+	set(CMAKE_BUILD_TYPE Debug)
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif()
 
 add_compile_definitions(GLM_FORCE_SWIZZLE)
 add_compile_definitions(GLM_FORCE_CXX17)
@@ -52,6 +59,7 @@ list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})
 list(APPEND SOURCE_FILES ${SOURCE_FILES_UNIX})
 list(APPEND SOURCE_FILES ${DETEX_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_DEP})
+list(APPEND SOURCE_FILES ${DETEX_FILES})
 
 target_sources(unmunge PUBLIC ${SOURCE_FILES})
 
@@ -75,7 +83,6 @@ else()
 endif()
 
 target_link_libraries(unmunge PUBLIC tbb)
-target_link_libraries(unmunge PUBLIC boost_iostreams)
 target_link_libraries(unmunge PUBLIC fmt)
 target_link_libraries(unmunge PUBLIC glm_static)
 target_link_libraries(unmunge PUBLIC -lpthread)

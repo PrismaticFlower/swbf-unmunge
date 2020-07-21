@@ -8,12 +8,12 @@
 
 #include <math.h>
 
-#define BMASK 0x001f
-#define GMASK 0x07e0
-#define RMASK 0xf800
-#define MASK 0xff000000
-#define BITMULT5 8.226
-#define BITMULT6 4.048
+
+
+#define BMASK_5BIT 0x001f
+#define GMASK_6BIT 0x07e0
+#define RMASK_5BIT 0xf800
+#define MASK 0xff
 
 
 void r5g6b5ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
@@ -23,17 +23,12 @@ void r5g6b5ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
     for(int i = 0; i < w * h; i++) {
 
         uint32_t outPixel = 0;
+    	uint16_t inPixel = inPixels[i];
 
-    	auto inPixel = inPixels[i];
-
-        uint32_t b8 = floor(( inPixel & BMASK)        * BITMULT5 + 0.1);
-        uint32_t g8 = floor(((inPixel & GMASK) >> 5)  * BITMULT6 + 0.1);
-        uint32_t r8 = floor(((inPixel & RMASK) >> 11) * BITMULT5 + 0.1);
-
-        outPixel |= (MASK >> 8  & b8 << 16);
-        outPixel |= (MASK >> 16 & g8 << 8);
-        outPixel |= (MASK >> 24 & r8);
-        outPixel |= MASK;
+        outPixel |= (inPixel & BMASK_5BIT) << 19;
+        outPixel |= (inPixel & GMASK_6BIT) << 5;
+        outPixel |= (inPixel & RMASK_5BIT) >> 8;
+        outPixel |= 0xff000000;
 
         sink[i] = outPixel;     
     }
@@ -49,12 +44,73 @@ void a8r8g8b8ToRBGA(int w, int h, unsigned char *src, uint32_t *sink) {
         uint32_t inPixel = inPixels[i];
         uint32_t outPixel = 0;
 
-        outPixel |= (MASK >> 8    & inPixel << 16);
-        outPixel |= (MASK >> 16   & inPixel << 8);
-        outPixel |= (MASK >> 24   & inPixel << 0);
-        outPixel |= (MASK - (MASK & inPixel << 24));
+        outPixel |= (MASK & inPixel) << 16;
+        outPixel |= ((MASK << 8) & inPixel) << 8;
+        outPixel |= ((MASK << 16) & inPixel);
+        outPixel |= (MASK - (MASK & inPixel));
 
         sink[i] = outPixel;       
     }
 }
 
+
+void bc2ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
+    
+    thread_local static uint32_t *blockSink = new uint32_t[16]; 
+
+    //Iterate through each block
+    for (int i = 0; i < w * h; i+=16) {
+        
+        //Decompresses a 4x4 block (16 bytes, but pixels are not byte-aligned)
+        detexDecompressBlockBC2(src + i, 1, 1, reinterpret_cast<uint8_t *>(blockSink));
+        
+        int blockNum = i / 16;
+        int numBlocksInRow = w / 4;
+
+        int x = 4 * (blockNum % numBlocksInRow);
+        int y = 4 * (blockNum / numBlocksInRow);
+
+        int startIndex = y * w + x; 
+
+        for (int j = 0; j < 16; j++) {
+            int outIndex = startIndex + (j / 4) * w + (j % 4);
+            sink[outIndex] = blockSink[j];
+        }
+    }
+}
+
+
+void lumToRGBA(int w, int h, uint8_t *src, uint32_t *sink, const D3DFORMAT format) {
+
+    int stepSize = (format == D3DFMT_L16 || format == D3DFMT_A8L8) ? 2 : 1;
+
+    for (int i = 0; i < w * h * stepSize; i+=stepSize) {
+          
+        uint8_t *curAddr = src + i;
+        uint32_t l = 0, a = 0xff, pixel = 0;
+
+        switch (format){
+            case D3DFMT_L8:
+                l |= *curAddr & 0xff;
+                break;
+            case D3DFMT_L16:
+                l |= (*(uint16_t *) curAddr) >> 8; 
+                break;
+            case D3DFMT_A8L8:
+                l |= (*(uint16_t *) curAddr & 0xff);
+                a |= (*(uint16_t *) curAddr & 0xff00) >> 8;
+                break;
+            default: //A4L4
+                l |= (*curAddr & 0xf) << 4;
+                a |= (*curAddr & 0xf0);
+                break;
+        }
+
+        pixel = l;
+        pixel |= (l << 8);
+        pixel |= (l << 16);
+        pixel |= (a << 24);
+
+        sink[i / stepSize] = pixel;
+    }
+}
