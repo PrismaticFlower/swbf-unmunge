@@ -14,13 +14,7 @@ public:
 
     gsl::span<const std::byte> bytes() const noexcept;
 
+private:
     std::uint32_t _size = 0;
-
-#ifndef _WIN32
-private:
-    std::byte *_view;
-#else 
-private:
     std::shared_ptr<std::byte> _view;
-#endif
 };

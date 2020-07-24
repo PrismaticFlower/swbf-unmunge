@@ -27,30 +27,29 @@ Mapped_file::Mapped_file(fs::path path)
 
    if (file_size > std::numeric_limits<std::uint32_t>::max())
       throw std::runtime_error{"File too large"};
-   
+
+   const char *fname = path.string().c_str(); 
    _size = static_cast<std::uint32_t>(file_size);
-   const char *fname = path.string().c_str();
    
-   unsigned char *result;
-
-
    int fd = open(fname, O_RDONLY);
 
    if (fd < 0)
-      throw std::runtime_error{"Couldn't open file"};
+      throw std::runtime_error{std::strerror(errno)};
 
-   _view = (std::byte *) mmap(0,_size,PROT_READ,MAP_FILE|MAP_PRIVATE,fd,0);
-   
-   if (result == MAP_FAILED){
-      COUT(std::strerror(errno));
-      throw std::runtime_error{"Memory map failed"};
+   std::byte *mapping = (std::byte *) mmap(0,_size,PROT_READ,MAP_FILE|MAP_PRIVATE,fd,0);
+  
+   if (mapping == MAP_FAILED){
+      close(fd);
+      throw std::runtime_error{std::strerror(errno)};
    }
-    
+
+   _view.reset(mapping, [this](std::byte *ptr){ munmap(ptr,_size); });
+  
    close(fd);
 }
 
 
 gsl::span<const std::byte> Mapped_file::bytes() const noexcept
 {
-   return {_view, _size};
+   return {_view.get(), _size};
 }
