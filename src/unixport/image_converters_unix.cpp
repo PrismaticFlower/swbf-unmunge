@@ -1,13 +1,9 @@
 #include "image_converters_unix.h"
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-
 #define DETEX_VERSION 1
 #include "detex/detex.h"
 
 #include <math.h>
-
 
 
 #define BMASK_5BIT 0x001f
@@ -28,7 +24,7 @@ void r5g6b5ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
         outPixel |= (inPixel & BMASK_5BIT) << 19;
         outPixel |= (inPixel & GMASK_6BIT) << 5;
         outPixel |= (inPixel & RMASK_5BIT) >> 8;
-        outPixel |= 0xff000000;
+        outPixel |= MASK << 24;
 
         sink[i] = outPixel;     
     }
@@ -44,17 +40,16 @@ void a8r8g8b8ToRBGA(int w, int h, unsigned char *src, uint32_t *sink) {
         uint32_t inPixel = inPixels[i];
         uint32_t outPixel = 0;
 
-        outPixel |= (MASK & inPixel) << 16;
-        outPixel |= ((MASK << 8) & inPixel) << 8;
-        outPixel |= ((MASK << 16) & inPixel);
-        outPixel |= (MASK - (MASK & inPixel));
+        outPixel |= 0xff00ff00    & inPixel;
+        outPixel |= ( MASK        & inPixel) << 16; //swap r and b
+        outPixel |= ((MASK << 16) & inPixel) >> 16;
 
         sink[i] = outPixel;       
     }
 }
 
 
-void bc2ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
+void bcToRGBA(int w, int h, unsigned char *src, uint32_t *sink, int mode) {
     
     thread_local static uint32_t *blockSink = new uint32_t[16]; 
 
@@ -62,8 +57,13 @@ void bc2ToRGBA(int w, int h, unsigned char *src, uint32_t *sink) {
     for (int i = 0; i < w * h; i+=16) {
         
         //Decompresses a 4x4 block (16 bytes, but pixels are not byte-aligned)
-        detexDecompressBlockBC2(src + i, 1, 1, reinterpret_cast<uint8_t *>(blockSink));
         
+        if (mode == 1)
+            detexDecompressBlockBC1(src + i, 1, 1, reinterpret_cast<uint8_t *>(blockSink));
+        else 
+            detexDecompressBlockBC2(src + i, 1, 1, reinterpret_cast<uint8_t *>(blockSink));
+
+        //Good to be explicit w/this kind of thing
         int blockNum = i / 16;
         int numBlocksInRow = w / 4;
 

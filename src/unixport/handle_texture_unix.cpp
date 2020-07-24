@@ -22,6 +22,7 @@
 
 #include "image_converters_unix.h"
 
+//Probably should use synced_cout...
 #define COUT(x) std::cout << x << std::endl;
 
 using namespace std::literals;
@@ -234,27 +235,31 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
 
       w = texture_info.width;
       h = texture_info.height;
-      
+
+      /*
       COUT(fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
                       w, h, body.size(), 
                       D3DToString(texture_info.format)))
-      
-      switch (texture_info.format){
+      */
+
+      switch (format){
         case D3DFMT_R5G6B5:
           r5g6b5ToRGBA(w, h, sourceData, rgbaData);
           break;
         case D3DFMT_A8R8G8B8:
           a8r8g8b8ToRBGA(w, h, sourceData, rgbaData);
           break;
+        case D3DFMT_DXT1:                     //mode 1 = bc1, 2 = bc2
+          bcToRGBA(w, h, sourceData, rgbaData, 1);
         case D3DFMT_DXT2:
         case D3DFMT_DXT3:
-          bc2ToRGBA(w, h, sourceData, rgbaData);
+          bcToRGBA(w, h, sourceData, rgbaData, 2);
           break;
         case D3DFMT_L8:
         case D3DFMT_A8L8:
         case D3DFMT_L16:
         case D3DFMT_A4L4:
-          lumToRGBA(w, h, sourceData, rgbaData, texture_info.format);
+          lumToRGBA(w, h, sourceData, rgbaData, format);
           break;
         default:
           w = h = 0;
@@ -276,8 +281,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture, int& w, int& h)
 
    for (const auto format : formats) {
       try {
-        COUT(std::string{name})
-         return {std::string{name}, read_texture_format(texture, format, w, h)};
+        return {std::string{name}, read_texture_format(texture, format, w, h)};
       }
       catch (Badformat_exception&) {
       }

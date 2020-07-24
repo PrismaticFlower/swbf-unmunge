@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(unmunging)
+project(unmunger)
 
 option(BUILD_SHARED_LIB "Build shared lib" OFF)
 option(BUILD_STATIC_LIB "Build static lib" OFF)
@@ -42,13 +42,14 @@ add_compile_definitions(GLM_FORCE_SILENT_WARNINGS)
 #SOURCES
 
 target_include_directories(unmunge PUBLIC src)
+target_include_directories(unmunge PUBLIC src/unixport)
 
 if(APPLE)
 	target_include_directories(unmunge PUBLIC /usr/local/include)
 endif()
 
 file(GLOB SOURCE_FILES src/*.cpp)
-file(GLOB SOURCE_FILES_UNIX src/*unix*)
+file(GLOB SOURCE_FILES_UNIX src/unixport/*.cpp)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
