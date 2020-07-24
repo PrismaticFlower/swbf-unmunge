@@ -53,7 +53,7 @@ file(GLOB SOURCE_FILES_UNIX src/unixport/*.cpp)
 file(GLOB TEXTURE_FILES src/handle_texture*)
 file(GLOB IMAGE_FILES src/save_image*)
 file(GLOB WINDOWS_DEP src/mapped_file.cpp)
-file(GLOB DETEX_FILES src/detex/*.c)
+file(GLOB DETEX_FILES src/unixport/detex/*.c)
 
 list(REMOVE_ITEM SOURCE_FILES ${TEXTURE_FILES})
 list(REMOVE_ITEM SOURCE_FILES ${IMAGE_FILES})

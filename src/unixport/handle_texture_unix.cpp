@@ -22,8 +22,9 @@
 
 #include "image_converters_unix.h"
 
+
 //Probably should use synced_cout...
-#define COUT(x) std::cout << x << std::endl;
+//#define COUT(x) std::cout << x << std::endl;
 
 using namespace std::literals;
 
@@ -239,8 +240,8 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
 
       /*
       COUT(fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
-                      w, h, body.size(), 
-                      D3DToString(texture_info.format)))
+                    w, h, body.size(), 
+                    D3DToString(texture_info.format)))
       */
 
       switch (format){

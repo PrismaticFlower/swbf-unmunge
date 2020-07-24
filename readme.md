@@ -74,6 +74,6 @@ The Unix port shares all functionality of the Windows version, but:
 
 * cannot write DDS files
 * can only write textures encoded with BCx/EXTx compression, A8R8G8B8, R5G6R5, or luminance formats (which comprise the vast majority of formats in lvl files) 
-* has not been tested with or developed for anything related to PS2/Xbox
+* has not been tested with/developed for anything related to PS2/Xbox
 
 Tested on MacOS Catalina, and Ubuntu 18.04.  If you have issues with this port, drop an issue and tag WHSnyder.
