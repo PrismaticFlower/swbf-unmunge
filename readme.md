@@ -68,17 +68,12 @@ After you've installed vcpkg, you'll run the following command (in powershell) i
 
 ## Building on Mac/Linux
 
-Shares the same depencencies listed above, though you need the master branches of fmt, json, and glm directly from the git repos, as the apt and brew packages are significantly older than the vcpkg ones.  
-
-
-To build, cd into the source directory, create a directory "build", cd into "build" and run "cmake ..".  This will generate the required makefiles
-for building on your system.  While in "build," run "make all -jx", where x is the number of logical cores on your machine.  If you wish to build
-shared or static libraries instead of the default executable, run "cmake .. -DBUILD_SHARED/STATIC_LIB=ON" from "build."  If you get errors involving missing libraries or nonexistent paths, drop an issue and tag WHSnyder, or take some time to learn CMake, it's worth it if you're new to C++ IMHO.
-
+Shares the same depencencies listed above, though you need the master branches of fmt, json, and glm directly from the git repos, as the apt and brew packages are significantly older than the vcpkg ones. Of course you could use vcpkg as mentioned above, though that seems less common on Mac/Linux.  The port uses CMake for building, though if you prefer Visual Studio all you'd need to do is recursively add the source files in the "unixport" directory to your solution, and remove src/{mapped_file.cpp, handle_texture*.cpp, save_image*.cpp}.
 
 The Unix port shares all functionality of the Windows version, but:
 
 * cannot write DDS files
-* can only write textures encoded with the EXT3, A8R8G8B8, R5G6R5, or luminance formats (which comprise the vast majority of formats in lvl files) 
+* can only write textures encoded with BCx/EXTx compression, A8R8G8B8, R5G6R5, or luminance formats (which comprise the vast majority of formats in lvl files) 
+* has not been tested with or developed for anything related to PS2/Xbox
 
-Tested on MacOS Catalina, Windows 10, and Ubuntu 18.04
+Tested on MacOS Catalina, and Ubuntu 18.04.  If you have issues with this port, drop an issue and tag WHSnyder.
