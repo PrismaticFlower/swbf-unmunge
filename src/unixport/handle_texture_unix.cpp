@@ -227,6 +227,7 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
       thread_local static uint8_t *sourceData = new uint8_t[1024 * 1024 * 4]; //max SWBF2 tex size
+      thread_local static uint32_t *black = new uint32_t[1024 * 1024];
       thread_local static uint32_t *rgbaData = new uint32_t[1024 * 1024];
 
       auto body = lvl.read_child_strict<"BODY"_mn>();
@@ -262,7 +263,7 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
           lumToRGBA(w, h, sourceData, rgbaData, format);
           break;
         default:
-          w = h = 0;
+          return black;
       }
 
       return rgbaData;
@@ -298,6 +299,5 @@ void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format sa
    auto [name, imageData] = read_texture(Ucfb_reader_strict<"tex_"_mn>{texture}, w, h);
 
    //Should probably write an image wrapper struct...
-   if (w * h > 0)
-    save_image(name, imageData, file_saver, save_format, model_format, w, h);
+   save_image(name, imageData, file_saver, save_format, model_format, w, h);
 }
