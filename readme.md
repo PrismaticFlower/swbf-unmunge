@@ -68,12 +68,12 @@ After you've installed vcpkg, you'll run the following command (in powershell) i
 
 ## Building on Mac/Linux
 
-Shares the same depencencies listed above, though you need the master branches of fmt, json, and glm directly from the git repos, as the apt and brew packages are significantly older than the vcpkg ones. Of course you could use vcpkg as mentioned above, though that seems less common on Mac/Linux.  The port uses CMake for building, though if you prefer Visual Studio all you'd need to do is recursively add the source files in the "unixport" directory to your solution, and remove src/{mapped_file.cpp, handle_texture*.cpp, save_image*.cpp}.
+Shares the same depencencies listed above, though you need the master branches of fmt, json, and glm directly from the git repos, as the apt and brew packages are significantly older than the vcpkg ones. Of course you could use vcpkg as mentioned above, though that seems less common with Mac/Linux users.  The port uses CMake for building, though if you prefer Visual Studio all you'd need to do is add the cpp and c files in the ```unixport``` and ```unixport/detex``` directories to your solution, and remove ```src/{mapped_file.cpp, handle_texture*.cpp, save_image*.cpp}``` from it.
 
 The Unix port shares all functionality of the Windows version, but:
 
 * cannot write DDS files
-* can only write textures encoded with BCx/EXTx compression, A8R8G8B8, R5G6R5, or luminance formats (which comprise the vast majority of formats in lvl files) 
+* can only write textures encoded with BCx/EXTx compression, A8R8G8B8, R5G6R5, or luminance formats (which seem to comprise the vast majority of formats in lvl files) 
 * has not been tested with/developed for anything related to PS2/Xbox
 
 Tested on MacOS Catalina, and Ubuntu 18.04.  If you have issues with this port, drop an issue and tag WHSnyder.

@@ -47,8 +47,8 @@ auto lod_suffix(const Lod lod) -> std::string_view
    default:
 #ifdef _WIN32
       std::terminate();
-#else //Will fix when I learn how to terminate individual threads
-      //on linux
+#else //MESSY: Will fix when I learn how to terminate individual threads
+      //on POSIX, see issue below...
       return "_undefined"sv;
 #endif
    }
@@ -112,7 +112,8 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
 //TODO: FIX MESSY
 #ifdef _WIN32
         std::terminate(); //Not sure how to make this portable, terminates entire process
-                          //on Mac/Linux. Will look deeper into it someday...
+                          //on Mac/Linux, apparently not on Windows? Will look deeper 
+                          //into it someday...
 #else
         return std::tuple_cat(as_spans(cube_indices, cube_vertex_positions,
                                         cube_vertex_normals, cube_vertex_texcoords),
@@ -121,7 +122,8 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
       }
    }();
 
-   //TODO: FIX MESSY (lambda can't capture "scale" when it's not copied out of the pair, Clang error)
+   //TODO: FIX MESSY (lambda can't capture "scale" unless it's
+   //copied out of the pair, Clang error)
    auto scale_ = scale; 
 
    scene::Geometry geometry{
@@ -277,11 +279,9 @@ void save_model(Model model, File_saver& file_saver, const Game_version game_ver
    if (format == Model_format::msh) {
       msh::save_scene(create_scene(std::move(model)), file_saver, game_version);
    }
-//#ifdef _WIN32
    else if (format == Model_format::gltf2) {
       gltf::save_scene(create_scene(std::move(model)), file_saver);
    }
-//#endif
 }
 
 void clean_model(Model& model, const Model_discard_flags discard_flags) noexcept

@@ -26,6 +26,10 @@
 //Probably should use synced_cout...
 //#define COUT(x) std::cout << x << std::endl;
 
+
+
+//Most of this is duplicated in handle_texture.cpp,
+//maybe worth putting in a handle_texture header...
 using namespace std::literals;
 
 namespace {
@@ -253,9 +257,14 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
           break;
         case D3DFMT_DXT1:                     //mode 1 = bc1, 2 = bc2
           bcToRGBA(w, h, sourceData, rgbaData, 1);
+          break;
         case D3DFMT_DXT2:
         case D3DFMT_DXT3:
           bcToRGBA(w, h, sourceData, rgbaData, 2);
+          break;
+        case D3DFMT_DXT4:
+        case D3DFMT_DXT5:
+          bcToRGBA(w, h, sourceData, rgbaData, 3);
           break;
         case D3DFMT_L8:
         case D3DFMT_A8L8:
