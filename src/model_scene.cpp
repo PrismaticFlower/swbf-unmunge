@@ -17,7 +17,6 @@ template<typename Type>
 void vertices_aabb(const Type& vertices, AABB& global_aabb,
                    const glm::mat4x3 local_to_global, AABB& local_aabb) noexcept
 {
-
   auto positionsPtr = vertices.positions.get();
   for (int i = 0; i < vertices.size; i++){
 

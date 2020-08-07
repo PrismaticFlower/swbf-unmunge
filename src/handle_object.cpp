@@ -4,13 +4,13 @@
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
 #include "ucfb_reader.hpp"
+#include "literals.hpp"
 
 #include <algorithm>
 #include <array>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
-#include <stdint.h>
 
 using namespace std::literals;
 
@@ -132,7 +132,7 @@ auto find_geometry_name(
    const std::vector<std::pair<std::uint32_t, std::string_view>>& properties)
    -> std::optional<std::string>
 {
-   constexpr auto geometry_name_hash = (uint32_t) 0x47c86b4a;// ui32;
+   constexpr auto geometry_name_hash = 0x47c86b4a_ui32;
 
    const auto result =
       std::find_if(std::cbegin(properties), std::cend(properties),

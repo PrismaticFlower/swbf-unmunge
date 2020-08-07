@@ -92,5 +92,4 @@ void handle_collision(Ucfb_reader collision, model::Models_builder& builders)
                                         3), // over reserve more memory than needed
                                             // to account for triangulation results
           .positions = posi.read_array<glm::vec3>(info.vertex_count)}}});
-    
 }

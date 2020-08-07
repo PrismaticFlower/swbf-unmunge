@@ -2,6 +2,8 @@
 #include "terrain_builder.hpp"
 #include "string_helpers.hpp"
 #include "type_pun.hpp"
+#include "literals.hpp"
+
 
 #include <gsl/gsl>
 
