@@ -155,13 +155,7 @@ template<typename Type, Magic_number magic_number>
 auto read_texture_options(Ucfb_reader_strict<magic_number> options)
    -> std::array<Type, Terrain_builder::max_textures>
 {
-   //Odd syntax, but required for clang.  Strange enough to 
-   //warrant a quarantine IMO.
-#ifndef _WIN32
-   options.template read_trivial<std::array<Type, Terrain_builder::max_textures>>();
-#else 
-   options.read_trivial<std::array<Type, Terrain_builder::max_textures>>();
-#endif
+   return options.template read_trivial<std::array<Type, Terrain_builder::max_textures>>();
 }
 
 
