@@ -1,8 +1,9 @@
+#pragma once
 #include <stdint.h>
 
 /*
 
-Cross platform custom literals.  Clang/GCC demand the underscore for 
+Cross platform integer literals.  Clang/GCC demand the underscore for 
 integer literals.
 
 */
