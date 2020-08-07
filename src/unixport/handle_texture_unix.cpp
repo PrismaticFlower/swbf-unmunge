@@ -231,15 +231,18 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
          lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
 
       thread_local static uint8_t *sourceData = new uint8_t[1024 * 1024 * 4]; //max SWBF2 tex size
-      thread_local static uint32_t *black = new uint32_t[1024 * 1024];
-      thread_local static uint32_t *rgbaData = new uint32_t[1024 * 1024];
+      thread_local static uint32_t *black = new uint32_t[1024 * 1024]; //default image for unsupported formats
+      thread_local static uint32_t *rgbaData = new uint32_t[1024 * 1024]; 
+
+      w = texture_info.width;
+      h = texture_info.height;
+
+      if (w <= 0 || h <= 0 || h > 1024 || w > 1024)
+        throw Badformat_exception{"Invalid texture dimensions"};
 
       auto body = lvl.read_child_strict<"BODY"_mn>();
       body.read_array_to_span(body.size(),
          gsl::make_span(sourceData, body.size()));
-
-      w = texture_info.width;
-      h = texture_info.height;
 
       /*
       COUT(fmt::format("Width {}, Height {}, Numbytes {}, Format {}",
