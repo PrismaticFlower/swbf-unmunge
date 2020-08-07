@@ -10,7 +10,6 @@
 
 #include <string_view>
 #include <fmt/format.h>
-#include <fmt/ostream.h>
 
 #include <glm/gtc/quaternion.hpp>
 

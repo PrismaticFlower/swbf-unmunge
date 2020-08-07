@@ -15,6 +15,12 @@
 
 using namespace std::literals;
 
+/*
+UNIXPORT: Decided to avoid anything PS2/Xbox related w.r.t. textures, not wanting to
+compound existing issues/have no test lvls.  This seemed like the easiest way to
+avoid compile/link errors, given my weak C++20...
+*/
+
 #ifndef _WIN32
 void handle_texture_xbox(Ucfb_reader texture, File_saver& file_saver,
                          Image_format save_format, Model_format model_format){return;}

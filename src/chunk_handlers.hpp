@@ -28,8 +28,6 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
 void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view file_name,
                    std::string_view dir, bool strings_are_hashed = false);
 
-
-
 void handle_texture(Ucfb_reader texture, File_saver& file_saver, Image_format save_format,
                     Model_format model_format);
 
@@ -39,8 +37,6 @@ void handle_texture_xbox(Ucfb_reader texture, File_saver& file_saver,
 void handle_texture_ps2(Ucfb_reader texture, Ucfb_reader parent_reader,
                         File_saver& file_saver, Image_format save_format,
                         Model_format model_format);
-
-
 
 void handle_world(Ucfb_reader world, File_saver& file_saver);
 

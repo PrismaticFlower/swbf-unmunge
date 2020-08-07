@@ -6,7 +6,6 @@
 #include <numeric>
 #include <stdexcept>
 
-#include <fmt/ostream.h>
 #include <fmt/format.h>
 
 namespace model {

@@ -6,6 +6,7 @@
 #include "string_helpers.hpp"
 #include "terrain_builder.hpp"
 #include "ucfb_reader.hpp"
+#include "type_pun.hpp"
 
 #include "glm/glm.hpp"
 #include "tbb/task_group.h"
@@ -149,14 +150,14 @@ auto read_texture_names(Ucfb_reader_strict<"LTEX"_mn> textures, std::size_t text
    return texture_names;
 }
 
-/*
+
 template<typename Type, Magic_number magic_number>
 auto read_texture_options(Ucfb_reader_strict<magic_number> options)
    -> std::array<Type, Terrain_builder::max_textures>
 {
-   options.read_trivial<std::array<Type, Terrain_builder::max_textures>>();
+   options.template read_trivial<std::array<Type, Terrain_builder::max_textures>>();
 }
-*/
+
 
 void read_vbuf_elements(const std::array<Terrain_vbuf_entry, 81>& elements,
                         std::array<int, 2> patch_offset, Terrain_builder& builder)
@@ -299,12 +300,12 @@ void read_water_map(Ucfb_reader_strict<"WMAP"_mn> wmap, Terrain_info terrain_inf
    const auto water_map_length =
       static_cast<std::uint16_t>(std::floor(std::sqrt(watermap.size())));
 
-   const std::uint16_t patches_length = terrain_info.grid_size / ((std::uint16_t) 4); //4ui16;
+   const std::uint16_t patches_length = terrain_info.grid_size / 4_ui16;
 
    for (std::uint16_t x = 0; x < water_map_length; ++x) {
       for (std::uint16_t y = 0; y < water_map_length; ++y) {
-         const std::array<std::uint16_t, 2> wmap_range = {((std::uint16_t) 0), water_map_length}; //{0ui16, water_map_length};
-         const std::array<std::uint16_t, 2> patch_range = {((std::uint16_t) 0), patches_length}; //{0ui16, patches_length};
+         const std::array<std::uint16_t, 2> wmap_range = {0_ui16, water_map_length};
+         const std::array<std::uint16_t, 2> patch_range = {0_ui16, patches_length};
 
          const std::uint16_t patch_x = range_convert(x, wmap_range, patch_range);
          const std::uint16_t patch_y = range_convert(y, wmap_range, patch_range);
@@ -349,11 +350,9 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
    const auto axis = terrain.read_child_strict<"AXIS"_mn>();
    const auto rotn = terrain.read_child_strict<"ROTN"_mn>();
 
-   /*
    builder.set_texture_options(read_texture_options<float>(scal),
                                read_texture_options<std::uint8_t>(axis),
                                read_texture_options<float>(rotn));
-   */
 
    while (terrain) {
       const auto child = terrain.read_child();

@@ -58,7 +58,7 @@ void bcToRGBA(int w, int h, unsigned char *src, uint32_t *sink, int mode) {
         
         //Decompresses a 4x4 block (16 bytes, but pixels are not byte-aligned)
         
-        if (mode == 1){
+        if (mode == 1){   /*2nd & 3rd params aren't even used in detex*/
             detexDecompressBlockBC1(src + i, 1, 1, reinterpret_cast<uint8_t *>(blockSink));
         } else if (mode == 2){
             detexDecompressBlockBC2(src + i, 1, 1, reinterpret_cast<uint8_t *>(blockSink));

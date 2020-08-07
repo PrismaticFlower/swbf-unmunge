@@ -32,9 +32,15 @@ struct Material {
 
    bool reference_in_option_file = false;
 
-   auto operator==(const Material&) const {
-      return false;
+//FIX MESSY: Still don't understand default, and I just can't get
+//it to compile.
+#ifdef _WIN32
+   bool operator==(const Material&) const = default;
+#else
+   auto operator==(const Material& mat) const {
+      return mat.name == name; 
    }
+#endif
 
 };
 
@@ -111,5 +117,4 @@ bool has_skinned_geometry(const Node& node) noexcept;
 bool has_skinned_geometry(const Scene& scene) noexcept;
 
 auto unify_bone_maps(Scene& scene) -> std::vector<std::uint8_t>;
-
 }

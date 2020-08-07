@@ -12,7 +12,6 @@
 #include <tuple>
 
 #include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <gsl/gsl>
 #include <tbb/tbb.h>
 

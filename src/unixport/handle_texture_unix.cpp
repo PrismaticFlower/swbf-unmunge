@@ -7,7 +7,6 @@
 #include "ucfb_reader.hpp"
 
 #include <fmt/format.h>
-#include <fmt/ostream.h>
 
 #include <algorithm>
 #include <array>
