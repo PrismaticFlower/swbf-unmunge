@@ -74,6 +74,24 @@ bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
       0xf3c342e6, // Segment
       0x274e1290, // Font
       0x115bfcb9, // Subtitle
+      0x5fd56df9, // BUS
+      0x5f6f6d65,  // Stream
+      0x2e93ef4c,  /* "SoundStream" */
+      0x96e382a7,  /* "Sample" */
+      0x5fb91e8c,  /* "Group" */
+      0xab3e0bff,  /* "Class" */
+      0x2a9f6673, /* "FootstepLeftWalk" */
+      0xe79eb7c2, /* "FootstepRightWalk" */
+      0x640f6efb, /* "FootstepLeftRun" */
+      0xa4df1b00, /* "FootstepRightRun" */
+      0xb59a8702, /* "FootstepLeftStop" */
+      0x54e8af1f, /* "FootstepRightStop" */
+      0xa73f5c0d, /* "Jump" */
+      0x6dea369c, /* "Land" */
+      0x16ff3d1e, /* "Roll" */
+      0x65bfa4e1, /* "Squat" */
+      0x70dc49d0, /* "BodyFall" */
+      0xabd36816,  /* "I3DL2ReverbPreset" */
    };
    
    const auto data_hash = data.read_trivial<std::uint32_t>();

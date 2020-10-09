@@ -215,6 +215,22 @@ const auto chunk_processors = Chunk_processor_map{
      [](Args_pack args) {
         handle_config(args.chunk, args.file_saver, ".mcfg"sv, "config"sv, true);
      }}},
+   {"snd_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(args.chunk, args.file_saver, ".snd"sv, "config"sv, true);
+     }}},
+   {"mus_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(args.chunk, args.file_saver, ".mus"sv, "config"sv, true);
+     }}},
+   {"ffx_"_mn,
+    {Input_platform::pc, Game_version::swbf_ii,
+     [](Args_pack args) {
+        handle_config(args.chunk, args.file_saver, ".ffx"sv, "config"sv, true);
+     }}},
+
 
    // Texture chunks
    {"tex_"_mn,
