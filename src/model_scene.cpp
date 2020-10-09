@@ -1,7 +1,9 @@
 
 #include "model_scene.hpp"
 
+#include <algorithm>
 #include <limits>
+#include <stdexcept>
 
 namespace model::scene {
 
