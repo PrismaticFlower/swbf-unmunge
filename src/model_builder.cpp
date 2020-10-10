@@ -89,10 +89,6 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
       };
 
       switch (type) {
-      case Collision_primitive_type::sphere:
-         return std::tuple_cat(as_spans(sphere_indices, sphere_vertex_positions,
-                                        sphere_vertex_normals, sphere_vertex_texcoords),
-                               std::make_tuple(glm::vec3{size.x}));
       case Collision_primitive_type::cylinder:
          return std::tuple_cat(as_spans(cylinder_indices, cylinder_vertex_positions,
                                         cylinder_vertex_normals,
@@ -103,7 +99,9 @@ auto make_primitive_visualization_geometry(const Collision_primitive_type type,
                                         cube_vertex_normals, cube_vertex_texcoords),
                                std::make_tuple(glm::vec3{size}));
       default:
-         std::terminate();
+         return std::tuple_cat(as_spans(sphere_indices, sphere_vertex_positions,
+                                        sphere_vertex_normals, sphere_vertex_texcoords),
+                               std::make_tuple(glm::vec3{size.x}));
       }
    }();
 

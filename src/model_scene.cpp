@@ -1,8 +1,10 @@
 
 #include "model_scene.hpp"
 
+#include <algorithm>
 #include <limits>
-#include  <stdexcept>
+#include <stdexcept>
+
 namespace model::scene {
 
 namespace {
