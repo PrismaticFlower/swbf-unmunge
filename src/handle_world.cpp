@@ -22,13 +22,15 @@ using namespace std::literals;
 
 namespace {
 
-struct Xframe {
-   glm::mat3 matrix;
+struct Transform {
+   glm::vec3 rotation_x;
+   glm::vec3 rotation_y;
+   glm::vec3 rotation_z;
    glm::vec3 position;
 };
 
-static_assert(std::is_trivially_copyable_v<Xframe>);
-static_assert(sizeof(Xframe) == 48);
+static_assert(std::is_trivially_copyable_v<Transform>);
+static_assert(sizeof(Transform) == 48);
 
 struct Animation_key {
    float time;
@@ -165,18 +167,25 @@ char convert_region_type(std::string_view type)
    throw std::invalid_argument{"Invalid region type passed to function."};
 }
 
-std::pair<glm::quat, glm::vec3> convert_xframe(const Xframe& xframe)
+std::pair<glm::quat, glm::vec3> convert_transform(const Transform& transform)
 {
-   auto position = xframe.position;
+   auto position = transform.position;
    position.z *= -1.0f;
 
-   auto quat = glm::quat{glm::transpose(glm::mat3{xframe.matrix})};
-   quat *= glm::quat{0.0f, 0.0f, 1.0f, 0.0f};
+   auto rotation = glm::quat{
+      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z}};
 
-   return {quat, position};
+   rotation.x = -rotation.x;
+   rotation.z = -rotation.z;
+
+   std::swap(rotation.x, rotation.z);
+   std::swap(rotation.y, rotation.w);
+
+   return {rotation, position};
 }
 
-std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const glm::vec3 size)
+std::array<glm::vec3, 4> get_barrier_corners(const Transform& transform,
+                                             const glm::vec3 size)
 {
    std::array<glm::vec3, 4> corners = {{
       {size.x, 0.0f, size.z},
@@ -185,15 +194,15 @@ std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const glm::ve
       {size.x, 0.0f, -size.z},
    }};
 
-   const glm::mat3 flipper{{1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}, {0.f, 0.f, -1.f}};
-   const auto rotation = glm::transpose(glm::mat3{xframe.matrix});
+   const auto rotation =
+      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z};
 
-   corners[0] = rotation * corners[0] * flipper;
-   corners[1] = rotation * corners[1] * flipper;
-   corners[2] = rotation * corners[2] * flipper;
-   corners[3] = rotation * corners[3] * flipper;
+   corners[0] = corners[0] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
+   corners[1] = corners[1] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
+   corners[2] = corners[2] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
+   corners[3] = corners[3] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
 
-   const glm::vec3 position = xframe.position;
+   const glm::vec3 position = transform.position;
 
    corners[0] += position;
    corners[1] += position;
@@ -230,7 +239,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
    const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
 
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
 
    const glm::vec3 size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
 
@@ -240,7 +249,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
    buffer += convert_region_type(type);
    buffer += ")\n{\n"sv;
 
-   const auto world_coords = convert_xframe(xframe);
+   const auto world_coords = convert_transform(transform);
    write_key_value(true, "Position"sv, world_coords.second, buffer);
    write_key_value(true, "Rotation"sv, world_coords.first, buffer);
    write_key_value(true, "Size"sv, size, buffer);
@@ -259,7 +268,7 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
    auto info = barrier.read_child_strict<"INFO"_mn>();
 
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
    const auto size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
    const auto flags = info.read_child_strict<"FLAG"_mn>().read_trivial<std::uint32_t>();
 
@@ -267,7 +276,7 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
    buffer += name;
    buffer += "\")\n{\n"sv;
 
-   for (const auto& corner : get_barrier_corners(xframe, size)) {
+   for (const auto& corner : get_barrier_corners(transform, size)) {
       write_key_value(true, "Corner"sv, corner, buffer);
    }
 
@@ -281,7 +290,7 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
 
    const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
 
    buffer += "Hint(\""sv;
    buffer += name;
@@ -289,7 +298,7 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
    buffer += type;
    buffer += "\")\n{\n"sv;
 
-   const auto world_coords = convert_xframe(xframe);
+   const auto world_coords = convert_transform(transform);
    write_key_value(true, "Position"sv, world_coords.second, buffer);
    write_key_value(true, "Rotation"sv, world_coords.first, buffer);
 
@@ -409,7 +418,7 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
 
    const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
 
    buffer += "Object(\""sv;
    buffer += name;
@@ -417,7 +426,7 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
    buffer += type;
    buffer += "\", 1)\n{\n"sv;
 
-   const auto world_coords = convert_xframe(xframe);
+   const auto world_coords = convert_transform(transform);
    write_key_value(true, "ChildRotation"sv, world_coords.first, buffer);
    write_key_value(true, "ChildPosition"sv, world_coords.second, buffer);
 
