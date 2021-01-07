@@ -10,9 +10,6 @@ class Models_builder;
 }
 class App_options;
 class File_saver;
-namespace tbb {
-class task_group;
-}
 
 void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
                    const App_options& app_options, File_saver& file_saver,

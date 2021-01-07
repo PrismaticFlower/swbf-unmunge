@@ -13,7 +13,7 @@
 
 #include <fmt/format.h>
 #include <gsl/gsl>
-#include <tbb/tbb.h>
+#include <tbb/parallel_for_each.h>
 
 using namespace std::literals;
 
