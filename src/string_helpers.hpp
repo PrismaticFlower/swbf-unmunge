@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
+#include <charconv>
 #include <cstring>
 #include <iterator>
 #include <sstream>
@@ -77,16 +79,15 @@ inline bool string_is_number(std::string_view string) noexcept
    return true;
 }
 
-template<typename Integral>
-inline std::string to_hexstring(const Integral integer) noexcept
+inline auto to_hexstring(const std::int64_t integer) noexcept -> std::string
 {
-   static_assert(std::is_integral_v<Integral>,
-                 "Function can only be used with integral types!");
+   std::array<char, 18> chars{'0', 'x'};
 
-   std::ostringstream stream;
-   stream << std::hex << std::showbase << integer;
+   auto [last, er] = std::to_chars(&chars[2], &chars.back(), integer, 16);
 
-   return stream.str();
+   assert(er == std::errc{});
+
+   return {chars.data(), last};
 }
 
 inline void copy_to_cstring(std::string_view from, char* const to, const std::size_t size)
