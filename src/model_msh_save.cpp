@@ -62,8 +62,8 @@ void sort_nodes(std::vector<scene::Node>& nodes)
       nodes.erase(root);
    }
 
-   auto move_in_kids = [&](auto this_func, const std::string_view parent) noexcept->void
-   {
+   auto move_in_kids = [&](auto this_func,
+                           const std::string_view parent) noexcept -> void {
       std::vector<scene::Node>::iterator it;
       while ((it = std::find_if(nodes.begin(), nodes.end(), [&](const scene::Node& node) {
                  return parent == node.parent;
@@ -77,9 +77,7 @@ void sort_nodes(std::vector<scene::Node>& nodes)
 
    move_in_kids(move_in_kids, sorted.back().name);
 
-   if (!nodes.empty()) {
-      throw std::runtime_error{"model scene has ophaned nodes"};
-   }
+   std::move(nodes.begin(), nodes.end(), sorted.begin());
 
    std::swap(sorted, nodes);
 }
