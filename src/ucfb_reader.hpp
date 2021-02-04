@@ -262,9 +262,12 @@ public:
                     "Type must be trivially copyable.");
       static_assert(!std::is_pointer_v<Type>, "Type can not be a pointer.");
 
-      Expects(size <= static_cast<std::size_t>(output.size()));
-
       const auto size_bytes = sizeof(Type) * size;
+
+      if (size_bytes > output.size_bytes()) {
+         throw std::runtime_error{"output span is too small"};
+      }
+
       const auto cur_pos = _head;
       _head += size_bytes;
 
