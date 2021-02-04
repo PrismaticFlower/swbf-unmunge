@@ -5,18 +5,20 @@
 #include "swbf_fnv_hashes.hpp"
 #include "ucfb_reader.hpp"
 
-#include "glm/gtc/quaternion.hpp"
-#include "glm/mat3x3.hpp"
-#include "glm/vec3.hpp"
-
-#include "tbb/task_group.h"
-
 #include <algorithm>
 #include <array>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <glm/gtc/quaternion.hpp>
+#include <glm/mat3x3.hpp>
+#include <glm/vec3.hpp>
+
+#include <tbb/task_group.h>
+
+#include <fmt/format.h>
 
 using namespace std::literals;
 
@@ -317,18 +319,11 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
 
    const auto name = info.read_string_unaligned();
    const auto length = info.read_trivial_unaligned<float>();
-   const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
-   const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
+   const int loop = info.read_trivial_unaligned<std::uint8_t>();
+   const int local_translation = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += "Animation(\""sv;
-   buffer += name;
-   buffer += "\", "sv;
-   buffer += std::to_string(length);
-   buffer += ", "sv;
-   buffer += std::to_string(unknown_flag_1);
-   buffer += ", "sv;
-   buffer += std::to_string(unknown_flag_2);
-   buffer += ")\n{\n"sv;
+   buffer += fmt::format("Animation(\"{}\", {}, {}, {})\n{{\n"sv, name, length, loop,
+                         local_translation);
 
    while (animation) {
       auto key = animation.read_child();
@@ -340,10 +335,8 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
       key_info.spline_data = key.read_trivial_unaligned<std::array<float, 6>>();
 
       if (key.magic_number() == "ROTK"_mn) {
-         std::for_each(std::begin(key_info.data), std::end(key_info.data),
-                       glm::degrees<float>);
-         std::for_each(std::begin(key_info.spline_data), std::end(key_info.spline_data),
-                       glm::degrees<float>);
+         for (auto& v : key_info.data) v = glm::degrees(v);
+         for (auto& v : key_info.spline_data) v = glm::degrees(v);
 
          write_animation_key("AddRotationKey"sv, key_info, buffer);
       }
@@ -360,26 +353,29 @@ void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string&
    auto info = anim_group.read_child_strict<"INFO"_mn>();
 
    const auto name = info.read_string_unaligned();
+   const int default_on = info.read_trivial_unaligned<std::uint8_t>();
+   const int stop_when_controlled = info.read_trivial_unaligned<std::uint8_t>();
 
-   const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
-   const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
-
-   buffer += "AnimationGroup(\""sv;
-   buffer += name;
-   buffer += "\", "sv;
-   buffer += std::to_string(unknown_flag_1);
-   buffer += ", "sv;
-   buffer += std::to_string(unknown_flag_2);
-   buffer += ")\n{\n"sv;
+   buffer += fmt::format("AnimationGroup(\"{}\", {}, {})\n{{\n"sv, name, default_on,
+                         stop_when_controlled);
 
    while (anim_group) {
-      auto anim_pair = anim_group.read_child_strict<"ANIM"_mn>();
+      auto child = anim_group.read_child();
 
-      buffer += "\tAnimation(\""sv;
-      buffer += anim_pair.read_string_unaligned();
-      buffer += "\", \""sv;
-      buffer += anim_pair.read_string_unaligned();
-      buffer += "\");\n"sv;
+      switch (child.magic_number()) {
+      case "ANIM"_mn: {
+         const auto animation_name = child.read_string_unaligned();
+         const auto object_name = child.read_string_unaligned();
+
+         buffer +=
+            fmt::format("\tAnimation(\"{}\", \"{}\");\n"sv, animation_name, object_name);
+         break;
+      }
+      case "NOHI"_mn: {
+         buffer += "\tDisableHierarchies();\n"sv;
+         break;
+      }
+      }
    }
 
    buffer += "}\n\n"sv;
