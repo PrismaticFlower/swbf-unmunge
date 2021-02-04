@@ -23,6 +23,8 @@ using namespace std::literals;
 
 namespace {
 
+enum class Texture_type { _2d = 1, cube = 2, _3d = 3 };
+
 struct Badformat_exception : std::runtime_error {
    using std::runtime_error::runtime_error;
 };
@@ -33,7 +35,7 @@ struct Texture_info {
    std::uint16_t height;
    std::uint16_t depth;
    std::uint16_t mipmap_count;
-   std::uint32_t type;
+   std::uint32_t type_detail_bias;
 };
 
 static_assert(sizeof(Texture_info) == 16);
@@ -159,6 +161,38 @@ auto d3d_to_dxgi_format(const D3DFORMAT format) -> DXGI_FORMAT
    }
 }
 
+auto create_scratch_image(const Texture_info& info) -> DirectX::ScratchImage
+{
+   const Texture_type type{info.type_detail_bias & 0xffu};
+   [[maybe_unused]] std::uint32_t detail_bias = info.type_detail_bias >> 8u;
+
+   DirectX::ScratchImage image;
+
+   if (type == Texture_type::_2d) {
+      if (FAILED(image.Initialize2D(d3d_to_dxgi_format(info.format), info.width,
+                                    info.height, 1, info.mipmap_count))) {
+         throw Badformat_exception{"bad format"};
+      }
+   }
+   else if (type == Texture_type::cube) {
+      if (FAILED(image.InitializeCube(d3d_to_dxgi_format(info.format), info.width,
+                                      info.height, 1, info.mipmap_count))) {
+         throw Badformat_exception{"bad format"};
+      }
+   }
+   else if (type == Texture_type::_3d) {
+      if (FAILED(image.Initialize3D(d3d_to_dxgi_format(info.format), info.width,
+                                    info.height, info.depth, info.mipmap_count))) {
+         throw Badformat_exception{"bad format"};
+      }
+   }
+   else {
+      throw Badformat_exception{"bad format"};
+   }
+
+   return image;
+}
+
 bool is_luminance_format(const D3DFORMAT format)
 {
    switch (format) {
@@ -202,35 +236,37 @@ auto patch_luminance_format(DirectX::ScratchImage input, const D3DFORMAT format)
       return input;
    }
 
-   auto image = *result.GetImage(0, 0, 0);
+   for (std::size_t i = 0; i < result.GetImageCount(); ++i) {
+      auto image = result.GetImages()[i];
 
-   for (int y = 0; y < image.height; ++y) {
-      for (int x = 0; x < image.width; ++x) {
-         std::uint8_t* pixel_address =
-            image.pixels + (y * image.rowPitch) + (x * sizeof(std::uint32_t));
-         std::uint32_t pixel;
+      for (int y = 0; y < image.height; ++y) {
+         for (int x = 0; x < image.width; ++x) {
+            std::uint8_t* pixel_address =
+               image.pixels + (y * image.rowPitch) + (x * sizeof(std::uint32_t));
+            std::uint32_t pixel;
 
-         std::memcpy(&pixel, pixel_address, sizeof(std::uint32_t));
+            std::memcpy(&pixel, pixel_address, sizeof(std::uint32_t));
 
-         if (format == D3DFMT_L8 || format == D3DFMT_L16) {
-            const std::uint32_t l = pixel & 0xff;
+            if (format == D3DFMT_L8 || format == D3DFMT_L16) {
+               const std::uint32_t l = pixel & 0xff;
 
-            pixel = l;
-            pixel |= (l << 8);
-            pixel |= (l << 16);
-            pixel |= (0xff << 24);
+               pixel = l;
+               pixel |= (l << 8);
+               pixel |= (l << 16);
+               pixel |= (0xff << 24);
+            }
+            else if (format == D3DFMT_A8L8 || format == D3DFMT_A4L4) {
+               const std::uint32_t l = pixel & 0xff;
+               const std::uint32_t a = (pixel & 0xff00) >> 8;
+
+               pixel = l;
+               pixel |= (l << 8);
+               pixel |= (l << 16);
+               pixel |= (a << 24);
+            }
+
+            std::memcpy(pixel_address, &pixel, sizeof(std::uint32_t));
          }
-         else if (format == D3DFMT_A8L8 || format == D3DFMT_A4L4) {
-            const std::uint32_t l = pixel & 0xff;
-            const std::uint32_t a = (pixel & 0xff00) >> 8;
-
-            pixel = l;
-            pixel |= (l << 8);
-            pixel |= (l << 16);
-            pixel |= (a << 24);
-         }
-
-         std::memcpy(pixel_address, &pixel, sizeof(std::uint32_t));
       }
    }
 
@@ -247,41 +283,49 @@ auto read_format_list(Ucfb_reader_strict<"INFO"_mn> info) -> std::vector<D3DFORM
 auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT format)
    -> DirectX::ScratchImage
 {
-   while (texture) {
-      auto fmt = texture.read_child_strict_optional<"FMT_"_mn>();
+   auto fmt = [&] {
+      while (texture) {
+         auto fmt = texture.read_child_strict_optional<"FMT_"_mn>();
 
-      if (!fmt) throw Badformat_exception{"bad format"};
+         if (!fmt) throw Badformat_exception{"bad format"};
 
-      const auto texture_info =
-         fmt->read_child_strict<"INFO"_mn>().read_trivial<Texture_info>();
+         const auto texture_info =
+            fmt->read_child_strict<"INFO"_mn>().read_trivial<Texture_info>();
 
-      if (texture_info.format != format) continue;
+         fmt->reset_head();
 
-      DirectX::ScratchImage image;
-
-      if (FAILED(image.Initialize2D(d3d_to_dxgi_format(texture_info.format),
-                                    texture_info.width, texture_info.height, 1, 1))) {
-         throw Badformat_exception{"bad format"};
+         if (texture_info.format == format) return *fmt;
       }
+   }();
 
-      // Pretend like 2D textures are the only thing that exist.
-      auto lvl = fmt->read_child_strict<"FACE"_mn>().read_child_strict<"LVL_"_mn>();
+   const auto info = fmt.read_child_strict<"INFO"_mn>().read_trivial<Texture_info>();
 
-      [[maybe_unused]] const auto [mip_level, bytes_size] =
-         lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
+   auto scratch_image = create_scratch_image(info);
 
-      auto body = lvl.read_child_strict<"BODY"_mn>();
-      body.read_array_to_span(
-         body.size(), gsl::make_span(image.GetImage(0, 0, 0)->pixels, body.size()));
+   const std::size_t face_count = scratch_image.GetMetadata().IsCubemap() ? 6 : 1;
 
-      if (is_luminance_format(format)) {
-         return patch_luminance_format(std::move(image), format);
+   for (std::size_t face_index = 0; face_index < face_count; ++face_index) {
+      auto face = fmt.read_child_strict<"FACE"_mn>();
+      for (std::size_t mip_index = 0; mip_index < info.mipmap_count; ++mip_index) {
+         auto lvl = face.read_child_strict<"LVL_"_mn>();
+
+         const auto [mip_level, body_size] =
+            lvl.read_child_strict<"INFO"_mn>().read_multi<std::uint32_t, std::uint32_t>();
+
+         const std::size_t depth = std::max(info.depth >> mip_level, 1);
+         auto image = scratch_image.GetImage(mip_level, face_index, 0);
+
+         auto body = lvl.read_child_strict<"BODY"_mn>();
+         body.read_array_to_span(
+            body_size, gsl::make_span(image->pixels, image->slicePitch * depth));
       }
-
-      return image;
    }
 
-   throw Badformat_exception{"bad format"};
+   if (is_luminance_format(format)) {
+      return patch_luminance_format(std::move(scratch_image), format);
+   }
+
+   return scratch_image;
 }
 
 auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
