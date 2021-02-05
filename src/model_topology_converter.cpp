@@ -33,11 +33,10 @@ constexpr bool is_odd(Type size)
 
 auto count_strips(const std::vector<Indices>& strips) noexcept -> std::size_t
 {
-   return std::accumulate(
-      strips.cbegin(), strips.cend(), std::size_t{0},
-      [](const std::size_t size, const Indices& indices) noexcept {
-         return size + indices.size();
-      });
+   return std::accumulate(strips.cbegin(), strips.cend(), std::size_t{0},
+                          [](const std::size_t size, const Indices& indices) noexcept {
+                             return size + indices.size();
+                          });
 }
 
 auto combine_triangle_strips_ps2(const std::vector<Indices>& strips) -> Indices
@@ -113,10 +112,10 @@ auto convert<Primitive_topology::triangle_strip_ps2, Primitive_topology::triangl
    triangles.reserve(strips.size() * 3 - 2);
 
    for (std::size_t i = 2; i < strips.size(); ++i) {
-      if ((strips[i] & 0x7fff) && ((i + 2) >= strips.size())) {
-         if (!(strips[i + 1] & 0x7fff)) continue;
+      if (strips[i] & 0x8000) {
+         i += 1;
 
-         i += 2;
+         continue;
       }
 
       auto tri = is_even(i / 3) ? std::array{strips[i - 2], strips[i - 1], strips[i]}

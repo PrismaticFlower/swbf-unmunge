@@ -540,10 +540,11 @@ auto process_segment_ps2(Ucfb_reader_strict<"segm"_mn> segment, const Model_info
 {
    model::Part part{.lod = lod};
 
-   const auto [ignore, vertex_count, index_count] =
+   const auto [primitive_topology, vertex_count, index_count] =
       read_segment_info_ps2(segment.read_child_strict<"INFO"_mn>());
 
    part.vertices = model::Vertices{vertex_count, {}};
+   part.primitive_topology = primitive_topology;
 
    while (segment) {
       const auto child = segment.read_child();

@@ -325,8 +325,16 @@ void Models_builder::save_models(File_saver& file_saver, const Game_version game
    std::lock_guard lock{_mutex};
 
    tbb::parallel_for_each(_models, [&](Model& model) {
-      clean_model(model, discard_flags);
-      save_model(std::move(model), file_saver, game_version, format);
+      const std::string name = model.name;
+
+      try {
+         clean_model(model, discard_flags);
+         save_model(std::move(model), file_saver, game_version, format);
+      }
+      catch (std::exception& e) {
+         synced_cout::print(
+            fmt::format("Failed to save model {}! Reason: {}\n"sv, name, e.what()));
+      }
    });
 
    _models.clear();
