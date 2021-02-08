@@ -669,6 +669,7 @@ const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes{
    "cursing"_fnvp,
    "CustomAnimationBank"_fnvp,
    "cw_music"_fnvp,
+   "CyclePlayback"_fnvp,
    "Cylinder"_fnvp,
    "cylinder"_fnvp,
    "Damage"_fnvp,
