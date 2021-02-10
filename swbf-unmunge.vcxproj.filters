@@ -215,7 +215,4 @@
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="dictionary.txt" />
-  </ItemGroup>
 </Project>

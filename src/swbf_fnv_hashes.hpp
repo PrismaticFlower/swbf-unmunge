@@ -32,6 +32,3 @@ void read_dictionary(const char* fileName);
 void initialize_internal_dictionary();
 
 bool add_hash(std::string str);
-
-void write_dictionary(std::string filename);
-

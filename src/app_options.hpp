@@ -49,6 +49,8 @@ public:
 
    Input_platform input_platform() const noexcept;
 
+   std::string user_string_dict() const noexcept;
+
    bool verbose() const noexcept;
 
    void print_arguments(std::ostream& ostream) noexcept;
@@ -74,6 +76,7 @@ private:
    Game_version _output_game_version = Game_version::swbf_ii;
    Image_format _img_save_format = Image_format::tga;
    Model_format _model_format = Model_format::msh;
+   std::string _user_string_dict;
    Model_discard_flags _model_discard_flags = Model_discard_flags::none;
    Input_platform _input_platform = Input_platform::pc;
    bool _verbose = false;
