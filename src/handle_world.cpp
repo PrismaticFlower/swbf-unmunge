@@ -5,12 +5,6 @@
 #include "swbf_fnv_hashes.hpp"
 #include "ucfb_reader.hpp"
 
-#include "glm/gtc/quaternion.hpp"
-#include "glm/mat3x3.hpp"
-#include "glm/vec3.hpp"
-
-#include "tbb/task_group.h"
-
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -18,17 +12,27 @@
 #include <utility>
 #include <vector>
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/mat3x3.hpp>
+#include <glm/vec3.hpp>
+
+#include <tbb/task_group.h>
+
+#include <fmt/format.h>
+
 using namespace std::literals;
 
 namespace {
 
-struct Xframe {
-   glm::mat3 matrix;
+struct Transform {
+   glm::vec3 rotation_x;
+   glm::vec3 rotation_y;
+   glm::vec3 rotation_z;
    glm::vec3 position;
 };
 
-static_assert(std::is_trivially_copyable_v<Xframe>);
-static_assert(sizeof(Xframe) == 48);
+static_assert(std::is_trivially_copyable_v<Transform>);
+static_assert(sizeof(Transform) == 48);
 
 struct Animation_key {
    float time;
@@ -165,18 +169,25 @@ char convert_region_type(std::string_view type)
    throw std::invalid_argument{"Invalid region type passed to function."};
 }
 
-std::pair<glm::quat, glm::vec3> convert_xframe(const Xframe& xframe)
+std::pair<glm::quat, glm::vec3> convert_transform(const Transform& transform)
 {
-   auto position = xframe.position;
+   auto position = transform.position;
    position.z *= -1.0f;
 
-   auto quat = glm::quat{glm::transpose(glm::mat3{xframe.matrix})};
-   quat *= glm::quat{0.0f, 0.0f, 1.0f, 0.0f};
+   auto rotation = glm::quat{
+      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z}};
 
-   return {quat, position};
+   rotation.x = -rotation.x;
+   rotation.z = -rotation.z;
+
+   std::swap(rotation.x, rotation.z);
+   std::swap(rotation.y, rotation.w);
+
+   return {rotation, position};
 }
 
-std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const glm::vec3 size)
+std::array<glm::vec3, 4> get_barrier_corners(const Transform& transform,
+                                             const glm::vec3 size)
 {
    std::array<glm::vec3, 4> corners = {{
       {size.x, 0.0f, size.z},
@@ -185,15 +196,15 @@ std::array<glm::vec3, 4> get_barrier_corners(const Xframe& xframe, const glm::ve
       {size.x, 0.0f, -size.z},
    }};
 
-   const glm::mat3 flipper{{1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}, {0.f, 0.f, -1.f}};
-   const auto rotation = glm::transpose(glm::mat3{xframe.matrix});
+   const auto rotation =
+      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z};
 
-   corners[0] = rotation * corners[0] * flipper;
-   corners[1] = rotation * corners[1] * flipper;
-   corners[2] = rotation * corners[2] * flipper;
-   corners[3] = rotation * corners[3] * flipper;
+   corners[0] = corners[0] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
+   corners[1] = corners[1] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
+   corners[2] = corners[2] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
+   corners[3] = corners[3] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
 
-   const glm::vec3 position = xframe.position;
+   const glm::vec3 position = transform.position;
 
    corners[0] += position;
    corners[1] += position;
@@ -230,7 +241,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
    const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
 
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
 
    const glm::vec3 size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
 
@@ -240,7 +251,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
    buffer += convert_region_type(type);
    buffer += ")\n{\n"sv;
 
-   const auto world_coords = convert_xframe(xframe);
+   const auto world_coords = convert_transform(transform);
    write_key_value(true, "Position"sv, world_coords.second, buffer);
    write_key_value(true, "Rotation"sv, world_coords.first, buffer);
    write_key_value(true, "Size"sv, size, buffer);
@@ -259,7 +270,7 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
    auto info = barrier.read_child_strict<"INFO"_mn>();
 
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
    const auto size = info.read_child_strict<"SIZE"_mn>().read_trivial<glm::vec3>();
    const auto flags = info.read_child_strict<"FLAG"_mn>().read_trivial<std::uint32_t>();
 
@@ -267,7 +278,7 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
    buffer += name;
    buffer += "\")\n{\n"sv;
 
-   for (const auto& corner : get_barrier_corners(xframe, size)) {
+   for (const auto& corner : get_barrier_corners(transform, size)) {
       write_key_value(true, "Corner"sv, corner, buffer);
    }
 
@@ -281,7 +292,7 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
 
    const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
 
    buffer += "Hint(\""sv;
    buffer += name;
@@ -289,7 +300,7 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
    buffer += type;
    buffer += "\")\n{\n"sv;
 
-   const auto world_coords = convert_xframe(xframe);
+   const auto world_coords = convert_transform(transform);
    write_key_value(true, "Position"sv, world_coords.second, buffer);
    write_key_value(true, "Rotation"sv, world_coords.first, buffer);
 
@@ -308,18 +319,11 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
 
    const auto name = info.read_string_unaligned();
    const auto length = info.read_trivial_unaligned<float>();
-   const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
-   const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
+   const int loop = info.read_trivial_unaligned<std::uint8_t>();
+   const int local_translation = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += "Animation(\""sv;
-   buffer += name;
-   buffer += "\", "sv;
-   buffer += std::to_string(length);
-   buffer += ", "sv;
-   buffer += std::to_string(unknown_flag_1);
-   buffer += ", "sv;
-   buffer += std::to_string(unknown_flag_2);
-   buffer += ")\n{\n"sv;
+   buffer += fmt::format("Animation(\"{}\", {}, {}, {})\n{{\n"sv, name, length, loop,
+                         local_translation);
 
    while (animation) {
       auto key = animation.read_child();
@@ -331,10 +335,8 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
       key_info.spline_data = key.read_trivial_unaligned<std::array<float, 6>>();
 
       if (key.magic_number() == "ROTK"_mn) {
-         std::for_each(std::begin(key_info.data), std::end(key_info.data),
-                       glm::degrees<float>);
-         std::for_each(std::begin(key_info.spline_data), std::end(key_info.spline_data),
-                       glm::degrees<float>);
+         for (auto& v : key_info.data) v = glm::degrees(v);
+         for (auto& v : key_info.spline_data) v = glm::degrees(v);
 
          write_animation_key("AddRotationKey"sv, key_info, buffer);
       }
@@ -351,26 +353,29 @@ void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string&
    auto info = anim_group.read_child_strict<"INFO"_mn>();
 
    const auto name = info.read_string_unaligned();
+   const int default_on = info.read_trivial_unaligned<std::uint8_t>();
+   const int stop_when_controlled = info.read_trivial_unaligned<std::uint8_t>();
 
-   const std::int32_t unknown_flag_1 = info.read_trivial_unaligned<std::uint8_t>();
-   const std::int32_t unknown_flag_2 = info.read_trivial_unaligned<std::uint8_t>();
-
-   buffer += "AnimationGroup(\""sv;
-   buffer += name;
-   buffer += "\", "sv;
-   buffer += std::to_string(unknown_flag_1);
-   buffer += ", "sv;
-   buffer += std::to_string(unknown_flag_2);
-   buffer += ")\n{\n"sv;
+   buffer += fmt::format("AnimationGroup(\"{}\", {}, {})\n{{\n"sv, name, default_on,
+                         stop_when_controlled);
 
    while (anim_group) {
-      auto anim_pair = anim_group.read_child_strict<"ANIM"_mn>();
+      auto child = anim_group.read_child();
 
-      buffer += "\tAnimation(\""sv;
-      buffer += anim_pair.read_string_unaligned();
-      buffer += "\", \""sv;
-      buffer += anim_pair.read_string_unaligned();
-      buffer += "\");\n"sv;
+      switch (child.magic_number()) {
+      case "ANIM"_mn: {
+         const auto animation_name = child.read_string_unaligned();
+         const auto object_name = child.read_string_unaligned();
+
+         buffer +=
+            fmt::format("\tAnimation(\"{}\", \"{}\");\n"sv, animation_name, object_name);
+         break;
+      }
+      case "NOHI"_mn: {
+         buffer += "\tDisableHierarchies();\n"sv;
+         break;
+      }
+      }
    }
 
    buffer += "}\n\n"sv;
@@ -409,7 +414,7 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
 
    const auto type = info.read_child_strict<"TYPE"_mn>().read_string();
    const auto name = info.read_child_strict<"NAME"_mn>().read_string();
-   const auto xframe = info.read_child_strict<"XFRM"_mn>().read_trivial<Xframe>();
+   const auto transform = info.read_child_strict<"XFRM"_mn>().read_trivial<Transform>();
 
    buffer += "Object(\""sv;
    buffer += name;
@@ -417,7 +422,7 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
    buffer += type;
    buffer += "\", 1)\n{\n"sv;
 
-   const auto world_coords = convert_xframe(xframe);
+   const auto world_coords = convert_transform(transform);
    write_key_value(true, "ChildRotation"sv, world_coords.first, buffer);
    write_key_value(true, "ChildPosition"sv, world_coords.second, buffer);
 

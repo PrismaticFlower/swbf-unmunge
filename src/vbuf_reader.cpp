@@ -20,16 +20,18 @@ namespace {
 enum class Vbuf_flags : std::uint32_t {
    none = 0b0u,
    position = 0b10u,
-   blendindices = 0b100u,
-   blendweight = 0b1000u,
+   bone_indices = 0b100u,
+   bone_weights = 0b1000u,
    normal = 0b100000u,
    tangents = 0b1000000u,
    color = 0b10000000u,
    static_lighting = 0b100000000u,
    texcoords = 0b1000000000u,
 
+   shadow_data = 0b100000000000u,
+
    position_compressed = 0b1000000000000u,
-   blendinfo_compressed = 0b10000000000000u,
+   bone_info_compressed = 0b10000000000000u,
    normal_compressed = 0b100000000000000u,
    texcoord_compressed = 0b1000000000000000u
 };
@@ -40,16 +42,16 @@ constexpr bool marked_as_enum_flag(Vbuf_flags)
 }
 
 constexpr auto vbuf_all_flags_mask =
-   Vbuf_flags::position | Vbuf_flags::blendindices | Vbuf_flags::blendweight |
+   Vbuf_flags::position | Vbuf_flags::bone_indices | Vbuf_flags::bone_weights |
    Vbuf_flags::normal | Vbuf_flags::tangents | Vbuf_flags::color |
-   Vbuf_flags::static_lighting | Vbuf_flags::texcoords | Vbuf_flags::position_compressed |
-   Vbuf_flags::blendinfo_compressed | Vbuf_flags::normal_compressed |
-   Vbuf_flags::texcoord_compressed;
+   Vbuf_flags::static_lighting | Vbuf_flags::texcoords | Vbuf_flags::shadow_data |
+   Vbuf_flags::position_compressed | Vbuf_flags::bone_info_compressed |
+   Vbuf_flags::normal_compressed | Vbuf_flags::texcoord_compressed;
 
 constexpr auto vbuf_unknown_flags_mask = ~vbuf_all_flags_mask;
 
 constexpr auto vbuf_compressed_mask =
-   Vbuf_flags::position_compressed | Vbuf_flags::blendinfo_compressed |
+   Vbuf_flags::position_compressed | Vbuf_flags::bone_info_compressed |
    Vbuf_flags::normal_compressed | Vbuf_flags::texcoord_compressed;
 
 struct Vbuf_info {
@@ -130,8 +132,8 @@ auto select_best_vbuf(const std::vector<Ucfb_reader_strict<"VBUF"_mn>>& vbufs)
 
 bool is_pretransformed_vbuf(const Vbuf_flags flags) noexcept
 {
-   return are_flags_set(flags, Vbuf_flags::blendindices) &&
-          !are_flags_set(flags, Vbuf_flags::blendweight);
+   return are_flags_set(flags, Vbuf_flags::bone_indices) &&
+          !are_flags_set(flags, Vbuf_flags::bone_weights);
 }
 
 auto get_vertices_create_flags(const Vbuf_flags flags) -> model::Vertices::Create_flags
@@ -143,8 +145,8 @@ auto get_vertices_create_flags(const Vbuf_flags flags) -> model::Vertices::Creat
            .colors = ((Vbuf_flags::color & flags) |
                       (Vbuf_flags::static_lighting & flags)) != Vbuf_flags::none,
            .texcoords = (Vbuf_flags::texcoords & flags) != Vbuf_flags::none,
-           .bones = (Vbuf_flags::blendindices & flags) != Vbuf_flags::none,
-           .weights = (Vbuf_flags::blendweight & flags) != Vbuf_flags::none};
+           .bones = (Vbuf_flags::bone_indices & flags) != Vbuf_flags::none,
+           .weights = (Vbuf_flags::bone_weights & flags) != Vbuf_flags::none};
 }
 
 glm::vec4 read_colour(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
@@ -166,11 +168,11 @@ glm::vec3 read_compressed_normal_xbox(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
    constexpr std::array<std::uint32_t, 2> sign_extend_xy = {0x0u, 0xfffffc00u};
    constexpr std::array<std::uint32_t, 2> sign_extend_z = {0x0u, 0xfffff800u};
 
-   const auto udec_normal = vbuf.read_trivial_unaligned<std::uint32_t>();
+   const auto dec3_normal = vbuf.read_trivial_unaligned<std::uint32_t>();
 
-   const auto x_unsigned = udec_normal & 0x7ffu;
-   const auto y_unsigned = (udec_normal >> 11u) & 0x7ffu;
-   const auto z_unsigned = (udec_normal >> 22u) & 0x3ffu;
+   const auto x_unsigned = dec3_normal & 0x7ffu;
+   const auto y_unsigned = (dec3_normal >> 11u) & 0x7ffu;
+   const auto z_unsigned = (dec3_normal >> 22u) & 0x3ffu;
 
    const auto x_signed =
       static_cast<std::int32_t>(x_unsigned | sign_extend_xy[x_unsigned >> 10u]);
@@ -228,13 +230,6 @@ glm::vec2 read_compressed_texcoords(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
    return compressed / 2048.f;
 }
 
-glm::vec2 read_texcoords(Ucfb_reader_strict<"VBUF"_mn>& vbuf)
-{
-   const auto coords = vbuf.read_trivial_unaligned<glm::vec2>();
-
-   return {coords.x, 1.f - glm::fract(coords.y)};
-}
-
 void read_vertex_pc(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_flags flags,
                     const std::size_t index, const Position_decompress& pos_decompress,
                     model::Vertices& out)
@@ -250,9 +245,9 @@ void read_vertex_pc(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_flags flags,
       }
    }
 
-   if ((flags & Vbuf_flags::blendweight) == Vbuf_flags::blendweight) {
-      if ((flags & Vbuf_flags::blendinfo_compressed) ==
-          Vbuf_flags::blendinfo_compressed) {
+   if ((flags & Vbuf_flags::bone_weights) == Vbuf_flags::bone_weights) {
+      if ((flags & Vbuf_flags::bone_info_compressed) ==
+          Vbuf_flags::bone_info_compressed) {
          out.weights[index] = read_weights_compressed_pc(vbuf);
       }
       else {
@@ -260,7 +255,7 @@ void read_vertex_pc(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_flags flags,
       }
    }
 
-   if ((flags & Vbuf_flags::blendindices) == Vbuf_flags::blendindices) {
+   if ((flags & Vbuf_flags::bone_indices) == Vbuf_flags::bone_indices) {
       out.bones[index] = read_bone_indices_pc(vbuf);
    }
 
@@ -308,7 +303,7 @@ void read_vertex_xbox(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_flags flags
 {
    if ((flags & Vbuf_flags::position) == Vbuf_flags::position) {
       if ((flags & Vbuf_flags::position_compressed) == Vbuf_flags::position_compressed) {
-         const auto compressed = vbuf.read_trivial_unaligned<glm::i16vec4>();
+         const auto compressed = vbuf.read_trivial_unaligned<glm::i16vec3>();
 
          out.positions[index] = pos_decompress(compressed);
       }
@@ -317,9 +312,9 @@ void read_vertex_xbox(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_flags flags
       }
    }
 
-   if ((flags & Vbuf_flags::blendweight) == Vbuf_flags::blendweight) {
-      if ((flags & Vbuf_flags::blendinfo_compressed) ==
-          Vbuf_flags::blendinfo_compressed) {
+   if ((flags & Vbuf_flags::bone_weights) == Vbuf_flags::bone_weights) {
+      if ((flags & Vbuf_flags::bone_info_compressed) ==
+          Vbuf_flags::bone_info_compressed) {
          out.weights[index] = read_weights_compressed_xbox(vbuf);
       }
       else {
@@ -327,21 +322,12 @@ void read_vertex_xbox(Ucfb_reader_strict<"VBUF"_mn> vbuf, const Vbuf_flags flags
       }
    }
 
-   if ((flags & Vbuf_flags::blendindices) == Vbuf_flags::blendindices) {
-      if ((flags & Vbuf_flags::blendweight) == Vbuf_flags::blendweight) {
+   if ((flags & Vbuf_flags::bone_indices) == Vbuf_flags::bone_indices) {
+      if ((flags & Vbuf_flags::bone_weights) == Vbuf_flags::bone_weights) {
          out.bones[index] = vbuf.read_trivial_unaligned<glm::u8vec3>();
       }
       else {
          out.bones[index] = glm::u8vec3{vbuf.read_trivial_unaligned<glm::u8>()};
-      }
-   }
-
-   if ((flags & Vbuf_flags::normal) == Vbuf_flags::normal) {
-      if ((flags & Vbuf_flags::normal_compressed) == Vbuf_flags::normal_compressed) {
-         out.normals[index] = read_compressed_normal_xbox(vbuf);
-      }
-      else {
-         out.normals[index] = vbuf.read_trivial_unaligned<glm::vec3>();
       }
    }
 
@@ -423,7 +409,7 @@ auto read_vbuf(const std::vector<Ucfb_reader_strict<"VBUF"_mn>>& vbufs,
    vertices.static_lighting =
       (info.flags & Vbuf_flags::static_lighting) == Vbuf_flags::static_lighting;
    vertices.softskinned =
-      (info.flags & Vbuf_flags::blendweight) == Vbuf_flags::blendweight;
+      (info.flags & Vbuf_flags::bone_weights) == Vbuf_flags::bone_weights;
 
    try {
       if (xbox) {

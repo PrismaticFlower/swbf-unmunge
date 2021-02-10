@@ -13,7 +13,7 @@ enum class Image_format { tga, png, dds };
 
 enum class Model_format { msh, gltf2 };
 
-enum class Model_discard_flags { none = 0b0, lod = 0b1, collision = 0b01, all = 0b11 };
+enum class Model_discard_flags { none = 0b0, lod = 0b1, collision = 0b10, all = 0b11 };
 
 constexpr bool marked_as_enum_flag(Model_discard_flags) noexcept
 {

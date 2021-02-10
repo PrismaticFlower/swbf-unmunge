@@ -105,13 +105,16 @@ void reverse_pretransforms(Scene& scene) noexcept
 
          apply_transform(node_inv_transforms.at(first_skin_node_index));
 
-         for (auto it = std::find_if(
-                 scene.nodes.cbegin(), scene.nodes.cend(),
-                 [&](const Node& node) { return skin_node.parent == node.name; });
+         for (auto it = std::find_if(scene.nodes.cbegin(), scene.nodes.cend(),
+                                     [&](const Node& node) {
+                                        return skin_node.parent == node.name &&
+                                               skin_node.name != node.name;
+                                     });
               it != scene.nodes.cend();
               it = std::find_if(
-                 scene.nodes.cbegin(), scene.nodes.cend(),
-                 [&](const Node& node) { return it->parent == node.name; })) {
+                 scene.nodes.cbegin(), scene.nodes.cend(), [&](const Node& node) {
+                    return it->parent == node.name && it->name != node.name;
+                 })) {
             apply_transform(
                node_inv_transforms.at(std::distance(scene.nodes.cbegin(), it)));
          }

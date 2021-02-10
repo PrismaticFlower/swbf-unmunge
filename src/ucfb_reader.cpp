@@ -3,15 +3,18 @@
 #include <stdexcept>
 
 Ucfb_reader::Ucfb_reader(const gsl::span<const std::byte> bytes)
-   : _mn{reinterpret_span_as<Magic_number>(
-        gsl::span<const std::byte, sizeof(Magic_number)>{&bytes[0],
-                                                         sizeof(Magic_number)})},
-     _size{reinterpret_span_as<std::uint32_t>(
-        gsl::span<const std::byte, sizeof(std::uint32_t)>{&bytes[4],
-                                                          sizeof(std::uint32_t)})},
-     _data{&bytes[8]}
 {
-   Expects((bytes.size() >= 8));
+   if (bytes.size() < 8) {
+      throw std::runtime_error{"Size of data is too small."};
+   }
+
+   _mn = reinterpret_span_as<Magic_number>(
+      gsl::span<const std::byte, sizeof(Magic_number)>{&bytes[0], sizeof(Magic_number)});
+
+   _size = reinterpret_span_as<std::uint32_t>(
+      gsl::span<const std::byte, sizeof(std::uint32_t)>{&bytes[4],
+                                                        sizeof(std::uint32_t)});
+   _data = bytes.data() + 8;
 
    if (_size > static_cast<std::size_t>(bytes.size() - 8)) {
       throw std::runtime_error{

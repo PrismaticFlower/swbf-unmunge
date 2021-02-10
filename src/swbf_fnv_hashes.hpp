@@ -2,8 +2,6 @@
 
 #include <cstdint>
 #include <string>
-#include <shlwapi.h>
-#include <windows.h>
 
 constexpr std::uint32_t fnv_1a_hash(const std::string_view str)
 {
@@ -29,11 +27,11 @@ constexpr std::uint32_t operator""_fnv(const char* str, const std::size_t length
 
 std::string lookup_fnv_hash(std::uint32_t hash);
 
-// using  "user_hashes.txt"
-// read line by line
 void read_dictionary(const char* fileName);
 
+void initialize_internal_dictionary();
 
-#pragma comment(lib, "shlwapi.lib")
+bool add_hash(std::string str);
 
-BOOL GetModuleDir(char* pBuf, DWORD dwBufSize);
+void write_dictionary(std::string filename);
+
