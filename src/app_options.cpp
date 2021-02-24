@@ -299,6 +299,7 @@ std::string App_options::user_string_dict() const noexcept
 {
    return _user_string_dict;
 }
+
 bool App_options::verbose() const noexcept
 {
    return _verbose;

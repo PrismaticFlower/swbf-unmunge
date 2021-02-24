@@ -59,48 +59,48 @@ bool is_string_data(Ucfb_reader_strict<"DATA"_mn> data)
 
 bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
-   bool retVal = false;
-   uint32_t a[] = {
-      0x156b70a1, // GrassPatch
-      0xaaea5743, // File
-      0x0e0d9594, // Sound
-      0xc28f0c96, // CollisionSound
-      0x84874d36, // Path
-      0x6850acc6, // BorderOdf
-      0x6a6fb399, // LeafPatch
-      0x8d39bde6, // Name
-      0xaef39ccf, // Movie
-      0xca04efe0, // Inherit
-      0xf3c342e6, // Segment
-      0x274e1290, // Font
-      0x115bfcb9, // Subtitle
-      0x5fd56df9, // BUS
-      0x5f6f6d65,  // Stream
-      0x2e93ef4c,  /* "SoundStream" */
-      0x96e382a7,  /* "Sample" */
-      0x5fb91e8c,  /* "Group" */
-      0xab3e0bff,  /* "Class" */
-      0x2a9f6673, /* "FootstepLeftWalk" */
-      0xe79eb7c2, /* "FootstepRightWalk" */
-      0x640f6efb, /* "FootstepLeftRun" */
-      0xa4df1b00, /* "FootstepRightRun" */
-      0xb59a8702, /* "FootstepLeftStop" */
-      0x54e8af1f, /* "FootstepRightStop" */
-      0xa73f5c0d, /* "Jump" */
-      0x6dea369c, /* "Land" */
-      0x16ff3d1e, /* "Roll" */
-      0x65bfa4e1, /* "Squat" */
-      0x70dc49d0, /* "BodyFall" */
-      0xabd36816,  /* "I3DL2ReverbPreset" */
+   bool ret_val = false;
+   constexpr std::array hashes = {
+      "GrassPatch"_fnv,
+      "File"_fnv,
+      "Sound"_fnv,
+      "CollisionSound"_fnv,
+      "Path"_fnv,
+      "BorderOdf"_fnv,
+      "LeafPatch"_fnv,
+      "Name"_fnv,
+      "Movie"_fnv,
+      "Inherit"_fnv,
+      "Segment"_fnv,
+      "Font"_fnv,
+      "Subtitle"_fnv,
+      "BUS"_fnv,
+      "Stream"_fnv,
+      "SoundStream"_fnv,
+      "Sample"_fnv,
+      "Group"_fnv,
+      "Class"_fnv,
+      "FootstepLeftWalk"_fnv,
+      "FootstepRightWalk"_fnv,
+      "FootstepLeftRun"_fnv,
+      "FootstepRightRun"_fnv,
+      "FootstepLeftStop"_fnv,
+      "FootstepRightStop"_fnv,
+      "Jump"_fnv,
+      "Land"_fnv,
+      "Roll"_fnv,
+      "Squat"_fnv,
+      "BodyFall"_fnv,
+      "I3DL2ReverbPreset"_fnv, 
    };
    
    const auto data_hash = data.read_trivial<std::uint32_t>();
    const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
    
    if (element_count > 0) {
-      retVal = std::find(std::begin(a), std::end(a), data_hash) != std::end(a);
+      ret_val = std::find(std::begin(hashes), std::end(hashes), data_hash) != std::end(hashes);
    }
-   return retVal;
+   return ret_val;
 }
 
 bool is_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data)

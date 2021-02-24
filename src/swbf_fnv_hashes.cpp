@@ -18,23 +18,22 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes;
 
 bool dictionary_is_initialized = false;
 
-std::mutex dictionary_mutex;
+std::mutex swbf_hashes_mutex;
 
 std::string lookup_fnv_hash(const std::uint32_t hash)
 {
-   std::string retVal;
+   std::string ret_val;
 
-   dictionary_mutex.lock();
+   std::lock_guard lock{swbf_hashes_mutex};
    const auto result = swbf_hashes.find(hash);
 
    if (result != std::cend(swbf_hashes)) {
       // this can be interesting when building a dict
-      //synced_cout::print("looked_up:", result->second, "\n");
-      retVal = std::string{result->second};
+      // synced_cout::print("looked_up:", result->second, "\n");
+      ret_val = std::string{result->second};
    }
-   dictionary_mutex.unlock();
 
-   if (retVal.empty()) {
+   if (ret_val.empty()) {
       // here hex is nice for 2 reasons:
       //   1. easier to see in hex editor
       //   2. it matches the output of the ToolsFl\bin\hash.exe program
@@ -42,20 +41,25 @@ std::string lookup_fnv_hash(const std::uint32_t hash)
       sprintf(hex_string, "0x%x", hash);
       synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, hex_string,
                          '\n');
-      retVal = std::string(hex_string);
+      ret_val = std::string(hex_string);
    }
-   return retVal;
+   return ret_val;
 }
 
 // Read in a file of strings that can be resolved by the hash lookup
-void read_dictionary(const char* fileName)
+void read_dictionary(std::string file_name)
 {
-   synced_cout::print("Reading dictionary: "s, fileName, '\n');
-   std::ifstream input(fileName);
+   std::ifstream input(file_name);
+
+   if (!input.is_open()) {
+      throw std::runtime_error{"Failed to open file"s};
+   }
+
+   synced_cout::print("Reading dictionary: "s, file_name, '\n');
+
    for (std::string line; getline(input, line);) {
       add_hash(line);
    }
-   input.close();
    initialize_internal_dictionary();
 }
 
@@ -63,17 +67,11 @@ void read_dictionary(const char* fileName)
 // returns true if it was added ()
 bool add_hash(std::string str)
 {
-   bool retVal = false;
-   if ("" != str) {
-      uint32_t hash = fnv_1a_hash(str);
-      dictionary_mutex.lock();
-      if (swbf_hashes.find(hash) == std::cend(swbf_hashes)) {
-         swbf_hashes[hash] = str;
-         retVal = true;
-      }
-      dictionary_mutex.unlock();
-   }
-   return retVal;
+   std::lock_guard lock{swbf_hashes_mutex};
+
+   const auto [element_iterator, inserted] = swbf_hashes.emplace(fnv_1a_hash(str), str);
+
+   return inserted;
 }
 
 void initialize_internal_dictionary()

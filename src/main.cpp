@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
          std::regex_replace(app_options.user_string_dict(), std::regex("\\\\"), "\\");
       path = std::regex_replace(path, std::regex("\""), "");
       if (fs::exists(path))
-         read_dictionary(path.c_str());
+         read_dictionary(path);
       else {
          std::cout << "Error: file '"s << path << "' does not exist\n";
 
@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
    
    // add the input file names and filename + 'popular suffixes' to the hashes
    for (int i = 0; i < input_files.size(); i++) {
-      start_str = input_files[i].find_last_of('\\');
+      start_str = input_files[i].find_last_of('\\') + 1;
       if (start_str < 0) start_str = 0;
       end_str = input_files[i].find_last_of('.');
       tmp = input_files[i].substr(start_str, end_str - start_str);
