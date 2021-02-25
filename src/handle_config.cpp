@@ -316,11 +316,11 @@ void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view 
 {
    const auto name_hash =
       config.read_child_strict<"NAME"_mn>().read_trivial<std::uint32_t>();
-   auto actualFileName = lookup_fnv_hash(name_hash);
+   auto name = lookup_fnv_hash(name_hash);
 
    auto buffer = read_root_scope(config, strings_are_hashed);
 
    if (!buffer.empty()) {
-      file_saver.save_file(buffer, dir, actualFileName, file_type);
+      file_saver.save_file(buffer, dir, name, file_type);
    }
 }

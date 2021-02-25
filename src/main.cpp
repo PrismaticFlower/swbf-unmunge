@@ -16,10 +16,11 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <regex>
 #include <stdexcept>
 
 #include <Windows.h>
-#include <regex>
+
 
 namespace fs = std::filesystem;
 using namespace std::literals;
@@ -28,9 +29,8 @@ const auto usage = R"(Usage: swbf-unmunge <options>
 
 Options:)"s;
 
-std::vector<std::string> popular_suffixes{"_1ctf",
+constexpr std::array common_layer_suffixes{"_1ctf",
                                          "_1flag",
-                                         "_Buildings",
                                          "_Buildings",
                                          "_Buildings01",
                                          "_Buildings02",
@@ -192,33 +192,38 @@ int main(int argc, char* argv[])
    if (app_options.user_string_dict().length() > 0) {
       std::string path =
          std::regex_replace(app_options.user_string_dict(), std::regex("\\\\"), "\\");
-      path = std::regex_replace(path, std::regex("\""), "");
-      if (fs::exists(path))
-         read_dictionary(path);
+      path = std::regex_replace(path, std::regex("\""), "");// undo the 'std::quoted' stuff.
+      if (fs::exists(path)) {
+         try {
+            read_fnv_dictionary(path);
+         }
+         catch (std::exception& e) {
+            synced_cout::print(
+               "Error: Exception occured while reading string dictionary.\n   Path: "s,
+               app_options.user_string_dict(), '\n', "   Message: "s, e.what(), '\n');
+         }
+      }
       else {
          std::cout << "Error: file '"s << path << "' does not exist\n";
 
          return 0;
       }
    }
-   else
-      initialize_internal_dictionary();
+   else {
+      initialize_internal_fnv_dictionary();
+   }
 
-   std::string tmp = "";
-   int start_str = 0;
-   int end_str = 0;
    
    // add the input file names and filename + 'popular suffixes' to the hashes
-   for (int i = 0; i < input_files.size(); i++) {
-      start_str = input_files[i].find_last_of('\\') + 1;
-      if (start_str < 0) start_str = 0;
-      end_str = input_files[i].find_last_of('.');
-      tmp = input_files[i].substr(start_str, end_str - start_str);
-      add_hash(tmp);
-      add_hash("mapname.description." + tmp);
-      add_hash("mapname.name." + tmp);
-      for (int j = 0; j < popular_suffixes.size(); j++) {
-         add_hash(tmp + popular_suffixes[j]);
+   for (const auto& input_file : input_files) {
+      const auto name = fs::path{input_file}.stem().string();
+
+      add_fnv_hash(name);
+      add_fnv_hash("mapname.description."s += name);
+      add_fnv_hash("mapname.name."s += name);
+
+      for (const auto& suffix : common_layer_suffixes) {
+         add_fnv_hash(std::string{name} += suffix);
       }
    }
 
