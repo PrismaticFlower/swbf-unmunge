@@ -59,7 +59,6 @@ bool is_string_data(Ucfb_reader_strict<"DATA"_mn> data)
 
 bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
-   bool ret_val = false;
    constexpr std::array hashes = {
       "GrassPatch"_fnv,
       "File"_fnv,
@@ -98,9 +97,9 @@ bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
    const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
    
    if (element_count > 0) {
-      ret_val = std::find(std::begin(hashes), std::end(hashes), data_hash) != std::end(hashes);
+      return std::find(std::begin(hashes), std::end(hashes), data_hash) != std::end(hashes);
    }
-   return ret_val;
+   return false;
 }
 
 bool is_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data)

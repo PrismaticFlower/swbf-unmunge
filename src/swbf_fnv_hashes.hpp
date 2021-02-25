@@ -29,6 +29,4 @@ std::string lookup_fnv_hash(std::uint32_t hash);
 
 void read_fnv_dictionary(std::string file_name);
 
-void initialize_internal_fnv_dictionary();
-
 bool add_fnv_hash(std::string str);

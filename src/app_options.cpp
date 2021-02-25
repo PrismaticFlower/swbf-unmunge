@@ -235,7 +235,7 @@ App_options::App_options()
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
        input_plat_opt_description},
       {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
-      {"-string_dict"s, [this](Istr& istr) { istr >> _user_string_dict; },
+      {"-string_dict"s, [this](Istr& istr) { _user_string_dict = read_file_path(istr); },
        string_dict_opt_description},
       {"-mode"s, [this](Istr& istr) { istr >> _tool_mode; }, mode_opt_description}};
 }

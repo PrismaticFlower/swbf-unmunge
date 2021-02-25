@@ -16,7 +16,6 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
-#include <regex>
 #include <stdexcept>
 
 #include <Windows.h>
@@ -189,13 +188,12 @@ int main(int argc, char* argv[])
 
       return 0;
    }
+
    if (app_options.user_string_dict().length() > 0) {
-      std::string path =
-         std::regex_replace(app_options.user_string_dict(), std::regex("\\\\"), "\\");
-      path = std::regex_replace(path, std::regex("\""), "");// undo the 'std::quoted' stuff.
-      if (fs::exists(path)) {
+
+      if (fs::exists(app_options.user_string_dict())) {
          try {
-            read_fnv_dictionary(path);
+            read_fnv_dictionary(app_options.user_string_dict());
          }
          catch (std::exception& e) {
             synced_cout::print(
@@ -204,15 +202,13 @@ int main(int argc, char* argv[])
          }
       }
       else {
-         std::cout << "Error: file '"s << path << "' does not exist\n";
+         std::cout << "Error: file '"s << app_options.user_string_dict()
+                   << "' does not exist\n";
 
          return 0;
       }
    }
-   else {
-      initialize_internal_fnv_dictionary();
-   }
-
+   
    
    // add the input file names and filename + 'popular suffixes' to the hashes
    for (const auto& input_file : input_files) {
