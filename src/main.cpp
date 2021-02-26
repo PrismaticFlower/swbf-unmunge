@@ -210,8 +210,6 @@ int main(int argc, char* argv[])
          return 0;
       }
    }
-   
-   
    // add the input file names and filename + 'popular suffixes' to the hashes
    for (const auto& input_file : input_files) {
       const auto name = fs::path{input_file}.stem().string();
