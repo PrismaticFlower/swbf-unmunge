@@ -3894,6 +3894,7 @@ std::string lookup_fnv_hash(const std::uint32_t hash)
       synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, ret_val,
                          '\n');
    }
+
    return ret_val;
 }
 
