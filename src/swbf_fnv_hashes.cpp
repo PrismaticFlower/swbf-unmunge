@@ -11,6 +11,7 @@
 #include <utility>
 
 using namespace std::literals;
+
 namespace {
 
 std::pair<std::uint32_t, std::string> operator""_fnvp(const char* str, std::size_t length)
