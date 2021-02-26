@@ -3889,11 +3889,10 @@ std::string lookup_fnv_hash(const std::uint32_t hash)
    }
 
    if (ret_val.empty()) {
-      std::string hex_string = to_hexstring(hash);
+      ret_val = to_hexstring(hash);
 
-      synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, hex_string,
+      synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, ret_val,
                          '\n');
-      ret_val = hex_string;
    }
    return ret_val;
 }
