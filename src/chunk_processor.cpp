@@ -231,7 +231,6 @@ const auto chunk_processors = Chunk_processor_map{
         handle_config(args.chunk, args.file_saver, ".ffx"sv, "config"sv, true);
      }}},
 
-
    // Texture chunks
    {"tex_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
