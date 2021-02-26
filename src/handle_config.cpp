@@ -90,15 +90,17 @@ bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
       "Roll"_fnv,
       "Squat"_fnv,
       "BodyFall"_fnv,
-      "I3DL2ReverbPreset"_fnv, 
+      "I3DL2ReverbPreset"_fnv,
    };
-   
+
    const auto data_hash = data.read_trivial<std::uint32_t>();
    const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
-   
+
    if (element_count > 0) {
-      return std::find(std::begin(hashes), std::end(hashes), data_hash) != std::end(hashes);
+      return std::find(std::begin(hashes), std::end(hashes), data_hash) !=
+             std::end(hashes);
    }
+
    return false;
 }
 

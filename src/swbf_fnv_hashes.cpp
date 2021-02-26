@@ -3872,7 +3872,7 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "ZOrder"_fnvp,
 };
 
-std::mutex swbf_hashes_mutex;
+std::shared_mutex swbf_hashes_mutex;
 
 }
 
@@ -3880,13 +3880,14 @@ std::string lookup_fnv_hash(const std::uint32_t hash)
 {
    std::string ret_val;
 
-   std::lock_guard lock{swbf_hashes_mutex};
-   const auto result = swbf_hashes.find(hash);
+   {
+      std::shared_lock lock{swbf_hashes_mutex};
 
-   if (result != std::cend(swbf_hashes)) {
-      // this can be interesting when building a dict
-      // synced_cout::print("looked_up:", result->second, "\n");
-      ret_val = std::string{result->second};
+      if (const auto result = swbf_hashes.find(hash); result != std::cend(swbf_hashes)) {
+         // Seeing successful lookups is interesting when building the default dict.
+         // synced_cout::print("looked_up:", result->second, "\n");
+         ret_val = result->second;
+      }
    }
 
    if (ret_val.empty()) {

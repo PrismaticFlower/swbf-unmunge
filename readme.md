@@ -71,3 +71,8 @@ couple `#pragma` directives.
 If you for some reason do want to build it on Linux or something feel free to get in
 touch I am happy to help point out what bits of the codebase are non-portable and what
 could be done.
+
+## Clang formatting
+Clang formatting should be applied to all source files.
+
+Clang formatting can be applied to your current file with Ctrl+K, Ctrl+D.
