@@ -20,7 +20,6 @@
 
 #include <Windows.h>
 
-
 namespace fs = std::filesystem;
 using namespace std::literals;
 
@@ -103,7 +102,6 @@ constexpr std::array common_layer_suffixes{"_1ctf",
                                            "_trees",
                                            "_turrets",
                                            "_xl"};
-
 
 void extract_file(const App_options& options, fs::path path) noexcept
 {
