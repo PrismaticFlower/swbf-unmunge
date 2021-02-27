@@ -203,6 +203,10 @@ constexpr auto input_plat_opt_description{
 
 constexpr auto verbose_opt_description{R"(Enable verbose output.)"sv};
 
+constexpr auto string_dict_opt_description{
+   R"(<dictionary_file> Specify a file of strings to be used in hash lookup; used in addition to the 
+   program's built in string dictionary. File format is plain text, 1 line = 1 string.)"sv};
+
 constexpr auto mode_opt_description{
    R"(<mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
    'extract' (default) - Extract and "unmunge" the contents of the file.
@@ -231,6 +235,8 @@ App_options::App_options()
       {"-platform"s, [this](Istr& istr) { istr >> _input_platform; },
        input_plat_opt_description},
       {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
+      {"-string_dict"s, [this](Istr& istr) { _user_string_dict = read_file_path(istr); },
+       string_dict_opt_description},
       {"-mode"s, [this](Istr& istr) { istr >> _tool_mode; }, mode_opt_description}};
 }
 
@@ -287,6 +293,11 @@ Model_discard_flags App_options::model_discard_flags() const noexcept
 Input_platform App_options::input_platform() const noexcept
 {
    return _input_platform;
+}
+
+std::string App_options::user_string_dict() const noexcept
+{
+   return _user_string_dict;
 }
 
 bool App_options::verbose() const noexcept

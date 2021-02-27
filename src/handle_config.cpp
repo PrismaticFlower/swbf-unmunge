@@ -59,22 +59,49 @@ bool is_string_data(Ucfb_reader_strict<"DATA"_mn> data)
 
 bool is_hash_data(Ucfb_reader_strict<"DATA"_mn> data)
 {
-   const std::array<std::uint32_t, 7> hashes = {
-      0x156b70a1, // GrassPatch
-      0xaaea5743, // File
-      0x0e0d9594, // Sound
-      0xc28f0c96, // CollisionSound
-      0x84874d36, // Path
-      0x6850acc6, // BorderOdf
-      0x6a6fb399  // LeafPatch
+   constexpr std::array hashes = {
+      "GrassPatch"_fnv,
+      "File"_fnv,
+      "Sound"_fnv,
+      "CollisionSound"_fnv,
+      "Path"_fnv,
+      "BorderOdf"_fnv,
+      "LeafPatch"_fnv,
+      "Name"_fnv,
+      "Movie"_fnv,
+      "Inherit"_fnv,
+      "Segment"_fnv,
+      "Font"_fnv,
+      "Subtitle"_fnv,
+      "BUS"_fnv,
+      "Stream"_fnv,
+      "SoundStream"_fnv,
+      "Sample"_fnv,
+      "Group"_fnv,
+      "Class"_fnv,
+      "FootstepLeftWalk"_fnv,
+      "FootstepRightWalk"_fnv,
+      "FootstepLeftRun"_fnv,
+      "FootstepRightRun"_fnv,
+      "FootstepLeftStop"_fnv,
+      "FootstepRightStop"_fnv,
+      "Jump"_fnv,
+      "Land"_fnv,
+      "Roll"_fnv,
+      "Squat"_fnv,
+      "BodyFall"_fnv,
+      "I3DL2ReverbPreset"_fnv,
    };
 
    const auto data_hash = data.read_trivial<std::uint32_t>();
    const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
 
-   return ((std::find(std::cbegin(hashes), std::cend(hashes), data_hash) !=
-            std::cend(hashes)) &&
-           element_count > 0);
+   if (element_count > 0) {
+      return std::find(std::begin(hashes), std::end(hashes), data_hash) !=
+             std::end(hashes);
+   }
+
+   return false;
 }
 
 bool is_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data)
@@ -290,10 +317,11 @@ void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view 
 {
    const auto name_hash =
       config.read_child_strict<"NAME"_mn>().read_trivial<std::uint32_t>();
+   auto name = lookup_fnv_hash(name_hash);
 
    auto buffer = read_root_scope(config, strings_are_hashed);
 
    if (!buffer.empty()) {
-      file_saver.save_file(buffer, dir, std::to_string(name_hash), file_type);
+      file_saver.save_file(buffer, dir, name, file_type);
    }
 }

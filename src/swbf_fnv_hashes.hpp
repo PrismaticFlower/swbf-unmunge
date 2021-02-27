@@ -26,3 +26,7 @@ constexpr std::uint32_t operator""_fnv(const char* str, const std::size_t length
 }
 
 std::string lookup_fnv_hash(std::uint32_t hash);
+
+void read_fnv_dictionary(std::string file_name);
+
+bool add_fnv_hash(std::string str);
