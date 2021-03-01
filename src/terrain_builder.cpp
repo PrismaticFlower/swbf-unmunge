@@ -41,7 +41,7 @@ void Terrain_builder::set_detail_texture(std::string_view texture)
 
 void Terrain_builder::set_texture_options(
    const std::array<float, max_textures>& scales,
-   const std::array<std::uint8_t, max_textures>& axises,
+   const std::array<Terrain_texture_axis, max_textures>& axises,
    const std::array<float, max_textures>& rotations)
 {
    for (std::size_t i = 0; i < max_textures; ++i) {
@@ -74,11 +74,10 @@ void Terrain_builder::set_water_settings(const float height, glm::vec2 velocity,
    }
 }
 
-void Terrain_builder::set_point_height(const Point point, const float height) noexcept
+void Terrain_builder::set_point_height(const Point point,
+                                       const std::int16_t height) noexcept
 {
-   const auto int16_height = static_cast<std::int16_t>(height / _height_granularity);
-
-   _heightmap[lookup_point_index(point)] = int16_height;
+   _heightmap[lookup_point_index(point)] = height;
 }
 
 void Terrain_builder::set_point_colour(const Point point,

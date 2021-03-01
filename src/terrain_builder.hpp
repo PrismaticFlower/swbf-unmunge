@@ -4,7 +4,7 @@
 #include "bit_flags.hpp"
 #include "file_saver.hpp"
 
-#include "glm/vec2.hpp"
+#include <glm/glm.hpp>
 
 #include <array>
 #include <cstdint>
@@ -19,11 +19,33 @@ enum class Terrain_flags : char {
    munge_all = 7
 };
 
+enum class Terrain_texture_axis : std::uint8_t {
+   xz,
+   xy,
+   yz,
+   zx,
+   yx,
+   zy,
+   negative_xz,
+   negative_xy,
+   negative_yz,
+   negative_zx,
+   negative_yx,
+   negative_zy
+};
+
+struct Terrain_cut {
+   float bounds_radius = 0.0f;
+   glm::vec3 bounds_centre{};
+
+   std::vector<glm::vec4> planes;
+};
+
 class Terrain_builder {
 public:
    constexpr static auto max_textures = 16u;
 
-   using Point = std::array<std::uint16_t, 2>;
+   using Point = std::array<std::size_t, 2>;
 
    Terrain_builder(const float grid_unit_size, const float height_scale,
                    const std::uint16_t grid_size,
@@ -34,13 +56,13 @@ public:
    void set_detail_texture(std::string_view texture);
 
    void set_texture_options(const std::array<float, max_textures>& scales,
-                            const std::array<std::uint8_t, max_textures>& axises,
+                            const std::array<Terrain_texture_axis, max_textures>& axises,
                             const std::array<float, max_textures>& rotations);
 
    void set_water_settings(const float height, glm::vec2 velocity, glm::vec2 repeat,
                            std::uint32_t colour, std::string_view texture_name);
 
-   void set_point_height(const Point point, const float height) noexcept;
+   void set_point_height(const Point point, const std::int16_t height) noexcept;
 
    void set_point_colour(const Point point, const std::uint32_t colour) noexcept;
 
@@ -102,7 +124,7 @@ private:
    std::array<Terrain_texture_name, max_textures> _textures{};
 
    std::array<float, max_textures> _texture_scales{};
-   std::array<std::uint8_t, max_textures> _texture_axises{};
+   std::array<Terrain_texture_axis, max_textures> _texture_axises{};
    std::array<float, max_textures> _texture_rotations{};
 
    std::array<Water_settings, max_water_layers> _water_settings{};
