@@ -296,6 +296,8 @@ auto read_texture_format(Ucfb_reader_strict<"tex_"_mn> texture, const D3DFORMAT 
 
          if (texture_info.format == format) return *fmt;
       }
+
+      throw Badformat_exception{"no usable format"};
    }();
 
    const auto info = fmt.read_child_strict<"INFO"_mn>().read_trivial<Texture_info>();
