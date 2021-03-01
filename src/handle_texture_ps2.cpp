@@ -51,8 +51,8 @@ auto decompress_body(Ucfb_reader_strict<"BODY"_mn> body, std::uint32_t expanded_
 
    while (body) {
       const auto seq_desc = body.read_trivial_unaligned<std::uint8_t>();
-      const std::uint32_t seq_count = seq_desc & 0x7Fui8;
-      const bool seq_duplicate = seq_desc >> 7ui8;
+      const std::uint32_t seq_count = seq_desc & 0x7fu;
+      const bool seq_duplicate = seq_desc >> 7u;
 
       if (seq_duplicate) {
          const auto entry = body.read_trivial_unaligned<Entry_type>();
