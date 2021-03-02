@@ -115,7 +115,8 @@ void extract_file(const App_options& options, fs::path path) noexcept
       if (root_reader.magic_number() != "ucfb"_mn) {
          throw std::runtime_error{"Root chunk is now ucfb as expected."};
       }
-      synced_cout::print("Processing File: "s, path.string(), '\n');
+      if (!get_pre_processing_global()) // dont mention it in this case
+         synced_cout::print("Processing File: "s, path.string(), '\n');
 
       handle_ucfb(static_cast<Ucfb_reader>(root_reader), options, file_saver);
    }
@@ -167,6 +168,17 @@ auto get_file_processor(const Tool_mode mode)
    throw std::invalid_argument{""};
 }
 
+void get_lvls_under_dir(std::string path, std::vector<std::string>& files)
+{
+   std::cout << "Looking for lvl files under '" << path << "'" << std::endl;
+   std::string ext(".lvl");
+   for (auto& p : fs::recursive_directory_iterator(path)) {
+      if (p.path().extension() == ext) {
+         files.push_back(p.path().string());
+      }
+   }
+}
+
 int main(int argc, char* argv[])
 {
    std::ios_base::sync_with_stdio(false);
@@ -181,7 +193,11 @@ int main(int argc, char* argv[])
 
    const App_options app_options{argc, argv};
 
-   const auto& input_files = app_options.input_files();
+   std::vector<std::string> input_files = app_options.input_files();
+
+   if (!app_options.folder().empty()) {
+      get_lvls_under_dir(app_options.folder(), input_files);
+   }
 
    if (input_files.empty()) {
       std::cout << "Error: No input file specified.\n"s;
@@ -189,7 +205,7 @@ int main(int argc, char* argv[])
       return 0;
    }
 
-   if (app_options.user_string_dict().length() > 0) {
+   if (!app_options.user_string_dict().empty()) {
 
       if (fs::exists(app_options.user_string_dict())) {
          try {
@@ -208,26 +224,46 @@ int main(int argc, char* argv[])
          return 0;
       }
    }
-   // add the input file names and filename + 'popular suffixes' to the hashes
+
+   const auto processor = get_file_processor(app_options.tool_mode());
+
+   set_pre_processing_global(true);
+
+   std::cout << "Gathering string info...\n";
+
    for (const auto& input_file : input_files) {
+      if (app_options.verbose()) {
+         std::cout << "pre-processing '" << input_file << std::endl;
+      }
       const auto name = fs::path{input_file}.stem().string();
 
+      // add the input file names and filename + 'popular suffixes' to the hashes
       add_fnv_hash(name);
       add_fnv_hash("mapname.description."s += name);
       add_fnv_hash("mapname.name."s += name);
-
       for (const auto& suffix : common_layer_suffixes) {
          add_fnv_hash(std::string{name} += suffix);
       }
+
+      // run in 'pre-process' mode to gather up possible strings to unhash
+      processor(app_options, input_file);
    }
 
-   CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+   std::cout << "Done gathering string info.\n\n";
 
-   const auto processor = get_file_processor(app_options.tool_mode());
+   if (!app_options.gen_string_dict().empty()) {
+      write_fnv_dictionary(app_options.gen_string_dict());
+      return 0; // to exit OR not to exit?
+   }
+
+   set_pre_processing_global(false);
+
+   CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
    tbb::parallel_for_each(input_files, [&app_options, &processor](const auto& file) {
       processor(app_options, file);
    });
 
    CoUninitialize();
+
 }

@@ -1,4 +1,6 @@
 #include "ucfb_reader.hpp"
+#include "app_options.hpp"
+#include "swbf_fnv_hashes.hpp"
 
 #include <stdexcept>
 
@@ -135,4 +137,20 @@ void Ucfb_reader::check_head()
    if (_head > _size) {
       throw std::runtime_error{"Attempt to read past end of chunk."};
    }
+}
+
+auto Ucfb_reader::read_string(const bool unaligned) -> std::string_view
+{
+   const char* const string = to_char_pointer(_data + _head);
+   const auto string_length = cstring_length(string, _size - _head);
+
+   _head += (string_length + 1);
+
+   check_head();
+
+   if (!unaligned) align_head();
+
+   if (get_pre_processing_global()) add_found_string(string);
+
+   return {string, string_length};
 }

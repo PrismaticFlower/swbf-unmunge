@@ -1,4 +1,5 @@
 #include "file_saver.hpp"
+#include "app_options.hpp"
 #include "synced_cout.hpp"
 
 #include <gsl/gsl>
@@ -16,12 +17,15 @@ using namespace std::literals;
 File_saver::File_saver(const fs::path& path, bool verbose) noexcept
    : _path{path.lexically_normal()}, _verbose{verbose}
 {
+   if (get_pre_processing_global()) return; // ---------early return----------------
    fs::create_directory(_path);
 }
 
 void File_saver::save_file(std::string_view contents, std::string_view directory,
                            std::string_view name, std::string_view extension)
 {
+   if (get_pre_processing_global()) return; // ---------early return----------------
+
    const auto path = directory.empty() ? build_file_path(name, extension)
                                        : build_file_path(directory, name, extension);
 
@@ -66,6 +70,7 @@ auto File_saver::build_file_path(std::string_view name, std::string_view extensi
 
 void File_saver::create_dir(std::string_view directory) noexcept
 {
+   if (get_pre_processing_global()) return; // ---------early return----------------
    const auto dir_result = [&] {
       std::shared_lock lock{_dirs_mutex};
 

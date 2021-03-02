@@ -1,11 +1,13 @@
 
 #include "swbf_fnv_hashes.hpp"
+#include "app_options.hpp"
 #include "string_helpers.hpp"
 #include "synced_cout.hpp"
 
 #include <cstdint>
 #include <fstream>
 #include <mutex>
+#include <regex>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
@@ -14,12 +16,18 @@ using namespace std::literals;
 
 namespace {
 
+bool is_numeric(const std::string& str)
+{
+   return !str.empty() && str.find_first_not_of("0123456789.-") == std::string::npos;
+}
+
 std::pair<std::uint32_t, std::string> operator""_fnvp(const char* str, std::size_t length)
 {
    return {fnv_1a_hash({str, length}), {str, length}};
 }
 
 std::unordered_map<std::uint32_t, std::string> swbf_hashes{
+   " team_bonus_garrison_used_by_us_cis"_fnvp,
    "--AttachOdf"_fnvp,
    "--AttachToHardPoint"_fnvp,
    "--DamageAttachPoint"_fnvp,
@@ -28,6 +36,8 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "--DamageInheritVelocity"_fnvp,
    "--DamageStartPercent"_fnvp,
    "--DamageStopPercent"_fnvp,
+   "--DestroyedGeometryName"_fnvp,
+   "--MaxHealth"_fnvp,
    "--UnbuiltGeometryName"_fnvp,
    "--UnbuiltHoloOdf"_fnvp,
    "!Back"_fnvp,
@@ -54,6 +64,7 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "\\\\ChunkTrailEffect"_fnvp,
    "\\\\DeathAnimationExplosion"_fnvp,
    "\\\\IconTexture"_fnvp,
+   "\\\\UnbuiltGeometryName"_fnvp,
    "0"_fnvp,
    "1"_fnvp,
    "1Flag"_fnvp,
@@ -1795,6 +1806,8 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "ifs.movies.yavoutro.line01"_fnvp,
    "ifs.movies.yavoutro.line02"_fnvp,
    "ifs.movies.yavoutro.line03"_fnvp,
+   "ifs.mp.galaxy.error"_fnvp,
+   "ifs.trailer.title"_fnvp,
    "IgnorableCollision"_fnvp,
    "IgnorableCollsion"_fnvp,
    "IgnoreHintNodes"_fnvp,
@@ -1865,6 +1878,7 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "IsFlyer"_fnvp,
    "IsHero"_fnvp,
    "IsHover"_fnvp,
+   "IsJedi"_fnvp,
    "IsLocked"_fnvp,
    "IsNotTargetableByPlayer"_fnvp,
    "IsPilotExposed"_fnvp,
@@ -1987,6 +2001,7 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "load_xtracking"_fnvp,
    "load_ytracking"_fnvp,
    "load_zoom"_fnvp,
+   "LoadDisplay"_fnvp,
    "LoadingTextBlinkRate"_fnvp,
    "LoadingTextColorPallete"_fnvp,
    "LoadSpam"_fnvp,
@@ -3483,6 +3498,7 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "TrackUseRoot"_fnvp,
    "Traction"_fnvp,
    "TrailEffect"_fnvp,
+   "Trailer"_fnvp,
    "training"_fnvp,
    "training1"_fnvp,
    "TrakCenter"_fnvp,
@@ -3892,9 +3908,11 @@ std::string lookup_fnv_hash(const std::uint32_t hash)
 
    if (ret_val.empty()) {
       ret_val = to_hexstring(hash);
+      if (!get_pre_processing_global()) {
 
-      synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, ret_val,
-                         '\n');
+         synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, ret_val,
+                            '\n');
+      }
    }
 
    return ret_val;
@@ -3906,7 +3924,7 @@ void read_fnv_dictionary(std::string file_name)
    std::ifstream input(file_name);
 
    if (!input.is_open()) {
-      throw std::runtime_error{"Failed to open file"s};
+      throw std::runtime_error{"Failed to open file: "s + file_name};
    }
 
    synced_cout::print("Reading dictionary: "s, file_name, '\n');
@@ -3914,6 +3932,65 @@ void read_fnv_dictionary(std::string file_name)
    for (std::string line; getline(input, line);) {
       add_fnv_hash(line);
    }
+}
+
+// writes a 'string dictionary' of all the strings we've gathered.
+void write_fnv_dictionary(std::string file_name)
+{
+   std::ofstream outfile;
+
+   outfile.open(file_name);
+
+   if (!outfile.is_open()) {
+      throw std::runtime_error{"Failed to open file: "s + file_name};
+   }
+
+   synced_cout::print("Writing dictionary: "s, file_name, '\n');
+
+   for (auto it = swbf_hashes.begin(); it != swbf_hashes.end(); it++) {
+      outfile << it->second << '\n';
+   }
+}
+
+// add a string we found during pre-process mode.
+bool add_found_string(std::string str)
+{
+   int index = str.find(" ");
+
+   if (index != std::string::npos) { // if the string has a space in it, just take the
+                                     // first part
+      str = str.substr(0, index);
+   }
+   if (is_numeric(str) || str.length() < 3) return false;
+
+   bool retVal = add_fnv_hash(str);
+
+   // special handling for gathering localization 'keys'
+   if (str.find("_weap_") != std::string::npos) {
+      // wok_weap_inf_bowcaster --> 'weapons.wok.weap.inf_bowcaster'
+      add_fnv_hash("weapons." + std::regex_replace(str, std::regex("_weap_"), ".weap."));
+   }
+   else if (str.find("_hero_") != std::string::npos) {
+      // all_hero_hansolo_tat  --> entity.all.hero_hansolo_tat
+      add_fnv_hash("entity." + std::regex_replace(str, std::regex("_hero_"), ".hero_"));
+   }
+   else if (str.find("_fly_") != std::string::npos) {
+      // all_fly_snowspeeder   --> entity.all.fly_snowspeeder
+      add_fnv_hash("entity." + std::regex_replace(str, std::regex("_fly_"), ".fly_"));
+   }
+   else if (str.find("_inf_") != std::string::npos) {
+      // rep_inf_ep2_engineer --> entity.rep.inf_ep2_engineer
+      add_fnv_hash("entity." + std::regex_replace(str, std::regex("_inf_"), ".inf_"));
+   }
+   else if (str.find("_walk_") != std::string::npos) {
+      // rep_walk_atte --> entity.rep.walk_atte
+      add_fnv_hash("entity." + std::regex_replace(str, std::regex("_walk_"), ".walk_"));
+   }
+   else if (str.find("_hover_") != std::string::npos) {
+      // rep_hover_fightertank --> entity.rep.hover_fightertank
+      add_fnv_hash("entity." + std::regex_replace(str, std::regex("_hover_"), ".hover_"));
+   }
+   return retVal;
 }
 
 // adds an entry to the string hashes

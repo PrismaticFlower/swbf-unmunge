@@ -1,5 +1,6 @@
 
 #include "model_builder.hpp"
+#include "app_options.hpp"
 #include "model_basic_primitives.hpp"
 #include "model_gltf_save.hpp"
 #include "model_msh_save.hpp"
@@ -322,6 +323,7 @@ void Models_builder::save_models(File_saver& file_saver, const Game_version game
                                  const Model_format format,
                                  const Model_discard_flags discard_flags) noexcept
 {
+   if (get_pre_processing_global()) return; // ---------early return----------------
    std::lock_guard lock{_mutex};
 
    tbb::parallel_for_each(_models, [&](Model& model) {

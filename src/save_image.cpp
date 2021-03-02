@@ -143,6 +143,7 @@ void save_image(std::string_view name, DirectX::ScratchImage image,
                 File_saver& file_saver, Image_format save_format,
                 Model_format model_format)
 {
+   if (get_pre_processing_global()) return; // ---------early return----------------
    // Windows' 3D Viewer doesn't handle relative texture paths, so we have to put the
    // textures in the same folder as the glTF files if we want them to be previewable in
    // it.

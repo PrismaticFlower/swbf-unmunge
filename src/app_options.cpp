@@ -207,11 +207,17 @@ constexpr auto string_dict_opt_description{
    R"(<dictionary_file> Specify a file of strings to be used in hash lookup; used in addition to the 
    program's built in string dictionary. File format is plain text, 1 line = 1 string.)"sv};
 
+constexpr auto gen_dict_opt_description{
+   R"(<dictionary_file> Save the hash lookup dictionary to the specified file.)"sv};
+
 constexpr auto mode_opt_description{
    R"(<mode> Set the mode of operation for the tool. Can be 'extract', 'explode' or 'assemble'.
    'extract' (default) - Extract and "unmunge" the contents of the file.
    'explode' - Recursively explode the file's chunks into their hierarchies.
    'assemble' - Recursively assemble a previously exploded file. Input files will be treated as directories.)"sv};
+
+constexpr auto folder_opt_description{
+   R"(<folder> - process all .lvl files found under this folder.)"sv};
 
 App_options::App_options()
 {
@@ -237,7 +243,11 @@ App_options::App_options()
       {"-verbose"s, [this](Istr&) { _verbose = true; }, verbose_opt_description},
       {"-string_dict"s, [this](Istr& istr) { _user_string_dict = read_file_path(istr); },
        string_dict_opt_description},
-      {"-mode"s, [this](Istr& istr) { istr >> _tool_mode; }, mode_opt_description}};
+      {"-gen_string_dict"s, [this](Istr& istr) { _gen_string_dict = read_file_path(istr); },
+       gen_dict_opt_description},
+      {"-mode"s, [this](Istr& istr) { istr >> _tool_mode; }, mode_opt_description},
+      {"-folder"s, [this](Istr& istr) { _folder = read_file_path(istr); },
+       folder_opt_description}};
 }
 
 App_options::App_options(int argc, char* argv[]) : App_options()
@@ -300,6 +310,16 @@ std::string App_options::user_string_dict() const noexcept
    return _user_string_dict;
 }
 
+std::string App_options::gen_string_dict() const noexcept
+{
+   return _gen_string_dict;
+}
+
+std::string App_options::folder() const noexcept
+{
+   return _folder;
+}
+
 bool App_options::verbose() const noexcept
 {
    return _verbose;
@@ -328,4 +348,20 @@ auto App_options::find_option_handler(std::string_view name) noexcept
    if (result == std::end(_options)) return nullptr;
 
    return &result->handler;
+}
+
+namespace {
+
+bool pre_processing_global = false;
+
+}
+
+bool get_pre_processing_global()
+{
+   return pre_processing_global;
+}
+
+void set_pre_processing_global(bool value)
+{
+   pre_processing_global = value;
 }

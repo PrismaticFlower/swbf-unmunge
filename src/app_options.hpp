@@ -51,6 +51,10 @@ public:
 
    std::string user_string_dict() const noexcept;
 
+   std::string folder() const noexcept;
+
+   std::string gen_string_dict() const noexcept;
+
    bool verbose() const noexcept;
 
    void print_arguments(std::ostream& ostream) noexcept;
@@ -77,7 +81,15 @@ private:
    Image_format _img_save_format = Image_format::tga;
    Model_format _model_format = Model_format::msh;
    std::string _user_string_dict;
+   std::string _gen_string_dict;
+   std::string _folder;
    Model_discard_flags _model_discard_flags = Model_discard_flags::none;
    Input_platform _input_platform = Input_platform::pc;
    bool _verbose = false;
 };
+
+// extern bool pre_processing;
+bool get_pre_processing_global();
+
+void set_pre_processing_global(bool value);
+

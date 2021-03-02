@@ -346,19 +346,7 @@ public:
    //!
    //! \exception std::runtime_error Thrown when reading the string would go past the end
    //!                               of the chunk.
-   auto read_string(const bool unaligned = false) -> std::string_view
-   {
-      const char* const string = to_char_pointer(_data + _head);
-      const auto string_length = cstring_length(string, _size - _head);
-
-      _head += (string_length + 1);
-
-      check_head();
-
-      if (!unaligned) align_head();
-
-      return {string, string_length};
-   }
+   auto read_string(const bool unaligned = false) -> std::string_view;
 
    //! \brief Reads an unaligned null-terminated string from a chunk.
    //!

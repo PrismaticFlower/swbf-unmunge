@@ -2,6 +2,7 @@
 #include "chunk_handlers.hpp"
 #include "file_saver.hpp"
 #include "string_helpers.hpp"
+#include "swbf_fnv_hashes.hpp"
 #include "ucfb_reader.hpp"
 
 #include "tbb/task_group.h"
@@ -140,6 +141,8 @@ void dump_localization(Ucfb_reader_strict<"Locl"_mn> localization, File_saver& f
    buffer.reserve(16384);
 
    auto body = localization.read_child_strict<"BODY"_mn>();
+   std::string tmp;
+   int pos = -1;
 
    for (auto u16str_buf =
            [] {
@@ -156,10 +159,26 @@ void dump_localization(Ucfb_reader_strict<"Locl"_mn> localization, File_saver& f
       const auto section_size = body.read_trivial_unaligned<std::uint16_t>();
       body.read_array<char16_t>((section_size - 6) / 2, u16str_buf);
 
-      buffer += to_hexstring(hash);
-      buffer += ' ';
-      buffer += cast_encoding({u16str_buf.data()});
-      buffer += '\n';
+      buffer += lookup_fnv_hash(hash);
+      buffer += "=\"";
+      tmp = cast_encoding({u16str_buf.data()});
+
+	  // escape the backslash
+	  pos = tmp.find("\\");
+      while (pos > -1) {
+         tmp.insert(pos, "\\");
+         pos = tmp.find("\\", pos + 2);
+      }
+
+	  // escape the double quote
+      pos = tmp.find("\"");
+      while (pos > -1) {
+         tmp.insert(pos, "\\");
+         pos = tmp.find("\"", pos + 2);
+      }
+
+      buffer += tmp;
+      buffer += "\"\n";
    }
 
    file_saver.save_file(buffer, "localization"sv, name, ".txt"sv);
