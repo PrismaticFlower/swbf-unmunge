@@ -143,7 +143,8 @@ auto find_geometry_name(
 }
 }
 
-void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view type)
+void handle_object(Ucfb_reader object, File_saver& file_saver,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string_view type)
 {
    std::string file_buffer;
    file_buffer.reserve(1024);
@@ -168,7 +169,7 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
    write_bracketed_str("Properties"sv, file_buffer);
 
    for (const auto& property : properties) {
-      write_property(lookup_fnv_hash(property.first), property.second, file_buffer);
+      write_property(swbf_hashes.lookup(property.first), property.second, file_buffer);
    }
 
    file_saver.save_file(file_buffer, "odf"sv, odf_name, ".odf"sv);

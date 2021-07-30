@@ -27,97 +27,131 @@ const auto usage = R"(Usage: swbf-unmunge <options>
 
 Options:)"s;
 
-constexpr std::array common_layer_suffixes{"_1ctf",
-                                           "_1flag",
-                                           "_Buildings",
-                                           "_Buildings01",
-                                           "_Buildings02",
-                                           "_CP-Assult",
-                                           "_CP-Conquest",
-                                           "_CP-VehicleSpawns",
-                                           "_CP-VehicleSpawns",
-                                           "_CPs",
-                                           "_CommonDesign",
-                                           "_CW-Ships",
-                                           "_GCW-Ships",
-                                           "_Damage",
-                                           "_Damage01",
-                                           "_Damage02",
-                                           "_Death",
-                                           "_DeathRegions",
-                                           "_Design",
-                                           "_Design001",
-                                           "_Design002",
-                                           "_Design01",
-                                           "_Design02",
-                                           "_Design1",
-                                           "_Design2",
-                                           "_Doors",
-                                           "_Layer000",
-                                           "_Layer001",
-                                           "_Layer002",
-                                           "_Layer003",
-                                           "_Layer004",
-                                           "_Light_RG",
-                                           "_NewObjective",
-                                           "_Objective",
-                                           "_Platforms",
-                                           "_Props",
-                                           "_RainShadow",
-                                           "_Roids",
-                                           "_Roids01",
-                                           "_Roids02",
-                                           "_Shadow_RGN",
-                                           "_Shadows",
-                                           "_Shields",
-                                           "_SoundEmmiters",
-                                           "_SoundRegions",
-                                           "_SoundSpaces",
-                                           "_SoundTriggers",
-                                           "_Temp",
-                                           "_Tree",
-                                           "_Trees",
-                                           "_Vehicles",
-                                           "_animations",
-                                           "_campaign",
-                                           "_collision",
-                                           "_con",
-                                           "_conquest",
-                                           "_ctf",
-                                           "_deathreagen",
-                                           "_droids",
-                                           "_eli",
-                                           "_flags",
-                                           "_gunship",
-                                           "_hunt",
-                                           "_invisocube",
-                                           "_light_region",
-                                           "_objects01",
-                                           "_objects02",
-                                           "_reflections",
-                                           "_rumble",
-                                           "_rumbles",
-                                           "_sound",
-                                           "_tdm",
-                                           "_trees",
-                                           "_turrets",
-                                           "_xl"};
+constexpr std::array common_layer_suffixes{"_1ctf"sv
+                                           "_1flag"sv
+                                           "_Buildings"sv
+                                           "_Buildings01"sv
+                                           "_Buildings02"sv
+                                           "_CP-Assult"sv
+                                           "_CP-Conquest"sv
+                                           "_CP-VehicleSpawns"sv
+                                           "_CP-VehicleSpawns"sv
+                                           "_CPs"sv
+                                           "_CommonDesign"sv
+                                           "_CW-Ships"sv
+                                           "_GCW-Ships"sv
+                                           "_Damage"sv
+                                           "_Damage01"sv
+                                           "_Damage02"sv
+                                           "_Death"sv
+                                           "_DeathRegions"sv
+                                           "_Design"sv
+                                           "_Design001"sv
+                                           "_Design002"sv
+                                           "_Design01"sv
+                                           "_Design02"sv
+                                           "_Design1"sv
+                                           "_Design2"sv
+                                           "_Doors"sv
+                                           "_Layer000"sv
+                                           "_Layer001"sv
+                                           "_Layer002"sv
+                                           "_Layer003"sv
+                                           "_Layer004"sv
+                                           "_Light_RG"sv
+                                           "_NewObjective"sv
+                                           "_Objective"sv
+                                           "_Platforms"sv
+                                           "_Props"sv
+                                           "_RainShadow"sv
+                                           "_Roids"sv
+                                           "_Roids01"sv
+                                           "_Roids02"sv
+                                           "_Shadow_RGN"sv
+                                           "_Shadows"sv
+                                           "_Shields"sv
+                                           "_SoundEmmiters"sv
+                                           "_SoundRegions"sv
+                                           "_SoundSpaces"sv
+                                           "_SoundTriggers"sv
+                                           "_Temp"sv
+                                           "_Tree"sv
+                                           "_Trees"sv
+                                           "_Vehicles"sv
+                                           "_animations"sv
+                                           "_campaign"sv
+                                           "_collision"sv
+                                           "_con"sv
+                                           "_conquest"sv
+                                           "_ctf"sv
+                                           "_deathreagen"sv
+                                           "_droids"sv
+                                           "_eli"sv
+                                           "_flags"sv
+                                           "_gunship"sv
+                                           "_hunt"sv
+                                           "_invisocube"sv
+                                           "_light_region"sv
+                                           "_objects01"sv
+                                           "_objects02"sv
+                                           "_reflections"sv
+                                           "_rumble"sv
+                                           "_rumbles"sv
+                                           "_sound"sv
+                                           "_tdm"sv
+                                           "_trees"sv
+                                           "_turrets"sv
+                                           "_xl"sv};
 
 void extract_file(const App_options& options, fs::path path) noexcept
 {
    try {
+
       Mapped_file file{path};
       File_saver file_saver{fs::path{path}.replace_extension("") += '/',
                             options.verbose()};
+      Swbf_fnv_hashes swbf_hashes;
+
+      if (!options.user_string_dict().empty()) {
+
+         if (fs::exists(options.user_string_dict())) {
+            try {
+               read_swbf_fnv_hash_dictionary(swbf_hashes, options.user_string_dict());
+            }
+            catch (std::exception& e) {
+               synced_cout::print(
+                  "Error: Exception occured while reading string dictionary.\n   Path: "s,
+                  options.user_string_dict(), '\n', "   Message: "s, e.what(), '\n');
+            }
+         }
+         else {
+            std::cout << "Error: file '"s << options.user_string_dict()
+                      << "' does not exist\n";
+         }
+      }
+
+      for (const auto& input_file : options.input_files()) {
+         const auto name = fs::path{input_file}.stem().string();
+
+         swbf_hashes.add(name);
+         swbf_hashes.add("mapname.description."s += name);
+         swbf_hashes.add("mapname.name."s += name);
+
+         for (const auto& suffix : common_layer_suffixes) {
+            swbf_hashes.add(std::string{name} += suffix);
+         }
+      }
 
       Ucfb_reader root_reader{file.bytes()};
 
       if (root_reader.magic_number() != "ucfb"_mn) {
-         throw std::runtime_error{"Root chunk is now ucfb as expected."};
+         throw std::runtime_error{"Root chunk is not ucfb as expected."};
       }
+
       synced_cout::print("Processing File: "s, path.string(), '\n');
 
-      handle_ucfb(static_cast<Ucfb_reader>(root_reader), options, file_saver);
+      handle_ucfb(static_cast<Ucfb_reader>(root_reader), options, file_saver,
+                  swbf_hashes);
    }
    catch (std::exception& e) {
       synced_cout::print("Error: Exception occured while processing file.\n   File: "s,
@@ -187,38 +221,6 @@ int main(int argc, char* argv[])
       std::cout << "Error: No input file specified.\n"s;
 
       return 0;
-   }
-
-   if (app_options.user_string_dict().length() > 0) {
-
-      if (fs::exists(app_options.user_string_dict())) {
-         try {
-            read_fnv_dictionary(app_options.user_string_dict());
-         }
-         catch (std::exception& e) {
-            synced_cout::print(
-               "Error: Exception occured while reading string dictionary.\n   Path: "s,
-               app_options.user_string_dict(), '\n', "   Message: "s, e.what(), '\n');
-         }
-      }
-      else {
-         std::cout << "Error: file '"s << app_options.user_string_dict()
-                   << "' does not exist\n";
-
-         return 0;
-      }
-   }
-   // add the input file names and filename + 'popular suffixes' to the hashes
-   for (const auto& input_file : input_files) {
-      const auto name = fs::path{input_file}.stem().string();
-
-      add_fnv_hash(name);
-      add_fnv_hash("mapname.description."s += name);
-      add_fnv_hash("mapname.name."s += name);
-
-      for (const auto& suffix : common_layer_suffixes) {
-         add_fnv_hash(std::string{name} += suffix);
-      }
    }
 
    CoInitializeEx(nullptr, COINIT_MULTITHREADED);

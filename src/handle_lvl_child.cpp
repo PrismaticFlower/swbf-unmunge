@@ -1,5 +1,6 @@
 #include "chunk_processor.hpp"
 #include "model_builder.hpp"
+#include "swbf_fnv_hashes.hpp"
 
 #include "tbb/parallel_for_each.h"
 
@@ -7,7 +8,7 @@
 #include <vector>
 
 void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
-                      File_saver& file_saver)
+                      File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes)
 {
    lvl_child.consume(4); // lvl name hash
    lvl_child.consume(4); // lvl size left
@@ -19,10 +20,10 @@ void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
 
    model::Models_builder model_builders;
 
-   const auto processor = [&app_options, &file_saver,
+   const auto processor = [&app_options, &file_saver, &swbf_hashes,
                            &model_builders](const auto& child_parent) {
       process_chunk(child_parent.first, child_parent.second, app_options, file_saver,
-                    model_builders);
+                    swbf_hashes, model_builders);
    };
 
    tbb::parallel_for_each(children_parents, processor);

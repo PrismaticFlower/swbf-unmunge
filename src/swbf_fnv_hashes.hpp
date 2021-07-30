@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
+#include <unordered_map>
 
 constexpr std::uint32_t fnv_1a_hash(const std::string_view str)
 {
@@ -25,8 +27,23 @@ constexpr std::uint32_t operator""_fnv(const char* str, const std::size_t length
    return fnv_1a_hash({str, length});
 }
 
-std::string lookup_fnv_hash(std::uint32_t hash);
+class Swbf_fnv_hashes {
+public:
+   Swbf_fnv_hashes() = default;
 
-void read_fnv_dictionary(std::string file_name);
+   Swbf_fnv_hashes(const Swbf_fnv_hashes&) = delete;
+   auto operator=(const Swbf_fnv_hashes&) -> Swbf_fnv_hashes& = delete;
 
-bool add_fnv_hash(std::string str);
+   Swbf_fnv_hashes(Swbf_fnv_hashes&&) = default;
+   auto operator=(Swbf_fnv_hashes&& other) -> Swbf_fnv_hashes& = default;
+
+   auto lookup(const std::uint32_t hash) const noexcept -> std::string;
+
+   void add(std::string string) noexcept;
+
+private:
+   std::unordered_map<std::uint32_t, std::string> _extra_hashes;
+};
+
+void read_swbf_fnv_hash_dictionary(Swbf_fnv_hashes& swbf_fnv_hashes,
+                                   const std::filesystem::path& path);
