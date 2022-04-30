@@ -54,14 +54,15 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # GCC
     set(COMPILER_FLAGS_RELEASE "-O3 -DNDEBUG -MT")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # MSVC
     set(COMPILER_FLAGS "")
-    set(COMPILER_FLAGS_DEBUG "/Zi /Ob0 /Od /RTC1 /MTd")
-    set(COMPILER_FLAGS_RELEASE "/O2 /Ob2 /DNDEBUG /MT")
+    set(COMPILER_FLAGS_DEBUG "/Zi /Ob0 /Od /RTC1 /MDd")
+    set(COMPILER_FLAGS_RELEASE "/O2 /Ob2 /DNDEBUG /MD")
 endif ()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${COMPILER_FLAGS} ${COMPILER_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${COMPILER_FLAGS} ${COMPILER_FLAGS_RELEASE}")
 
 add_compile_definitions(NOMINMAX)
+add_compile_definitions(GLM_FORCE_SWIZZLE)
 
 
 #
@@ -134,7 +135,7 @@ SET(FILES
 add_executable(${PROJECT_NAME} ${FILES} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)     # fmt::fmt-header-only
-target_link_libraries(${PROJECT_NAME} PRIVATE glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXTex)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft.GSL::GSL)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json nlohmann_json::nlohmann_json)
