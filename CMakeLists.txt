@@ -104,6 +104,7 @@ SET(FILES
         src/handle_planning.cpp
         src/handle_planning_swbf1.cpp
         src/handle_primitives.cpp
+        src/handle_script.cpp
         src/handle_skeleton.cpp
         src/handle_terrain.cpp
         src/handle_texture.cpp
@@ -125,6 +126,7 @@ SET(FILES
         src/ucfb_builder.cpp
         src/ucfb_reader.cpp
         src/vbuf_reader.cpp
+        src/lua/lua4.cpp
         src/lua/lua4_decompiler.cpp
         )
 
