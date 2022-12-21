@@ -30,12 +30,10 @@ void handle_lua_script(Ucfb_reader& script, File_saver& file_saver)
       Lua4_chunk chunk;
       handle_lua4_script(script, file_saver, chunk);
 
-      // We have the lua binary stored in the Lua4_chunk structure. We can now process the
-      // instructions and try to reassemble the code in lua syntax.
+      // We have the lua binary stored in the Lua4_chunk structure from the previous function.
+      // We can now process the instructions and try to reassemble the code in lua syntax.
       Lua4_state state;
       process_code(chunk, state);
-
-      synced_cout::print(state.buffer.str() + "\n\n");
    }
 }
 

@@ -1,7 +1,13 @@
 #include "lua4_decompiler.hpp"
 #include "synced_cout.hpp"
-#include "util_dump.hpp"
 #include <bitset>
+
+const bool debug = true;
+template<typename... Args>
+void debug_print(Args... args)
+{
+   if (debug) synced_cout::print(args...);
+}
 
 //! \brief  Reads a Lua4 function from byte code.
 //!
@@ -115,284 +121,263 @@ auto handle_lua4_string(Ucfb_reader& script, const Lua4_header& header)
 
 void process_code(const Lua4_chunk& chunk, Lua4_state& state)
 {
-   int i = 0;
-   for(const auto& number: chunk.numbers)
-   {
-      synced_cout::print(i, ":", number, "\n");
-      i++;
-   }
-   i = 0;
-   for(const auto& g: chunk.constants)
-   {
-      synced_cout::print(i, ":", g, "\n");
-      i++;
-   }
-
-   state.buffer << std::string(state.indent, ' ') << "function " << chunk.name << "()\n";
-
-   for(const auto& child : chunk.functions) {
-      //Lua4_state child_state;
+   for (const auto& child : chunk.functions) {
+      // Lua4_state child_state;
       state.indent += 2;
       process_code(child, state);
       state.indent -= 2;
    }
-   
+
    for (const auto& instruction : chunk.instructions) {
       const auto op = get_OP(instruction);
       const auto U = get_U(instruction);
       const auto S = get_S(instruction);
       const auto A = get_A(instruction);
       const auto B = get_B(instruction);
-
-      std::bitset<32> b(instruction);
-      synced_cout::print(b, " ");
+      const auto F = (float)(instruction);
 
       switch (op) {
       case Lua4_OP_code::OP_END: {
-         synced_cout::print("OP_END ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n"); 
+         debug_print("OP_END ", A, " ", B, " ", U, " ", S, " ", F, "\n");
          state.buffer << std::string(state.indent, ' ') << "end\n";
          break;
       }
       case Lua4_OP_code::OP_RETURN: {
-         synced_cout::print("OP_RETURN ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n"); 
+         debug_print("OP_RETURN ", A, " ", B, " ", U, " ", S, " ", F, "\n");
          state.buffer << std::string(state.indent, ' ') << "return " << U << "\n";
          break;
       }
       case Lua4_OP_code::OP_CALL: {
-         synced_cout::print("OP_CALL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         
-         state.buffer << std::string(state.indent, ' ') << "()\n";
+         debug_print("OP_CALL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         create_function(state);
          break;
       }
       case Lua4_OP_code::OP_TAILCALL: {
-         synced_cout::print("OP_TAILCALL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_TAILCALL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_PUSHNIL: {
-         synced_cout::print("OP_PUSHNIL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << "nil,";
+         debug_print("OP_PUSHNIL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back("nil");
          break;
       }
       case Lua4_OP_code::OP_POP: {
-         synced_cout::print("OP_POP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_POP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_PUSHINT: {
-         synced_cout::print("OP_PUSHINT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << B << ",";
+         debug_print("OP_PUSHINT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back(std::to_string(B));
          break;
       }
       case Lua4_OP_code::OP_PUSHSTRING: {
-         synced_cout::print("OP_PUSHSTRING ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << "\"" << chunk.constants[U] << "\",";
+         debug_print("OP_PUSHSTRING ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back(
+            std::string("\"").append(chunk.constants[U]).append("\""));
          break;
       }
       case Lua4_OP_code::OP_PUSHNUM: {
-         synced_cout::print("OP_PUSHNUM ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << chunk.numbers[U] << ",";
+         debug_print("OP_PUSHNUM ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back(std::to_string(chunk.numbers[U]));
          break;
       }
       case Lua4_OP_code::OP_PUSHNEGNUM: {
-         synced_cout::print("OP_PUSHNEGNUM ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << -chunk.numbers[U] << ",";
+         debug_print("OP_PUSHNEGNUM ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back(std::to_string(-chunk.numbers[U]));
          break;
       }
       case Lua4_OP_code::OP_PUSHUPVALUE: {
-         synced_cout::print("OP_PUSHUPVALUE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_PUSHUPVALUE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_GETLOCAL: {
-         synced_cout::print("OP_GETLOCAL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << "LOCAL" << ",";
-         //state.buffer << std::string(state.indent, ' ') << state.locals[U] << ",";
+         debug_print("OP_GETLOCAL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back(std::to_string(U));
          break;
       }
       case Lua4_OP_code::OP_GETGLOBAL: {
-         synced_cout::print("OP_GETGLOBAL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         state.buffer << std::string(state.indent, ' ') << chunk.constants[U] <<",";
+         debug_print("OP_GETGLOBAL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.stack.emplace_back(chunk.constants[U]);
          break;
       }
       case Lua4_OP_code::OP_GETTABLE: {
-         synced_cout::print("OP_GETTABLE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_GETTABLE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_GETDOTTED: {
-         synced_cout::print("OP_GETDOTTED ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_GETDOTTED ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_GETINDEXED: {
-         synced_cout::print("OP_GETINDEXED ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_GETINDEXED ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_PUSHSELF: {
-         synced_cout::print("OP_PUSHSELF ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_PUSHSELF ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_CREATETABLE: {
-         synced_cout::print("OP_CREATETABLE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_CREATETABLE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_SETLOCAL: {
-         synced_cout::print("OP_SETLOCAL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         //state.locals.emplace_back(chunk.constants[U]);
-         state.buffer << std::string(state.indent, ' ') << chunk.constants[U] << "= \n";
+         debug_print("OP_SETLOCAL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
          break;
       }
       case Lua4_OP_code::OP_SETGLOBAL: {
-         synced_cout::print("OP_SETGLOBAL ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_SETGLOBAL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
          state.buffer << std::string(state.indent, ' ') << chunk.constants[U] << "= \n";
          break;
       }
       case Lua4_OP_code::OP_SETTABLE: {
-         synced_cout::print("OP_SETTABLE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_SETTABLE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_SETLIST: {
-         synced_cout::print("OP_SETLIST ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_SETLIST ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_SETMAP: {
-         synced_cout::print("OP_SETMAP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_SETMAP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_ADD: {
-         synced_cout::print("OP_ADD ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_ADD ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_ADDI: {
-         synced_cout::print("OP_ADDI ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_ADDI ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_SUB: {
-         synced_cout::print("OP_SUB ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_SUB ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_MULT: {
-         synced_cout::print("OP_MULT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_MULT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_DIV: {
-         synced_cout::print("OP_DIV ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_DIV ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_POW: {
-         synced_cout::print("OP_POW ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_POW ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_CONCAT: {
-         synced_cout::print("OP_CONCAT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_CONCAT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_MINUS: {
-         synced_cout::print("OP_MINUS ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_MINUS ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_NOT: {
-         synced_cout::print("OP_NOT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_NOT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPNE: {
-         synced_cout::print("OP_JMPNE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPNE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPEQ: {
-         synced_cout::print("OP_JMPEQ ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPEQ ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPLT: {
-         synced_cout::print("OP_JMPLT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPLT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPLE: {
-         synced_cout::print("OP_JMPLE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPLE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPGT: {
-         synced_cout::print("OP_JMPGT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPGT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPGE: {
-         synced_cout::print("OP_JMPGE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPGE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPT: {
-         synced_cout::print("OP_JMPT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPF: {
-         synced_cout::print("OP_JMPF ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPF ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPONT: {
-         synced_cout::print("OP_JMPONT ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPONT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMPONF: {
-         synced_cout::print("OP_JMPONF ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMPONF ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_JMP: {
-         synced_cout::print("OP_JMP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_JMP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_PUSHNILJMP: {
-         synced_cout::print("OP_PUSHNILJMP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_PUSHNILJMP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_FORPREP: {
-         synced_cout::print("OP_FORPREP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_FORPREP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_FORLOOP: {
-         synced_cout::print("OP_FORLOOP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_FORLOOP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_LFORPREP: {
-         synced_cout::print("OP_LFORPREP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_LFORPREP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
 
          break;
       }
       case Lua4_OP_code::OP_LFORLOOP: {
-         synced_cout::print("OP_LFORLOOP ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
+         debug_print("OP_LFORLOOP ", A, " ", B, " ", U, " ", S, " ", F, "\n");
          break;
       }
       case Lua4_OP_code::OP_CLOSURE: {
-         synced_cout::print("OP_CLOSURE ", (unsigned)U, " ", (int)S, " ", (unsigned)A, " ", (unsigned)B, "\n");
-         //state.buffer << std::string(state.indent, ' ') << "()\n";
+         debug_print("OP_CLOSURE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
          break;
       }
 
@@ -401,5 +386,22 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
    }
 
-   // synced_cout::print(buf);
+   if(state.indent == 0)
+   {
+       debug_print(state.buffer.str() + "\n\n");
+   }
+}
+
+void create_function(Lua4_state& state)
+{
+   const auto name = state.stack[0];
+   state.buffer << std::string(state.indent, ' ') << name << '(';
+   for (int i = 1; i < state.stack.size(); ++i) {
+      state.buffer << state.stack[i];
+      if (i < state.stack.size() - 1) {
+         state.buffer << ',';
+      }
+   }
+   state.buffer << ")\n";
+   state.stack.clear();
 }

@@ -31,10 +31,12 @@ struct Lua4_chunk {
    Lua4String name;
 };
 
+//! Recreates the Lua AST and stores the script content
 struct Lua4_state {
    unsigned indent = 0;
    std::stringstream buffer;
-   std::vector<std::variant<Lua4String, Lua4Number>> variables;
+   std::vector<std::string> stack;
+
 };
 
 auto handle_lua4_function(Ucfb_reader& script, const Lua4_header& header, Lua4_chunk& c)
@@ -48,3 +50,5 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state);
 
 auto handle_lua4_string(Ucfb_reader& script, const Lua4_header& header)
    -> Lua4String;
+
+void create_function(Lua4_state& state);

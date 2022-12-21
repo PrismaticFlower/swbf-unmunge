@@ -9,6 +9,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="src\lua">
+      <UniqueIdentifier>{d3a7ae20-dace-4177-9e83-b50605d9ae85}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -128,6 +131,15 @@
     <ClCompile Include="src\save_image_tga.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\handle_script.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua\lua4.cpp">
+      <Filter>src\lua</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua\lua4_decompiler.cpp">
+      <Filter>src\lua</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\file_saver.hpp">
@@ -213,6 +225,15 @@
     </ClInclude>
     <ClInclude Include="src\save_image_tga.hpp">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util_dump.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua\lua4.hpp">
+      <Filter>src\lua</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua\lua4_decompiler.hpp">
+      <Filter>src\lua</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
