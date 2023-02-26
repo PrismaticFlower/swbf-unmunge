@@ -21,6 +21,7 @@
     <ClCompile Include="src\handle_model.cpp" />
     <ClCompile Include="src\handle_planning_swbf1.cpp" />
     <ClCompile Include="src\handle_primitives.cpp" />
+    <ClCompile Include="src\handle_script.cpp" />
     <ClCompile Include="src\handle_skeleton.cpp" />
     <ClCompile Include="src\handle_terrain.cpp" />
     <ClCompile Include="src\handle_texture_ps2.cpp" />
@@ -34,6 +35,8 @@
     <ClCompile Include="src\handle_texture.cpp" />
     <ClCompile Include="src\handle_world.cpp" />
     <ClCompile Include="src\handle_lvl_child.cpp" />
+    <ClCompile Include="src\lua\lua4.cpp" />
+    <ClCompile Include="src\lua\lua4_decompiler.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mapped_file.cpp" />
     <ClCompile Include="src\handle_object.cpp" />
@@ -60,6 +63,8 @@
     <ClInclude Include="src\chunk_processor.hpp" />
     <ClInclude Include="src\explode_chunk.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
+    <ClInclude Include="src\lua\lua4.hpp" />
+    <ClInclude Include="src\lua\lua4_decompiler.hpp" />
     <ClInclude Include="src\magic_number.hpp" />
     <ClInclude Include="src\mapped_file.hpp" />
     <ClInclude Include="src\chunk_handlers.hpp" />
@@ -81,6 +86,7 @@
     <ClInclude Include="src\ucfb_builder.hpp" />
     <ClInclude Include="src\ucfb_reader.hpp" />
     <ClInclude Include="src\ucfb_writer.hpp" />
+    <ClInclude Include="src\util_dump.hpp" />
     <ClInclude Include="src\vbuf_reader.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -120,11 +126,13 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
+    <LibraryPath>C:\Libs\vcpkg\installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
+    <LibraryPath>C:\Libs\vcpkg\installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgUseStatic>true</VcpkgUseStatic>
@@ -145,7 +153,11 @@
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>4275</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>C:\Users\Chris\Kruschd\swbf-unmunge\src;C:\Libs\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>fmt.lib;tbb.lib;tbbmalloc.lib;tbbmalloc_proxy.lib;DirectXTex.lib;DirectX-Guids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -165,6 +177,7 @@
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>4275</DisableSpecificWarnings>
       <DiagnosticsFormat>Caret</DiagnosticsFormat>
+      <AdditionalIncludeDirectories>C:\Libs\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
