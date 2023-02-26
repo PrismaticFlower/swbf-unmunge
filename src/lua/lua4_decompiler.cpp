@@ -2,7 +2,9 @@
 #include "synced_cout.hpp"
 #include <bitset>
 
-const bool debug = true;
+static constexpr std::uint8_t INDENT = 2;
+
+const bool debug = false;
 template<typename... Args>
 void debug_print(Args... args)
 {
@@ -121,13 +123,6 @@ auto handle_lua4_string(Ucfb_reader& script, const Lua4_header& header)
 
 void process_code(const Lua4_chunk& chunk, Lua4_state& state)
 {
-   for (const auto& child : chunk.functions) {
-      // Lua4_state child_state;
-      state.indent += 2;
-      process_code(child, state);
-      state.indent -= 2;
-   }
-
    for (const auto& instruction : chunk.instructions) {
       const auto op = get_OP(instruction);
       const auto U = get_U(instruction);
@@ -169,6 +164,11 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
       case Lua4_OP_code::OP_PUSHINT: {
          debug_print("OP_PUSHINT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+
+         if (state.closure) {
+            break;
+         }
+
          state.stack.emplace_back(std::to_string(B));
          break;
       }
@@ -195,6 +195,9 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
       case Lua4_OP_code::OP_GETLOCAL: {
          debug_print("OP_GETLOCAL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         if (state.closure) {
+            break;
+         }
          state.stack.emplace_back(std::to_string(U));
          break;
       }
@@ -234,7 +237,25 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
       case Lua4_OP_code::OP_SETGLOBAL: {
          debug_print("OP_SETGLOBAL ", A, " ", B, " ", U, " ", S, " ", F, "\n");
-         state.buffer << std::string(state.indent, ' ') << chunk.constants[U] << "= \n";
+         state.buffer << std::string(state.indent, ' ') << chunk.constants[U];
+
+         // Get the name of the nested function then process the chunk
+         if (state.closure) {
+            state.buffer << "()\n";
+
+            for (const auto& child : chunk.functions) {
+               // Lua4_state child_state;
+               state.indent += INDENT;
+               process_code(child, state);
+               state.indent -= INDENT;
+            }
+         }
+         else {
+            state.buffer << " = ";
+         }
+
+         state.closure = false;
+
          break;
       }
       case Lua4_OP_code::OP_SETTABLE: {
@@ -294,7 +315,7 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
       case Lua4_OP_code::OP_NOT: {
          debug_print("OP_NOT ", A, " ", B, " ", U, " ", S, " ", F, "\n");
-
+         state.buffer << std::string(state.indent, ' ') << " not ";
          break;
       }
       case Lua4_OP_code::OP_JMPNE: {
@@ -334,7 +355,8 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
       case Lua4_OP_code::OP_JMPF: {
          debug_print("OP_JMPF ", A, " ", B, " ", U, " ", S, " ", F, "\n");
-
+         const auto & s = state;
+         const auto & c = chunk;
          break;
       }
       case Lua4_OP_code::OP_JMPONT: {
@@ -378,6 +400,8 @@ void process_code(const Lua4_chunk& chunk, Lua4_state& state)
       }
       case Lua4_OP_code::OP_CLOSURE: {
          debug_print("OP_CLOSURE ", A, " ", B, " ", U, " ", S, " ", F, "\n");
+         state.buffer << std::string(state.indent, ' ') << "function ";
+         state.closure = true;
          break;
       }
 
@@ -396,6 +420,8 @@ void create_function(Lua4_state& state)
 {
    const auto name = state.stack[0];
    state.buffer << std::string(state.indent, ' ') << name << '(';
+
+   // Print parameters
    for (int i = 1; i < state.stack.size(); ++i) {
       state.buffer << state.stack[i];
       if (i < state.stack.size() - 1) {

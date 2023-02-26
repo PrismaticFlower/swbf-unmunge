@@ -36,7 +36,7 @@ struct Lua4_state {
    unsigned indent = 0;
    std::stringstream buffer;
    std::vector<std::string> stack;
-
+   bool closure = false;
 };
 
 auto handle_lua4_function(Ucfb_reader& script, const Lua4_header& header, Lua4_chunk& c)
