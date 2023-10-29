@@ -327,7 +327,7 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
    const int loop = info.read_trivial_unaligned<std::uint8_t>();
    const int local_translation = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += fmt::format("Animation(\"{}\", {}, {}, {})\n{{\n"sv, name, length, loop,
+   buffer += fmt::format("Animation(\"{}\", {}, {}, {})\n{{\n", name, length, loop,
                          local_translation);
 
    while (animation) {
@@ -361,25 +361,23 @@ void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string&
    const int default_on = info.read_trivial_unaligned<std::uint8_t>();
    const int stop_when_controlled = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += fmt::format("AnimationGroup(\"{}\", {}, {})\n{{\n"sv, name, default_on,
+   buffer += fmt::format("AnimationGroup(\"{}\", {}, {})\n{{\n", name, default_on,
                          stop_when_controlled);
 
    while (anim_group) {
       auto child = anim_group.read_child();
 
-      switch (child.magic_number()) {
-      case "ANIM"_mn: {
+      if (child.magic_number() == "ANIM"_mn) {
          const auto animation_name = child.read_string_unaligned();
          const auto object_name = child.read_string_unaligned();
 
          buffer +=
-            fmt::format("\tAnimation(\"{}\", \"{}\");\n"sv, animation_name, object_name);
+            fmt::format("\tAnimation(\"{}\", \"{}\");\n", animation_name, object_name);
          break;
       }
-      case "NOHI"_mn: {
+      else if (child.magic_number() == "NOHI"_mn) {
          buffer += "\tDisableHierarchies();\n"sv;
          break;
-      }
       }
    }
 

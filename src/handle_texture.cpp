@@ -346,7 +346,7 @@ auto read_texture(Ucfb_reader_strict<"tex_"_mn> texture)
       }
    }
 
-   throw std::runtime_error{fmt::format("Texture {} has no usable formats!"sv, name)};
+   throw std::runtime_error{fmt::format("Texture {} has no usable formats!", name)};
 }
 }
 

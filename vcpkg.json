@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "swbf-unmunge",
+  "version": "0.0.0",
+
+  "dependencies": [
+    "fmt",
+    "nlohmann-json",
+    "tbb",
+    "ms-gsl",
+    "directxtex",
+    "glm"
+  ]
+}

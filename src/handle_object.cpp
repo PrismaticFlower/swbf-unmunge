@@ -131,11 +131,11 @@ auto find_geometry_name(
    const std::vector<std::pair<std::uint32_t, std::string_view>>& properties)
    -> std::optional<std::string>
 {
-   constexpr auto geometry_name_hash = 0x47c86b4aui32;
+   constexpr std::uint32_t geometry_name_hash = 0x47c86b4au;
 
    const auto result =
       std::find_if(std::cbegin(properties), std::cend(properties),
-                   [](const auto& prop) { return prop.first == 0x47c86b4a; });
+                   [](const auto& prop) { return prop.first == geometry_name_hash; });
 
    if (result != std::cend(properties)) return std::string{result->second} += ".msh"sv;
 

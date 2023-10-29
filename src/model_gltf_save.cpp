@@ -283,9 +283,10 @@ auto add_node_mesh(fx::gltf::Document& doc, std::vector<std::uint8_t>& buffer,
 
    const auto index = static_cast<std::int32_t>(doc.meshes.size());
 
-   doc.meshes.push_back({.name = node.name,
-                         .primitives = {add_mesh_primitve(doc, buffer, *node.geometry,
-                                                          node.material_index)}});
+   doc.meshes.push_back(
+      {.name = node.name,
+       .primitives = {add_mesh_primitve(
+          doc, buffer, *node.geometry, static_cast<std::int32_t>(node.material_index))}});
 
    return index;
 }
@@ -296,7 +297,7 @@ auto add_texture_image(fx::gltf::Document& doc, const std::string_view name)
    const auto index = static_cast<std::int32_t>(doc.images.size());
 
    doc.images.push_back(
-      {.name = std::string{name}, .uri = fmt::format("./{}.png"sv, name)});
+      {.name = std::string{name}, .uri = fmt::format("./{}.png", name)});
 
    return index;
 }
@@ -366,9 +367,9 @@ auto add_material(fx::gltf::Document& doc, const scene::Material& material)
    return {.alphaCutoff = 0.5f,
            .alphaMode = are_flags_set(material.flags, Render_flags::hardedged)
                            ? fx::gltf::Material::AlphaMode::Mask
-                           : are_flags_set(material.flags, Render_flags::transparent)
-                                ? fx::gltf::Material::AlphaMode::Blend
-                                : fx::gltf::Material::AlphaMode::Opaque,
+                        : are_flags_set(material.flags, Render_flags::transparent)
+                           ? fx::gltf::Material::AlphaMode::Blend
+                           : fx::gltf::Material::AlphaMode::Opaque,
            .doubleSided = are_flags_set(material.flags, Render_flags::doublesided),
            .normalTexture = add_material_normal_texture(doc, material),
            .pbrMetallicRoughness = add_material_pbr(doc, material),

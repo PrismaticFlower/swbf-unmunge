@@ -163,9 +163,9 @@ auto create_scene(Model model) -> scene::Scene
       }
 
       scene.nodes.push_back(
-         {.name = part.name ? std::move(*part.name)
-                            : fmt::format("mesh_part{}{}"sv, ++name_counter,
-                                          lod_suffix(part.lod)),
+         {.name = part.name
+                     ? std::move(*part.name)
+                     : fmt::format("mesh_part{}{}", ++name_counter, lod_suffix(part.lod)),
           .parent = std::move(part.parent),
           .material_index = insert_scene_material(
              scene,
@@ -190,8 +190,8 @@ auto create_scene(Model model) -> scene::Scene
 
    for (auto& mesh : model.collision_meshes) {
       scene.nodes.push_back(
-         {.name = fmt::format("collision_-{}-mesh{}"sv,
-                              collision_flags_string(mesh.flags), ++name_counter),
+         {.name = fmt::format("collision_-{}-mesh{}", collision_flags_string(mesh.flags),
+                              ++name_counter),
           .parent = scene.nodes.front().name, // take the dangerous assumption that the
                                               // first node we added is root
           .material_index = 0,
@@ -238,7 +238,7 @@ auto create_scene(Model model) -> scene::Scene
    for (auto& material : scene.materials) {
       if (!material.name.empty()) continue;
 
-      material.name = fmt::format("material{}"sv, ++name_counter);
+      material.name = fmt::format("material{}", ++name_counter);
    }
 
    for (const auto& node : scene.nodes) {
@@ -333,7 +333,7 @@ void Models_builder::save_models(File_saver& file_saver, const Game_version game
       }
       catch (std::exception& e) {
          synced_cout::print(
-            fmt::format("Failed to save model {}! Reason: {}\n"sv, name, e.what()));
+            fmt::format("Failed to save model {}! Reason: {}\n", name, e.what()));
       }
    });
 
