@@ -25,9 +25,7 @@ using namespace std::literals;
 namespace {
 
 struct Transform {
-   glm::vec3 rotation_x;
-   glm::vec3 rotation_y;
-   glm::vec3 rotation_z;
+   glm::mat3 rotation;
    glm::vec3 position;
 };
 
@@ -174,14 +172,13 @@ std::pair<glm::quat, glm::vec3> convert_transform(const Transform& transform)
    auto position = transform.position;
    position.z *= -1.0f;
 
-   auto rotation = glm::quat{
-      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z}};
-
-   rotation.x = -rotation.x;
-   rotation.z = -rotation.z;
+   auto rotation = glm::quat{transform.rotation};
 
    std::swap(rotation.x, rotation.z);
    std::swap(rotation.y, rotation.w);
+
+   rotation.x = -rotation.x;
+   rotation.z = -rotation.z;
 
    return {rotation, position};
 }
@@ -196,8 +193,7 @@ std::array<glm::vec3, 4> get_barrier_corners(const Transform& transform,
       {size.x, 0.0f, -size.z},
    }};
 
-   const auto rotation =
-      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z};
+   const auto rotation = transform.rotation;
 
    corners[0] = corners[0] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
    corners[1] = corners[1] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
