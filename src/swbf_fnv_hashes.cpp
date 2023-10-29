@@ -3466,7 +3466,7 @@ const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes{
    "TipsTime"_fnvp,
    "Toggle"_fnvp,
    "toggledisplay"_fnvp,
-   "top"_fnvp,
+   "Top"_fnvp,
    "TopColor"_fnvp,
    "TopDirectionalAmbientColor"_fnvp,
    "TopRange"_fnvp,
