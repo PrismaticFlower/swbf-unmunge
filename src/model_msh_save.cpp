@@ -77,9 +77,20 @@ void sort_nodes(std::vector<scene::Node>& nodes)
 
    move_in_kids(move_in_kids, sorted.back().name);
 
-   std::move(nodes.begin(), nodes.end(), sorted.begin());
+   sorted.insert(sorted.end(), std::move_iterator{nodes.begin()},
+                 std::move_iterator{nodes.end()});
 
    std::swap(sorted, nodes);
+}
+
+auto get_new_index(std::string_view name, const std::vector<scene::Node>& nodes)
+   -> std::uint8_t
+{
+   for (std::uint8_t i = 0; i < nodes.size(); ++i) {
+      if (nodes[i].name == name) return i;
+   }
+
+   throw std::runtime_error{"Failed to remap bone map!"};
 }
 
 void patch_bone_maps(std::vector<scene::Node>& nodes,
@@ -89,13 +100,7 @@ void patch_bone_maps(std::vector<scene::Node>& nodes,
       if (!node.geometry) continue;
 
       for (auto& index : node.geometry->bone_map) {
-         auto it =
-            std::find_if(nodes.cbegin(), nodes.cend(),
-                         [name = previous_names_lut.at(index)](const scene::Node& node) {
-                            return node.name == name;
-                         });
-
-         index = static_cast<std::uint8_t>(std::distance(nodes.cbegin(), it));
+         index = get_new_index(previous_names_lut.at(index), nodes);
       }
    }
 }
