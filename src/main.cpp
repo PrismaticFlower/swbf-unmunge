@@ -4,6 +4,7 @@
 #include "chunk_handlers.hpp"
 #include "explode_chunk.hpp"
 #include "file_saver.hpp"
+#include "layer_index.hpp"
 #include "mapped_file.hpp"
 #include "swbf_fnv_hashes.hpp"
 #include "synced_cout.hpp"
@@ -111,6 +112,7 @@ void extract_file(const App_options& options, fs::path path) noexcept
       File_saver file_saver{fs::path{path}.replace_extension("") += '/',
                             options.verbose()};
       Swbf_fnv_hashes swbf_hashes;
+      Layer_index layer_index;
 
       if (!options.user_string_dict().empty()) {
 
@@ -150,8 +152,10 @@ void extract_file(const App_options& options, fs::path path) noexcept
 
       synced_cout::print("Processing File: "s, path.string(), '\n');
 
-      handle_ucfb(static_cast<Ucfb_reader>(root_reader), options, file_saver,
-                  swbf_hashes);
+      handle_ucfb(static_cast<Ucfb_reader>(root_reader), options, file_saver, swbf_hashes,
+                  layer_index);
+
+      layer_index.save(file_saver);
    }
    catch (std::exception& e) {
       synced_cout::print("Error: Exception occured while processing file.\n   File: "s,

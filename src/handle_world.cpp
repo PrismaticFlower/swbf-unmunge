@@ -1,5 +1,6 @@
 
 #include "file_saver.hpp"
+#include "layer_index.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
@@ -407,8 +408,8 @@ void read_animation_hierarchy(Ucfb_reader_strict<"anmh"_mn> anim_hierarchy,
    buffer += "}\n\n"sv;
 }
 
-void read_instance(Ucfb_reader_strict<"inst"_mn> instance,
-                   const Swbf_fnv_hashes& swbf_hashes, std::string& buffer)
+auto read_instance(Ucfb_reader_strict<"inst"_mn> instance,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string& buffer) -> int
 {
    auto info = instance.read_child_strict<"INFO"_mn>();
 
@@ -426,15 +427,25 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance,
    write_key_value(true, "ChildRotation"sv, world_coords.first, buffer);
    write_key_value(true, "ChildPosition"sv, world_coords.second, buffer);
 
+   int layer = 0;
+
    while (instance) {
       auto property = instance.read_child_strict<"PROP"_mn>();
 
       read_property(property, swbf_hashes, buffer, [](std::uint32_t hash) {
          return (hash != "Team"_fnv && hash != "Layer"_fnv);
       });
+
+      if (property.read_trivial<std::uint32_t>() == "Layer"_fnv) {
+         const std::string_view layer_str = property.read_string();
+
+         std::from_chars(layer_str.data(), layer_str.data() + layer_str.size(), layer);
+      }
    }
 
    buffer += "}\n\n"sv;
+
+   return layer;
 }
 
 void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
@@ -455,10 +466,10 @@ void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
    file_saver.save_file(buffer, "world"sv, name, ".rgn"sv);
 }
 
-void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
+auto process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
                               const std::string name, const std::string terrain_name,
                               const std::string sky_name, File_saver& file_saver,
-                              const Swbf_fnv_hashes& swbf_hashes)
+                              const Swbf_fnv_hashes& swbf_hashes) -> int
 {
    std::string buffer;
    buffer.reserve((world_header.length() + 256) + 256 * instances.size());
@@ -474,8 +485,10 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
    write_key_value(false, true, "LightName"sv, name + ".lgt"s, buffer);
    buffer += '\n';
 
+   int layer = 0;
+
    for (const auto& instance : instances) {
-      read_instance(instance, swbf_hashes, buffer);
+      layer = read_instance(instance, swbf_hashes, buffer);
    }
 
    std::string_view extension = ".wld"sv;
@@ -483,6 +496,8 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
    if (terrain_name.empty() || sky_name.empty()) extension = ".lyr"sv;
 
    file_saver.save_file(buffer, "world"sv, name, extension);
+
+   return layer;
 }
 
 void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers,
@@ -538,7 +553,7 @@ void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_vie
 }
 
 void handle_world(Ucfb_reader world, File_saver& file_saver,
-                  const Swbf_fnv_hashes& swbf_hashes)
+                  const Swbf_fnv_hashes& swbf_hashes, Layer_index& layer_index)
 {
    const auto name = world.read_child_strict<"NAME"_mn>().read_string();
 
@@ -584,6 +599,8 @@ void handle_world(Ucfb_reader world, File_saver& file_saver,
       }
    }
 
+   int layer = 0;
+
    tbb::task_group tasks;
 
    tasks.run(
@@ -592,10 +609,10 @@ void handle_world(Ucfb_reader world, File_saver& file_saver,
       });
 
    tasks.run([instance_entries{std::move(instance_entries)}, name, terrain_name, sky_name,
-              &file_saver, &swbf_hashes] {
-      process_instance_entries(instance_entries, std::string{name},
-                               std::string{terrain_name}, std::string{sky_name},
-                               file_saver, swbf_hashes);
+              &layer, &file_saver, &swbf_hashes] {
+      layer = process_instance_entries(instance_entries, std::string{name},
+                                       std::string{terrain_name}, std::string{sky_name},
+                                       file_saver, swbf_hashes);
    });
 
    tasks.run([barrier_entries{std::move(barrier_entries)}, name, &file_saver] {
@@ -613,4 +630,18 @@ void handle_world(Ucfb_reader world, File_saver& file_saver,
    }
 
    tasks.wait();
+
+   if (terrain_name.empty() || sky_name.empty()) {
+      const std::ptrdiff_t last_underscore = name.find_last_of("_");
+
+      if (last_underscore != std::string_view::npos && last_underscore != 0) {
+         std::string_view world_name = name.substr(0, last_underscore);
+         std::string_view layer_name = name.substr(last_underscore + 1);
+
+         layer_index.add(world_name, {std::string{layer_name}, layer});
+      }
+   }
+   else {
+      layer_index.add(name, {"[Base]", 0});
+   }
 }

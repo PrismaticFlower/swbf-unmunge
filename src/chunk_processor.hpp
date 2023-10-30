@@ -8,8 +8,9 @@ class Models_builder;
 }
 class App_options;
 class File_saver;
+class Layer_index;
 
 void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
                    const App_options& app_options, File_saver& file_saver,
                    const Swbf_fnv_hashes& swbf_hashes,
-                   model::Models_builder& models_builder);
+                   model::Models_builder& models_builder, Layer_index& layer_index);

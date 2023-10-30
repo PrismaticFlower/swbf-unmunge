@@ -9,6 +9,7 @@
 
 class App_options;
 class File_saver;
+class Layer_index;
 
 namespace model {
 class Models_builder;
@@ -19,10 +20,12 @@ void handle_unknown(Ucfb_reader chunk, File_saver& file_saver,
                     std::optional<std::string_view> file_extension = {});
 
 void handle_ucfb(Ucfb_reader chunk, const App_options& app_options,
-                 File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes);
+                 File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes,
+                 Layer_index& layer_index);
 
 void handle_lvl_child(Ucfb_reader lvl_child, const App_options& app_options,
-                      File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes);
+                      File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes,
+                      Layer_index& layer_index);
 
 void handle_object(Ucfb_reader object, File_saver& file_saver,
                    const Swbf_fnv_hashes& swbf_hashes, std::string_view type);
@@ -42,7 +45,7 @@ void handle_texture_ps2(Ucfb_reader texture, Ucfb_reader parent_reader,
                         Model_format model_format);
 
 void handle_world(Ucfb_reader world, File_saver& file_saver,
-                  const Swbf_fnv_hashes& swbf_hashes);
+                  const Swbf_fnv_hashes& swbf_hashes, Layer_index& layer_index);
 
 void handle_planning(Ucfb_reader planning, File_saver& file_saver);
 

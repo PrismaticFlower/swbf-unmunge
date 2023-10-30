@@ -34,6 +34,7 @@
     <ClCompile Include="src\handle_texture.cpp" />
     <ClCompile Include="src\handle_world.cpp" />
     <ClCompile Include="src\handle_lvl_child.cpp" />
+    <ClCompile Include="src\layer_index.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mapped_file.cpp" />
     <ClCompile Include="src\handle_object.cpp" />
@@ -60,6 +61,7 @@
     <ClInclude Include="src\chunk_processor.hpp" />
     <ClInclude Include="src\explode_chunk.hpp" />
     <ClInclude Include="src\file_saver.hpp" />
+    <ClInclude Include="src\layer_index.hpp" />
     <ClInclude Include="src\magic_number.hpp" />
     <ClInclude Include="src\mapped_file.hpp" />
     <ClInclude Include="src\chunk_handlers.hpp" />

@@ -25,6 +25,7 @@ struct Args_pack {
    File_saver& file_saver;
    const Swbf_fnv_hashes& swbf_hashes;
    model::Models_builder& models_builder;
+   Layer_index& layer_index;
 };
 
 void ignore_chunk(Args_pack){};
@@ -126,13 +127,15 @@ const auto chunk_processors = Chunk_processor_map{
    {"ucfb"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_ucfb(args.chunk, args.app_options, args.file_saver, args.swbf_hashes);
+        handle_ucfb(args.chunk, args.app_options, args.file_saver, args.swbf_hashes,
+                    args.layer_index);
      }}},
 
    {"lvl_"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_lvl_child(args.chunk, args.app_options, args.file_saver, args.swbf_hashes);
+        handle_lvl_child(args.chunk, args.app_options, args.file_saver, args.swbf_hashes,
+                         args.layer_index);
      }}},
 
    // Class Chunks
@@ -270,7 +273,7 @@ const auto chunk_processors = Chunk_processor_map{
    {"wrld"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
      [](Args_pack args) {
-        handle_world(args.chunk, args.file_saver, args.swbf_hashes);
+        handle_world(args.chunk, args.file_saver, args.swbf_hashes, args.layer_index);
      }}},
    {"plan"_mn,
     {Input_platform::pc, Game_version::swbf_ii,
@@ -338,15 +341,15 @@ const auto chunk_processors = Chunk_processor_map{
 void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
                    const App_options& app_options, File_saver& file_saver,
                    const Swbf_fnv_hashes& swbf_hashes,
-                   model::Models_builder& models_builder)
+                   model::Models_builder& models_builder, Layer_index& layer_index)
 {
    const auto processor = chunk_processors.lookup(
       chunk.magic_number(), app_options.input_platform(), app_options.game_version());
 
    if (processor) {
       try {
-         processor(
-            {chunk, parent_reader, app_options, file_saver, swbf_hashes, models_builder});
+         processor({chunk, parent_reader, app_options, file_saver, swbf_hashes,
+                    models_builder, layer_index});
       }
       catch (const std::exception& e) {
          synced_cout::print("Error: Exception occured while processing chunk.\n"

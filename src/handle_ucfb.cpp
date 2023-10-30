@@ -8,7 +8,8 @@
 #include <vector>
 
 void handle_ucfb(Ucfb_reader chunk, const App_options& app_options,
-                 File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes)
+                 File_saver& file_saver, const Swbf_fnv_hashes& swbf_hashes,
+                 Layer_index& layer_index)
 {
    std::vector<std::pair<Ucfb_reader, Ucfb_reader>> children_parents;
    children_parents.reserve(32);
@@ -17,10 +18,10 @@ void handle_ucfb(Ucfb_reader chunk, const App_options& app_options,
 
    model::Models_builder models_builder;
 
-   const auto processor = [&app_options, &file_saver, &swbf_hashes,
-                           &models_builder](const auto& child_parent) {
+   const auto processor = [&app_options, &file_saver, &swbf_hashes, &models_builder,
+                           &layer_index](const auto& child_parent) {
       process_chunk(child_parent.first, child_parent.second, app_options, file_saver,
-                    swbf_hashes, models_builder);
+                    swbf_hashes, models_builder, layer_index);
    };
 
    tbb::parallel_for_each(children_parents, processor);
