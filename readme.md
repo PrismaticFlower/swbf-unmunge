@@ -48,6 +48,8 @@ For everything else it will be saved as a `chunk_*.munged` that can be passed ba
 
 ## Building
 
+[![Build](https://github.com/PrismaticFlower/swbf-tools/actions/workflows/build.yml/badge.svg)](https://github.com/PrismaticFlower/swbf-tools/actions/workflows/build.yml)
+
 If you have Visual Studio 2019 all you need to do is use [vcpkg](https://github.com/Microsoft/vcpkg)
 to grab these libraries and you'll be good to go.
 
