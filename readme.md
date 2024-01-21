@@ -71,3 +71,15 @@ couple `#pragma` directives.
 If you for some reason do want to build it on Linux or something feel free to get in
 touch I am happy to help point out what bits of the codebase are non-portable and what
 could be done.
+
+### Building with CMake
+
+```
+# Use a separate directory for CMake files
+mkdir build
+cd build
+
+# Generate CMake files
+cmake .. -G "[your compiler/generator]" -A [your architecutre] -DVCPKG_MANIFEST_INSTALL:PATH="[vcpkg base path]/installed" -DDIR_VCPKG_ROOT:PATH="[vcpkg base path]" -DVCPKG_TARGET_TRIPLET:STRING="[your architecutre]-[your platform]" -DCMAKE_TOOLCHAIN_FILE:PATH="[vcpkg base path]/scripts/buildsystems/vcpkg.cmake" -Wno-dev
+cmake --build . --config [debug or release]
+```
