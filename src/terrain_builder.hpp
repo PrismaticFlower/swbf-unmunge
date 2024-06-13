@@ -81,8 +81,8 @@ private:
    enum class Render_types : std::int16_t { none = 0, solid_colour = 4, normal = 15 };
 
    struct Terrain_texture_name {
-      std::array<char, 32> diffuse;
-      std::array<char, 32> detail;
+      std::array<char, 32> diffuse{};
+      std::array<char, 32> detail{};
    };
 
    struct Water_settings {
@@ -104,12 +104,20 @@ private:
       std::uint8_t unknown;
    };
 
+   struct Clusters_info {
+      std::vector<std::int16_t> min_heights;
+      std::vector<std::int16_t> max_heights;
+      std::vector<std::uint32_t> flags;
+   };
+
    constexpr static auto max_water_layers = 16u;
    constexpr static auto max_decal_textures = 16u;
 
    std::size_t lookup_point_index(Point point) const noexcept;
 
    std::size_t lookup_patch_index(Point patch) const noexcept;
+
+   Clusters_info make_clusters_info() const noexcept;
 
    const float _grid_unit_size = 8.0f;
    const float _height_granularity = 0.01f;

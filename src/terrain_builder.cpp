@@ -7,6 +7,24 @@
 
 using namespace std::literals;
 
+namespace {
+
+template<typename T>
+   requires(std::is_trivially_copyable_v<T>)
+void write_span(std::ofstream& file, std::span<T> span) noexcept
+{
+   file.write(reinterpret_cast<const char*>(span.data()), span.size_bytes());
+}
+
+template<typename T>
+   requires(std::is_trivially_copyable_v<T>)
+void write_value(std::ofstream& file, const T& value) noexcept
+{
+   write_span(file, std::span{&value, 1});
+}
+
+}
+
 Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_scale,
                                  const std::uint16_t grid_size,
                                  const std::uint32_t default_colour)
@@ -112,101 +130,99 @@ void Terrain_builder::set_munge_flags(const Terrain_flags flags) noexcept
 void Terrain_builder::save(Game_version version, std::string_view name,
                            File_saver& file_saver) const
 {
-   constexpr auto header_size = 2821;
+   // const Clusters_info clusters_info = make_clusters_info();
 
-   std::string buffer;
-   buffer.reserve(header_size + (_heightmap.size() * sizeof(std::int16_t)) +
-                  ((_lightmap.size() * sizeof(std::uint32_t)) * 2) +
-                  ((_texturemap.size() * sizeof(Texture_values))) +
-                  ((_grid_size / 2) * (_grid_size / 2)) + // unknown map
-                  ((_patch_infomap.size() * sizeof(Patch_info))));
+   std::ofstream file =
+      file_saver.open_save_file("world"sv, name, ".ter"sv, std::ios::binary);
 
    // magic number
-   buffer += "TERR"sv;
+   write_span(file, std::span{"TERR"sv});
 
    // version number
-   if (version == Game_version::swbf_ii)
-      buffer += view_object_as_string(std::int32_t{22});
-   else
-      buffer += view_object_as_string(std::int32_t{21});
+   write_value(file, version == Game_version::swbf_ii ? 22 : 21);
 
    // grid extent
    const auto extent = static_cast<std::int16_t>(_grid_size / 2);
 
-   buffer += view_object_as_string<std::int16_t>(-extent);
-   buffer += view_object_as_string<std::int16_t>(-extent);
-   buffer += view_object_as_string(extent);
-   buffer += view_object_as_string(extent);
+   write_value<std::int16_t>(file, -extent);
+   write_value<std::int16_t>(file, -extent);
+   write_value<std::int16_t>(file, extent);
+   write_value<std::int16_t>(file, extent);
 
    // unknown
-   buffer += view_object_as_string(164i32);
+   write_value<std::int32_t>(file, 164);
 
    // texture scales
    static_assert(sizeof(_texture_scales) == 64);
-   buffer += view_object_as_string(_texture_scales);
+   write_value(file, _texture_scales);
 
-   // texture axises
+   // texture axes
    static_assert(sizeof(_texture_axises) == 16);
-   buffer += view_object_as_string(_texture_axises);
+   write_value(file, _texture_axises);
 
    // texture rotations
    static_assert(sizeof(_texture_rotations) == 64);
-   buffer += view_object_as_string(_texture_rotations);
+   write_value(file, _texture_rotations);
 
    // height granularity
-   buffer += view_object_as_string(_height_granularity);
+   write_value(file, _height_granularity);
 
    // metere per grid unit
-   buffer += view_object_as_string(_grid_unit_size);
+   write_value(file, _grid_unit_size);
 
    // prelit
-   buffer += view_object_as_string(0i32);
+   write_value<std::int32_t>(file, 1);
 
    // world size
-   buffer += view_object_as_string(std::uint32_t{_grid_size});
+   write_value<std::int32_t>(file, _grid_size);
 
    // grids per foliage
-   buffer += view_object_as_string(2i32);
+   write_value<std::int32_t>(file, 2);
 
    // munge flags
-   if (version == Game_version::swbf_ii) buffer += static_cast<char>(_terrain_flags);
+   if (version == Game_version::swbf_ii)
+      write_value(file, static_cast<char>(_terrain_flags));
 
    // texture names
    static_assert(sizeof(_textures) == 1024);
-   buffer += view_object_as_string(_textures);
+   write_value(file, _textures);
 
    // water settings
    static_assert(sizeof(_water_settings) == 1088);
-   buffer += view_object_as_string(_water_settings);
+   write_value(file, _water_settings);
 
    // decal textures
-   buffer.append(32 * max_decal_textures, '\0');
+   write_value(file, std::array<char, 32 * max_decal_textures>{});
 
    // decal tile count
-   buffer += view_object_as_string(0i32);
+   write_value<std::int32_t>(file, 0);
 
    // unknown decal options(?)
-   buffer.append(8, '\0');
+   write_value(file, std::array<char, 8>{});
 
    // heightmap
-   buffer += view_object_span_as_string(gsl::make_span(_heightmap));
+   write_span(file, std::span{_heightmap});
 
    // colourmap
-   buffer.append(4 * _lightmap.size(), '\xff');
+   std::vector<std::uint32_t> colormap;
+   colormap.resize(_lightmap.size(), 0xffffffff);
+
+   write_span(file, std::span{colormap});
 
    // lightmap
-   buffer += view_object_span_as_string(gsl::make_span(_lightmap));
+   write_span(file, std::span{_lightmap});
 
    // texturemap
-   buffer += view_object_span_as_string(gsl::make_span(_texturemap));
+   write_span(file, std::span{_texturemap});
 
    // unknown map
-   buffer.append((_grid_size / 2) * (_grid_size / 2), '\0');
+   std::vector<std::uint8_t> unknown_map;
+   unknown_map.resize((_grid_size / 2) * (_grid_size / 2), 0);
+
+   write_span(file, std::span{unknown_map});
 
    // patch infomap
-   buffer += view_object_span_as_string(gsl::make_span(_patch_infomap));
-
-   file_saver.save_file(buffer, "world"sv, name, ".ter"sv);
+   write_span(file, std::span{_patch_infomap});
 }
 
 std::size_t Terrain_builder::lookup_point_index(Point point) const noexcept
