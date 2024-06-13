@@ -115,7 +115,7 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    constexpr auto header_size = 2821;
 
    std::string buffer;
-   buffer.reserve(2821 + (_heightmap.size() * sizeof(std::int16_t)) +
+   buffer.reserve(header_size + (_heightmap.size() * sizeof(std::int16_t)) +
                   ((_colourmap.size() * sizeof(std::uint32_t)) * 2) +
                   ((_texturemap.size() * sizeof(Texture_values))) +
                   ((_grid_size / 2) * (_grid_size / 2)) + // unknown map

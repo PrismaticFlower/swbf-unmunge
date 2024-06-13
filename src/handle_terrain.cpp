@@ -46,6 +46,20 @@ struct Height_patch_info {
 
 static_assert(sizeof(Height_patch_info) == 8);
 
+struct Stock_terrain_vertex_pc {
+   glm::i16vec3 position;
+   glm::uint16 texture_weight;
+   glm::uint32 normal;
+   glm::uint32 color;
+};
+
+static_assert(sizeof(Stock_terrain_vertex_pc) == 16);
+
+struct Attribute_maps {
+   std::vector<std::uint32_t> light_map;
+   std::vector<std::array<std::uint8_t, 16>> weight_map;
+};
+
 auto read_hexp(Ucfb_reader_strict<"HEXP"_mn> hexp, Terrain_info info)
    -> std::vector<Height_patch_info>
 {
@@ -171,6 +185,106 @@ auto read_cuts(Ucfb_reader_strict<"CUTS"_mn> cuts) -> std::vector<Terrain_cut>
    return result;
 }
 
+auto read_ptch_info(Ucfb_reader_strict<"INFO"_mn> info) -> std::array<std::uint8_t, 3>
+{
+   std::array<std::uint8_t, 3> result{};
+
+   std::int8_t texture_count = info.read_trivial_unaligned<std::uint8_t>();
+
+   for (std::ptrdiff_t i = 0; i < texture_count; ++i) {
+      std::uint8_t texture_index = info.read_trivial_unaligned<std::uint8_t>();
+
+      if (i >= std::ssize(result)) continue;
+
+      result[i] = texture_index;
+   }
+
+   for (std::ptrdiff_t i = 2; i > (texture_count - 1); --i) {
+      result[i] = result[0];
+   }
+
+   return result;
+}
+
+auto read_pchs(Ucfb_reader_strict<"PCHS"_mn> pchs, Terrain_info info) -> Attribute_maps
+{
+   const std::size_t patches_length = info.grid_length / info.patch_length;
+
+   Attribute_maps attributes;
+
+   attributes.light_map.resize(info.grid_length * info.grid_length, 0xff'00'ff'00u);
+   attributes.weight_map.resize(info.grid_length * info.grid_length,
+                                std::array<std::uint8_t, 16>{0xff});
+
+   (void)pchs.read_child_strict<"COMN"_mn>();
+
+   const std::size_t patch_points = info.patch_length + 1;
+
+   for (std::size_t patch_z = 0; patch_z < patches_length; ++patch_z) {
+      for (std::size_t patch_x = 0; patch_x < patches_length; ++patch_x) {
+         auto ptch = pchs.read_child_strict<"PTCH"_mn>();
+
+         const std::array<std::uint8_t, 3> patch_textures =
+            read_ptch_info(ptch.read_child_strict<"INFO"_mn>());
+
+         while (ptch) {
+            auto vbuf = ptch.read_child();
+
+            if (vbuf.magic_number() != "VBUF"_mn) continue;
+
+            const auto [count, stride, flags] =
+               vbuf.read_multi<std::uint32_t, std::uint32_t, std::uint32_t>();
+
+            if (stride != 16) continue;
+
+            for (std::size_t v = 0; v < count; ++v) {
+               auto vertex = vbuf.read_trivial<Stock_terrain_vertex_pc>();
+
+               const std::size_t x =
+                  ((patch_x * info.patch_length) +
+                   static_cast<std::size_t>(((vertex.position.x + 0x8000) / 65535.0) *
+                                            patch_points)) %
+                  info.grid_length;
+               const std::size_t z =
+                  ((patch_z * info.patch_length) +
+                   static_cast<std::size_t>(((vertex.position.z + 0x8000) / 65535.0) *
+                                            patch_points)) %
+                  info.grid_length;
+
+               // TODO: Does Z need to be offset by -1?;
+
+               const auto texture_weight_0 =
+                  static_cast<std::uint8_t>((vertex.color >> 24u) & 0xffu);
+               const auto texture_weight_1 =
+                  static_cast<std::uint8_t>((vertex.normal >> 24u) & 0xffu);
+               const auto texture_weight_2 =
+                  static_cast<std::uint8_t>(vertex.texture_weight & 0xffu);
+
+               attributes.light_map[z * info.grid_length + x] =
+                  vertex.color | 0xff'00'00'00u;
+
+               std::array<std::uint8_t, 16>& weights =
+                  attributes.weight_map[z * info.grid_length + x];
+
+               if (patch_textures[0] < weights.size()) {
+                  weights[patch_textures[0]] = texture_weight_0;
+               }
+               if (patch_textures[1] < weights.size()) {
+                  weights[patch_textures[1]] = texture_weight_1;
+               }
+               if (patch_textures[2] < weights.size()) {
+                  weights[patch_textures[2]] = texture_weight_2;
+               }
+            }
+
+            break;
+         }
+      }
+   }
+
+   return attributes;
+}
+
 auto read_folg(Ucfb_reader_strict<"FOLG"_mn> folg) -> std::vector<std::uint8_t>
 {
    std::vector<std::uint8_t> result;
@@ -203,6 +317,7 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
    std::vector<Height_patch_info> height_patch_info;
 
    std::vector<std::int16_t> height_map;
+   Attribute_maps attribute_maps;
    std::vector<std::uint8_t> foliage_map;
 
    std::vector<Terrain_cut> terrain_cuts;
@@ -265,7 +380,7 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
       else if (mn == "PCHS"_mn) {
          if (!info) continue;
 
-         // read_pchs(Ucfb_reader_strict<"PCHS"_mn>{child}); // TODO: Read patches
+         attribute_maps = read_pchs(Ucfb_reader_strict<"PCHS"_mn>{child}, *info);
       }
       else if (mn == "FOLG"_mn) {
          foliage_map = read_folg(Ucfb_reader_strict<"FOLG"_mn>{child});
@@ -289,7 +404,16 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
    for (std::size_t z = 0; z < info->grid_length; ++z) {
       for (std::size_t x = 0; x < info->grid_length; ++x) {
          builder.set_point_height({x, z},
-                                  height_map[(max_z - z) * info->grid_length + x]);
+                                  height_map.at((max_z - z) * info->grid_length + x));
+         builder.set_point_colour(
+            {x, z}, attribute_maps.light_map.at((max_z - z) * info->grid_length + x));
+
+         const std::array texture_weight_map =
+            attribute_maps.weight_map.at((max_z - z) * info->grid_length + x);
+
+         for (std::uint8_t i = 0; i < Terrain_builder::max_textures; ++i) {
+            builder.set_point_texture({x, z}, i, texture_weight_map[i]);
+         }
       }
    }
 
