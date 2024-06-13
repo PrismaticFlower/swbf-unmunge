@@ -11,7 +11,6 @@ ColumnLimit: '90'
 IndentWidth: '3'
 Language: Cpp
 NamespaceIndentation: None
-PenaltyReturnTypeOnItsOwnLine: '0'
 PointerAlignment: Left
 SortIncludes: 'true'
 TabWidth: '3'
