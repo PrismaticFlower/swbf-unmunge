@@ -29,7 +29,7 @@ void save_option_file(const DirectX::ScratchImage& image,
    std::ofstream out{path};
 
    if (!out) {
-      synced_cout::print(fmt::format("Unable create .option file {}"sv, path.string()));
+      synced_cout::print(fmt::format("Unable create .option file {}", path.string()));
 
       return;
    }

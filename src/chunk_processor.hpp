@@ -1,16 +1,16 @@
 #pragma once
 
+#include "swbf_fnv_hashes.hpp"
 #include "ucfb_reader.hpp"
 
-namespace chunks {
-struct Unknown;
-}
 namespace model {
 class Models_builder;
 }
 class App_options;
 class File_saver;
+class Layer_index;
 
 void process_chunk(Ucfb_reader chunk, Ucfb_reader parent_reader,
                    const App_options& app_options, File_saver& file_saver,
-                   model::Models_builder& models_builder);
+                   const Swbf_fnv_hashes& swbf_hashes,
+                   model::Models_builder& models_builder, Layer_index& layer_index);

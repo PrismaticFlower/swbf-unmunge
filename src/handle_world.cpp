@@ -1,5 +1,6 @@
 
 #include "file_saver.hpp"
+#include "layer_index.hpp"
 #include "magic_number.hpp"
 #include "string_helpers.hpp"
 #include "swbf_fnv_hashes.hpp"
@@ -25,9 +26,7 @@ using namespace std::literals;
 namespace {
 
 struct Transform {
-   glm::vec3 rotation_x;
-   glm::vec3 rotation_y;
-   glm::vec3 rotation_z;
+   glm::mat3 rotation;
    glm::vec3 position;
 };
 
@@ -174,14 +173,13 @@ std::pair<glm::quat, glm::vec3> convert_transform(const Transform& transform)
    auto position = transform.position;
    position.z *= -1.0f;
 
-   auto rotation = glm::quat{
-      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z}};
-
-   rotation.x = -rotation.x;
-   rotation.z = -rotation.z;
+   auto rotation = glm::quat{transform.rotation};
 
    std::swap(rotation.x, rotation.z);
    std::swap(rotation.y, rotation.w);
+
+   rotation.x = -rotation.x;
+   rotation.z = -rotation.z;
 
    return {rotation, position};
 }
@@ -196,8 +194,7 @@ std::array<glm::vec3, 4> get_barrier_corners(const Transform& transform,
       {size.x, 0.0f, -size.z},
    }};
 
-   const auto rotation =
-      glm::mat3{transform.rotation_x, transform.rotation_x, transform.rotation_z};
+   const auto rotation = transform.rotation;
 
    corners[0] = corners[0] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
    corners[1] = corners[1] * rotation * glm::vec3{1.0f, 1.0f, -1.0f};
@@ -214,16 +211,19 @@ std::array<glm::vec3, 4> get_barrier_corners(const Transform& transform,
    return corners;
 }
 
-void read_property(Ucfb_reader_strict<"PROP"_mn> property, std::string& buffer)
+void read_property(Ucfb_reader_strict<"PROP"_mn> property,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string& buffer)
 {
    const auto hash = property.read_trivial<std::uint32_t>();
    const auto value = property.read_string();
 
-   write_key_value(true, !string_is_number(value), lookup_fnv_hash(hash), value, buffer);
+   write_key_value(true, !string_is_number(value), swbf_hashes.lookup(hash), value,
+                   buffer);
 }
 
 template<typename Quoted_filter>
-void read_property(Ucfb_reader_strict<"PROP"_mn> property, std::string& buffer,
+void read_property(Ucfb_reader_strict<"PROP"_mn> property,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string& buffer,
                    const Quoted_filter& filter)
 {
    const auto hash = property.read_trivial<std::uint32_t>();
@@ -231,10 +231,11 @@ void read_property(Ucfb_reader_strict<"PROP"_mn> property, std::string& buffer,
 
    const bool quoted = filter(hash);
 
-   write_key_value(true, quoted, lookup_fnv_hash(hash), value, buffer);
+   write_key_value(true, quoted, swbf_hashes.lookup(hash), value, buffer);
 }
 
-void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
+void read_region(Ucfb_reader_strict<"regn"_mn> region, const Swbf_fnv_hashes& swbf_hashes,
+                 std::string& buffer)
 {
    auto info = region.read_child_strict<"INFO"_mn>();
 
@@ -259,7 +260,7 @@ void read_region(Ucfb_reader_strict<"regn"_mn> region, std::string& buffer)
    while (region) {
       auto property = region.read_child_strict<"PROP"_mn>();
 
-      read_property(property, buffer);
+      read_property(property, swbf_hashes, buffer);
    }
 
    buffer += "}\n\n"sv;
@@ -286,7 +287,8 @@ void read_barrier(Ucfb_reader_strict<"BARR"_mn> barrier, std::string& buffer)
    buffer += "}\n\n"sv;
 }
 
-void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
+void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, const Swbf_fnv_hashes& swbf_hashes,
+               std::string& buffer)
 {
    auto info = hint.read_child_strict<"INFO"_mn>();
 
@@ -307,7 +309,7 @@ void read_hint(Ucfb_reader_strict<"Hint"_mn> hint, std::string& buffer)
    while (hint) {
       const auto property = hint.read_child_strict<"PROP"_mn>();
 
-      read_property(property, buffer);
+      read_property(property, swbf_hashes, buffer);
    }
 
    buffer += "}\n\n"sv;
@@ -322,7 +324,7 @@ void read_animation(Ucfb_reader_strict<"anim"_mn> animation, std::string& buffer
    const int loop = info.read_trivial_unaligned<std::uint8_t>();
    const int local_translation = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += fmt::format("Animation(\"{}\", {}, {}, {})\n{{\n"sv, name, length, loop,
+   buffer += fmt::format("Animation(\"{}\", {}, {}, {})\n{{\n", name, length, loop,
                          local_translation);
 
    while (animation) {
@@ -356,25 +358,23 @@ void read_animation_group(Ucfb_reader_strict<"anmg"_mn> anim_group, std::string&
    const int default_on = info.read_trivial_unaligned<std::uint8_t>();
    const int stop_when_controlled = info.read_trivial_unaligned<std::uint8_t>();
 
-   buffer += fmt::format("AnimationGroup(\"{}\", {}, {})\n{{\n"sv, name, default_on,
+   buffer += fmt::format("AnimationGroup(\"{}\", {}, {})\n{{\n", name, default_on,
                          stop_when_controlled);
 
    while (anim_group) {
       auto child = anim_group.read_child();
 
-      switch (child.magic_number()) {
-      case "ANIM"_mn: {
+      if (child.magic_number() == "ANIM"_mn) {
          const auto animation_name = child.read_string_unaligned();
          const auto object_name = child.read_string_unaligned();
 
          buffer +=
-            fmt::format("\tAnimation(\"{}\", \"{}\");\n"sv, animation_name, object_name);
+            fmt::format("\tAnimation(\"{}\", \"{}\");\n", animation_name, object_name);
          break;
       }
-      case "NOHI"_mn: {
+      else if (child.magic_number() == "NOHI"_mn) {
          buffer += "\tDisableHierarchies();\n"sv;
          break;
-      }
       }
    }
 
@@ -408,7 +408,8 @@ void read_animation_hierarchy(Ucfb_reader_strict<"anmh"_mn> anim_hierarchy,
    buffer += "}\n\n"sv;
 }
 
-void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
+auto read_instance(Ucfb_reader_strict<"inst"_mn> instance,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string& buffer) -> int
 {
    auto info = instance.read_child_strict<"INFO"_mn>();
 
@@ -426,19 +427,30 @@ void read_instance(Ucfb_reader_strict<"inst"_mn> instance, std::string& buffer)
    write_key_value(true, "ChildRotation"sv, world_coords.first, buffer);
    write_key_value(true, "ChildPosition"sv, world_coords.second, buffer);
 
+   int layer = 0;
+
    while (instance) {
       auto property = instance.read_child_strict<"PROP"_mn>();
 
-      read_property(property, buffer, [](std::uint32_t hash) {
+      read_property(property, swbf_hashes, buffer, [](std::uint32_t hash) {
          return (hash != "Team"_fnv && hash != "Layer"_fnv);
       });
+
+      if (property.read_trivial<std::uint32_t>() == "Layer"_fnv) {
+         const std::string_view layer_str = property.read_string();
+
+         std::from_chars(layer_str.data(), layer_str.data() + layer_str.size(), layer);
+      }
    }
 
    buffer += "}\n\n"sv;
+
+   return layer;
 }
 
 void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
-                            std::string_view name, File_saver& file_saver)
+                            std::string_view name, File_saver& file_saver,
+                            const Swbf_fnv_hashes& swbf_hashes)
 {
    std::string buffer;
    buffer.reserve(256 * regions.size());
@@ -448,15 +460,16 @@ void process_region_entries(std::vector<Ucfb_reader_strict<"regn"_mn>> regions,
    buffer += '\n';
 
    for (const auto& region : regions) {
-      read_region(region, buffer);
+      read_region(region, swbf_hashes, buffer);
    }
 
    file_saver.save_file(buffer, "world"sv, name, ".rgn"sv);
 }
 
-void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
+auto process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instances,
                               const std::string name, const std::string terrain_name,
-                              const std::string sky_name, File_saver& file_saver)
+                              const std::string sky_name, File_saver& file_saver,
+                              const Swbf_fnv_hashes& swbf_hashes) -> int
 {
    std::string buffer;
    buffer.reserve((world_header.length() + 256) + 256 * instances.size());
@@ -472,8 +485,10 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
    write_key_value(false, true, "LightName"sv, name + ".lgt"s, buffer);
    buffer += '\n';
 
+   int layer = 0;
+
    for (const auto& instance : instances) {
-      read_instance(instance, buffer);
+      layer = read_instance(instance, swbf_hashes, buffer);
    }
 
    std::string_view extension = ".wld"sv;
@@ -481,6 +496,8 @@ void process_instance_entries(std::vector<Ucfb_reader_strict<"inst"_mn>> instanc
    if (terrain_name.empty() || sky_name.empty()) extension = ".lyr"sv;
 
    file_saver.save_file(buffer, "world"sv, name, extension);
+
+   return layer;
 }
 
 void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers,
@@ -500,13 +517,14 @@ void process_barrier_entries(std::vector<Ucfb_reader_strict<"BARR"_mn>> barriers
 }
 
 void process_hint_entries(std::vector<Ucfb_reader_strict<"Hint"_mn>> hints,
-                          std::string_view name, File_saver& file_saver)
+                          std::string_view name, File_saver& file_saver,
+                          const Swbf_fnv_hashes& swbf_hashes)
 {
    std::string buffer;
    buffer.reserve(256 * hints.size());
 
    for (const auto& hint : hints) {
-      read_hint(hint, buffer);
+      read_hint(hint, swbf_hashes, buffer);
    }
 
    file_saver.save_file(buffer, "world"sv, name, ".hnt"sv);
@@ -534,7 +552,8 @@ void process_animation_entries(std::vector<Ucfb_reader> entries, std::string_vie
 }
 }
 
-void handle_world(Ucfb_reader world, File_saver& file_saver)
+void handle_world(Ucfb_reader world, File_saver& file_saver,
+                  const Swbf_fnv_hashes& swbf_hashes, Layer_index& layer_index)
 {
    const auto name = world.read_child_strict<"NAME"_mn>().read_string();
 
@@ -580,25 +599,28 @@ void handle_world(Ucfb_reader world, File_saver& file_saver)
       }
    }
 
+   int layer = 0;
+
    tbb::task_group tasks;
 
-   tasks.run([region_entries{std::move(region_entries)}, name, &file_saver] {
-      process_region_entries(region_entries, name, file_saver);
-   });
+   tasks.run(
+      [region_entries{std::move(region_entries)}, name, &file_saver, &swbf_hashes] {
+         process_region_entries(region_entries, name, file_saver, swbf_hashes);
+      });
 
    tasks.run([instance_entries{std::move(instance_entries)}, name, terrain_name, sky_name,
-              &file_saver] {
-      process_instance_entries(instance_entries, std::string{name},
-                               std::string{terrain_name}, std::string{sky_name},
-                               file_saver);
+              &layer, &file_saver, &swbf_hashes] {
+      layer = process_instance_entries(instance_entries, std::string{name},
+                                       std::string{terrain_name}, std::string{sky_name},
+                                       file_saver, swbf_hashes);
    });
 
    tasks.run([barrier_entries{std::move(barrier_entries)}, name, &file_saver] {
       process_barrier_entries(barrier_entries, name, file_saver);
    });
 
-   tasks.run([hint_entries{std::move(hint_entries)}, name, &file_saver] {
-      process_hint_entries(hint_entries, name, file_saver);
+   tasks.run([hint_entries{std::move(hint_entries)}, name, &file_saver, &swbf_hashes] {
+      process_hint_entries(hint_entries, name, file_saver, swbf_hashes);
    });
 
    if (!animation_entries.empty()) {
@@ -608,4 +630,18 @@ void handle_world(Ucfb_reader world, File_saver& file_saver)
    }
 
    tasks.wait();
+
+   if (terrain_name.empty() || sky_name.empty()) {
+      const std::ptrdiff_t last_underscore = name.find_last_of("_");
+
+      if (last_underscore != std::string_view::npos && last_underscore != 0) {
+         std::string_view world_name = name.substr(0, last_underscore);
+         std::string_view layer_name = name.substr(last_underscore + 1);
+
+         layer_index.add(world_name, {std::string{layer_name}, layer});
+      }
+   }
+   else {
+      layer_index.add(name, {"[Base]", 0});
+   }
 }

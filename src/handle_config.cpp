@@ -125,13 +125,14 @@ bool is_float_data(Ucfb_reader_strict<"DATA"_mn> data)
 }
 
 std::string read_string_data(Ucfb_reader_strict<"DATA"_mn> data,
+                             const Swbf_fnv_hashes& swbf_hashes,
                              const std::size_t indention_level)
 {
    const auto hash = data.read_trivial<std::uint32_t>();
 
    std::string line;
    line.append(indention_level, '\t');
-   line += lookup_fnv_hash(hash);
+   line += swbf_hashes.lookup(hash);
    line += '(';
 
    const auto element_count = data.read_trivial_unaligned<std::uint8_t>();
@@ -151,6 +152,7 @@ std::string read_string_data(Ucfb_reader_strict<"DATA"_mn> data,
 }
 
 std::string read_hash_data(Ucfb_reader_strict<"DATA"_mn> data,
+                           const Swbf_fnv_hashes& swbf_hashes,
                            const std::size_t indention_level)
 {
    const auto hash = data.read_trivial<std::uint32_t>();
@@ -159,9 +161,9 @@ std::string read_hash_data(Ucfb_reader_strict<"DATA"_mn> data,
 
    std::string line;
    line.append(indention_level, '\t');
-   line += lookup_fnv_hash(hash);
+   line += swbf_hashes.lookup(hash);
    line += "(\""sv;
-   line += lookup_fnv_hash(value_hash);
+   line += swbf_hashes.lookup(value_hash);
    line += "\", "sv;
 
    for (std::size_t i = 1; i < element_count; ++i) {
@@ -177,6 +179,7 @@ std::string read_hash_data(Ucfb_reader_strict<"DATA"_mn> data,
 }
 
 std::string read_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data,
+                             const Swbf_fnv_hashes& swbf_hashes,
                              const std::size_t indention_level)
 {
    const auto hash = data.read_trivial<std::uint32_t>();
@@ -191,7 +194,7 @@ std::string read_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data,
 
    std::string line;
    line.append(indention_level, '\t');
-   line += lookup_fnv_hash(hash);
+   line += swbf_hashes.lookup(hash);
    line += "(\""sv;
    line += data.read_string_unaligned();
    line += "\", "sv;
@@ -202,6 +205,7 @@ std::string read_hybrid_data(Ucfb_reader_strict<"DATA"_mn> data,
 }
 
 std::string read_float_data(Ucfb_reader_strict<"DATA"_mn> data,
+                            const Swbf_fnv_hashes& swbf_hashes,
                             const std::size_t indention_level)
 {
    const auto hash = data.read_trivial<std::uint32_t>();
@@ -209,7 +213,7 @@ std::string read_float_data(Ucfb_reader_strict<"DATA"_mn> data,
 
    std::string line;
    line.append(indention_level, '\t');
-   line += lookup_fnv_hash(hash);
+   line += swbf_hashes.lookup(hash);
    line += '(';
 
    for (std::size_t i = 0; i < element_count; ++i) {
@@ -225,39 +229,42 @@ std::string read_float_data(Ucfb_reader_strict<"DATA"_mn> data,
 }
 
 std::string read_tag_data(Ucfb_reader_strict<"DATA"_mn> data,
+                          const Swbf_fnv_hashes& swbf_hashes,
                           const std::size_t indention_level)
 {
    const auto hash = data.read_trivial<std::uint32_t>();
 
    std::string line;
    line.append(indention_level, '\t');
-   line += lookup_fnv_hash(hash);
+   line += swbf_hashes.lookup(hash);
    line += "();\n"sv;
 
    return line;
 }
 
 std::string read_data(Ucfb_reader_strict<"DATA"_mn> data,
+                      const Swbf_fnv_hashes& swbf_hashes,
                       const std::size_t indention_level, bool strings_are_hashed)
 {
    if (is_string_data(data)) {
-      return read_string_data(data, indention_level);
+      return read_string_data(data, swbf_hashes, indention_level);
    }
    else if (strings_are_hashed && is_hash_data(data)) {
-      return read_hash_data(data, indention_level);
+      return read_hash_data(data, swbf_hashes, indention_level);
    }
    else if (is_hybrid_data(data)) {
-      return read_hybrid_data(data, indention_level);
+      return read_hybrid_data(data, swbf_hashes, indention_level);
    }
    else if (is_float_data(data)) {
-      return read_float_data(data, indention_level);
+      return read_float_data(data, swbf_hashes, indention_level);
    }
    else {
-      return read_tag_data(data, indention_level);
+      return read_tag_data(data, swbf_hashes, indention_level);
    }
 }
 
 std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
+                       const Swbf_fnv_hashes& swbf_hashes,
                        const std::size_t indention_level, bool strings_are_hashed)
 {
    Expects(indention_level >= 1);
@@ -272,14 +279,14 @@ std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
       const auto child = scope.read_child();
 
       if (child.magic_number() == "DATA"_mn) {
-         buffer += read_data(Ucfb_reader_strict<"DATA"_mn>{child}, indention_level,
-                             strings_are_hashed);
+         buffer += read_data(Ucfb_reader_strict<"DATA"_mn>{child}, swbf_hashes,
+                             indention_level, strings_are_hashed);
       }
       else if (child.magic_number() == "SCOP"_mn) {
          remove_last_semicolen(buffer);
 
-         buffer += read_scope(Ucfb_reader_strict<"SCOP"_mn>{child}, indention_level + 1,
-                              strings_are_hashed);
+         buffer += read_scope(Ucfb_reader_strict<"SCOP"_mn>{child}, swbf_hashes,
+                              indention_level + 1, strings_are_hashed);
       }
    }
 
@@ -289,7 +296,8 @@ std::string read_scope(Ucfb_reader_strict<"SCOP"_mn> scope,
    return buffer;
 }
 
-std::string read_root_scope(Ucfb_reader config, bool strings_are_hashed)
+std::string read_root_scope(Ucfb_reader config, const Swbf_fnv_hashes& swbf_hashes,
+                            bool strings_are_hashed)
 {
    std::string buffer;
    buffer.reserve(16384);
@@ -298,13 +306,14 @@ std::string read_root_scope(Ucfb_reader config, bool strings_are_hashed)
       const auto child = config.read_child();
 
       if (child.magic_number() == "DATA"_mn) {
-         buffer += read_data(Ucfb_reader_strict<"DATA"_mn>{child}, 0, strings_are_hashed);
+         buffer += read_data(Ucfb_reader_strict<"DATA"_mn>{child}, swbf_hashes, 0,
+                             strings_are_hashed);
       }
       else if (child.magic_number() == "SCOP"_mn) {
          remove_last_semicolen(buffer);
 
-         buffer +=
-            read_scope(Ucfb_reader_strict<"SCOP"_mn>{child}, 1, strings_are_hashed);
+         buffer += read_scope(Ucfb_reader_strict<"SCOP"_mn>{child}, swbf_hashes, 1,
+                              strings_are_hashed);
       }
    }
 
@@ -312,14 +321,15 @@ std::string read_root_scope(Ucfb_reader config, bool strings_are_hashed)
 }
 }
 
-void handle_config(Ucfb_reader config, File_saver& file_saver, std::string_view file_type,
+void handle_config(Ucfb_reader config, File_saver& file_saver,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string_view file_type,
                    std::string_view dir, bool strings_are_hashed)
 {
    const auto name_hash =
       config.read_child_strict<"NAME"_mn>().read_trivial<std::uint32_t>();
-   auto name = lookup_fnv_hash(name_hash);
+   auto name = swbf_hashes.lookup(name_hash);
 
-   auto buffer = read_root_scope(config, strings_are_hashed);
+   auto buffer = read_root_scope(config, swbf_hashes, strings_are_hashed);
 
    if (!buffer.empty()) {
       file_saver.save_file(buffer, dir, name, file_type);

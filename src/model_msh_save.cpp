@@ -77,9 +77,20 @@ void sort_nodes(std::vector<scene::Node>& nodes)
 
    move_in_kids(move_in_kids, sorted.back().name);
 
-   std::move(nodes.begin(), nodes.end(), sorted.begin());
+   sorted.insert(sorted.end(), std::move_iterator{nodes.begin()},
+                 std::move_iterator{nodes.end()});
 
    std::swap(sorted, nodes);
+}
+
+auto get_new_index(std::string_view name, const std::vector<scene::Node>& nodes)
+   -> std::uint8_t
+{
+   for (std::uint8_t i = 0; i < nodes.size(); ++i) {
+      if (nodes[i].name == name) return i;
+   }
+
+   throw std::runtime_error{"Failed to remap bone map!"};
 }
 
 void patch_bone_maps(std::vector<scene::Node>& nodes,
@@ -89,13 +100,7 @@ void patch_bone_maps(std::vector<scene::Node>& nodes,
       if (!node.geometry) continue;
 
       for (auto& index : node.geometry->bone_map) {
-         auto it =
-            std::find_if(nodes.cbegin(), nodes.cend(),
-                         [name = previous_names_lut.at(index)](const scene::Node& node) {
-                            return node.name == name;
-                         });
-
-         index = static_cast<std::uint8_t>(std::distance(nodes.cbegin(), it));
+         index = get_new_index(previous_names_lut.at(index), nodes);
       }
    }
 }
@@ -169,7 +174,7 @@ void write_matd(Ucfb_writer& matl, const scene::Material& material)
       if (material.textures[i].empty()) continue;
 
       matd.emplace_child(tx_d_magic_numbers.at(i))
-         .write(fmt::format("{}.tga"sv, material.textures[i]));
+         .write(fmt::format("{}.tga", material.textures[i]));
    }
 }
 
@@ -360,7 +365,7 @@ void write_coll(Ucfb_writer& clth,
    coll.write(static_cast<std::uint32_t>(collision.size()));
 
    for (std::size_t i = 0; i < collision.size(); ++i) {
-      coll.write(fmt::format("cloth_collision{}"sv, i));
+      coll.write(fmt::format("cloth_collision{}", i));
       coll.write(collision[i].parent);
       coll.write(collision[i].type);
       coll.write(collision[i].size);
@@ -372,7 +377,7 @@ void write_clth(Ucfb_writer& geom, const scene::Cloth_geometry& cloth_geometry)
    auto clth = geom.emplace_child("CLTH"_mn);
 
    clth.emplace_child("CTEX"_mn).write(
-      fmt::format("{}.tga"sv, cloth_geometry.texture_name));
+      fmt::format("{}.tga", cloth_geometry.texture_name));
 
    const auto vertex_count = static_cast<std::uint32_t>(cloth_geometry.vertices.size);
 
@@ -441,7 +446,7 @@ void save_option_file(const scene::Scene& scene, File_saver& file_saver)
    if (scene.softskin) output << "-softskin"sv << '\n';
 
    for (const auto& light : scene.attached_lights) {
-      fmt::format_to(std::ostream_iterator<char>{output}, "-attachlight \"{} {}\"\n"sv,
+      fmt::format_to(std::ostream_iterator<char>{output}, "-attachlight \"{} {}\"\n",
                      light.node, light.light);
    }
 

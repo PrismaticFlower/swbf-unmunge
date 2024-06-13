@@ -131,11 +131,11 @@ auto find_geometry_name(
    const std::vector<std::pair<std::uint32_t, std::string_view>>& properties)
    -> std::optional<std::string>
 {
-   constexpr auto geometry_name_hash = 0x47c86b4aui32;
+   constexpr std::uint32_t geometry_name_hash = 0x47c86b4au;
 
    const auto result =
       std::find_if(std::cbegin(properties), std::cend(properties),
-                   [](const auto& prop) { return prop.first == 0x47c86b4a; });
+                   [](const auto& prop) { return prop.first == geometry_name_hash; });
 
    if (result != std::cend(properties)) return std::string{result->second} += ".msh"sv;
 
@@ -143,7 +143,8 @@ auto find_geometry_name(
 }
 }
 
-void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view type)
+void handle_object(Ucfb_reader object, File_saver& file_saver,
+                   const Swbf_fnv_hashes& swbf_hashes, std::string_view type)
 {
    std::string file_buffer;
    file_buffer.reserve(1024);
@@ -168,7 +169,7 @@ void handle_object(Ucfb_reader object, File_saver& file_saver, std::string_view 
    write_bracketed_str("Properties"sv, file_buffer);
 
    for (const auto& property : properties) {
-      write_property(lookup_fnv_hash(property.first), property.second, file_buffer);
+      write_property(swbf_hashes.lookup(property.first), property.second, file_buffer);
    }
 
    file_saver.save_file(file_buffer, "odf"sv, odf_name, ".odf"sv);

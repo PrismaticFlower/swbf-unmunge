@@ -14,12 +14,13 @@ using namespace std::literals;
 
 namespace {
 
-std::pair<std::uint32_t, std::string> operator""_fnvp(const char* str, std::size_t length)
+std::pair<std::uint32_t, std::string_view> operator""_fnvp(const char* str,
+                                                           std::size_t length)
 {
    return {fnv_1a_hash({str, length}), {str, length}};
 }
 
-std::unordered_map<std::uint32_t, std::string> swbf_hashes{
+const std::unordered_map<std::uint32_t, std::string_view> swbf_hashes{
    "--AttachOdf"_fnvp,
    "--AttachToHardPoint"_fnvp,
    "--DamageAttachPoint"_fnvp,
@@ -3465,7 +3466,7 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "TipsTime"_fnvp,
    "Toggle"_fnvp,
    "toggledisplay"_fnvp,
-   "top"_fnvp,
+   "Top"_fnvp,
    "TopColor"_fnvp,
    "TopDirectionalAmbientColor"_fnvp,
    "TopRange"_fnvp,
@@ -3872,57 +3873,45 @@ std::unordered_map<std::uint32_t, std::string> swbf_hashes{
    "ZOrder"_fnvp,
 };
 
-std::shared_mutex swbf_hashes_mutex;
-
 }
 
-std::string lookup_fnv_hash(const std::uint32_t hash)
+auto Swbf_fnv_hashes::lookup(const std::uint32_t hash) const noexcept -> std::string
 {
-   std::string ret_val;
-
-   {
-      std::shared_lock lock{swbf_hashes_mutex};
-
-      if (const auto result = swbf_hashes.find(hash); result != std::cend(swbf_hashes)) {
-         // Seeing successful lookups is interesting when building the default dict.
-         // synced_cout::print("looked_up:", result->second, "\n");
-         ret_val = result->second;
-      }
+   if (const auto result = swbf_hashes.find(hash); result != std::cend(swbf_hashes)) {
+      return std::string{result->second};
    }
 
-   if (ret_val.empty()) {
-      ret_val = to_hexstring(hash);
-
-      synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, ret_val,
-                         '\n');
+   if (const auto result = _extra_hashes.find(hash); result != std::cend(_extra_hashes)) {
+      return result->second;
    }
 
-   return ret_val;
+   auto hexstring = to_hexstring(hash);
+
+   synced_cout::print("Warning: Unknown hash looked up.\n"s, "   value: "s, hexstring,
+                      '\n');
+
+   return hexstring;
 }
 
-// Read in a file of strings that can be resolved by the hash lookup
-void read_fnv_dictionary(std::string file_name)
+void Swbf_fnv_hashes::add(std::string string) noexcept
 {
-   std::ifstream input(file_name);
+   const auto hash = fnv_1a_hash(string);
+
+   _extra_hashes.emplace(hash, std::move(string));
+}
+
+void read_swbf_fnv_hash_dictionary(Swbf_fnv_hashes& swbf_fnv_hashes,
+                                   const std::filesystem::path& path)
+{
+   std::ifstream input{path};
 
    if (!input.is_open()) {
       throw std::runtime_error{"Failed to open file"s};
    }
 
-   synced_cout::print("Reading dictionary: "s, file_name, '\n');
+   synced_cout::print("Reading dictionary: "s, path, '\n');
 
-   for (std::string line; getline(input, line);) {
-      add_fnv_hash(line);
+   for (std::string line; std::getline(input, line);) {
+      swbf_fnv_hashes.add(std::move(line));
    }
-}
-
-// adds an entry to the string hashes
-// returns true if it was added ()
-bool add_fnv_hash(std::string str)
-{
-   std::lock_guard lock{swbf_hashes_mutex};
-
-   const auto [element_iterator, inserted] = swbf_hashes.emplace(fnv_1a_hash(str), str);
-
-   return inserted;
 }
