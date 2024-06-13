@@ -126,9 +126,9 @@ void Terrain_builder::save(Game_version version, std::string_view name,
 
    // version number
    if (version == Game_version::swbf_ii)
-      buffer += view_object_as_string(22i32);
+      buffer += view_object_as_string(std::int32_t{22});
    else
-      buffer += view_object_as_string(21i32);
+      buffer += view_object_as_string(std::int32_t{21});
 
    // grid extent
    const auto extent = static_cast<std::int16_t>(_grid_size / 2);
