@@ -70,10 +70,11 @@ auto read_hgt8(Ucfb_reader_strict<"HGT8"_mn> hgt8, Terrain_info info,
    while (hgt8) {
       const auto sequence_desc = hgt8.read_trivial_unaligned<std::uint8_t>();
       const std::size_t sequence_count = sequence_desc & 0x7fu;
-      const bool sequence_duplicate = sequence_desc >> 7u;
+      const bool sequence_duplicate = (sequence_desc & 0x80) == 0x80;
 
       if (sequence_duplicate) {
-         const auto entry = hgt8.read_trivial_unaligned<std::uint8_t>();
+         const std::uint8_t entry =
+            hgt8 ? hgt8.read_trivial_unaligned<std::uint8_t>() : 0;
 
          for (std::size_t i = 0; i <= sequence_count; ++i) {
             compressed_heightmap.push_back(entry);
@@ -81,7 +82,8 @@ auto read_hgt8(Ucfb_reader_strict<"HGT8"_mn> hgt8, Terrain_info info,
       }
       else {
          for (std::size_t i = 0; i <= sequence_count; ++i) {
-            const auto entry = hgt8.read_trivial_unaligned<std::uint8_t>();
+            const std::uint8_t entry =
+               hgt8 ? hgt8.read_trivial_unaligned<std::uint8_t>() : 0;
 
             compressed_heightmap.push_back(entry);
          }
@@ -282,9 +284,12 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
    builder.set_texture_options(texture_scales, texture_axes, texture_rotations);
    builder.set_detail_texture(detail_texture);
 
+   const std::size_t max_z = info->grid_length - 1;
+
    for (std::size_t z = 0; z < info->grid_length; ++z) {
       for (std::size_t x = 0; x < info->grid_length; ++x) {
-         builder.set_point_height({x, z}, height_map[z * info->grid_length + x]);
+         builder.set_point_height({x, z},
+                                  height_map[(max_z - z) * info->grid_length + x]);
       }
    }
 
