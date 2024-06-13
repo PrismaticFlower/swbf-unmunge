@@ -12,7 +12,7 @@ Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_
                                  const std::uint32_t default_colour)
    : _grid_unit_size{grid_unit_size}, _height_granularity{height_scale},
      _grid_size{grid_size}, _heightmap(grid_size * grid_size, 0i16),
-     _colourmap(grid_size * grid_size, default_colour),
+     _lightmap(grid_size * grid_size, default_colour),
      _texturemap(grid_size * grid_size, Texture_values{}),
      _patch_infomap((grid_size / 4) * (grid_size / 4), {Render_types::normal, 0})
 {
@@ -80,10 +80,10 @@ void Terrain_builder::set_point_height(const Point point,
    _heightmap[lookup_point_index(point)] = height;
 }
 
-void Terrain_builder::set_point_colour(const Point point,
-                                       const std::uint32_t colour) noexcept
+void Terrain_builder::set_point_light(const Point point,
+                                      const std::uint32_t colour) noexcept
 {
-   _colourmap[lookup_point_index(point)] = (colour | 0xFF000000);
+   _lightmap[lookup_point_index(point)] = (colour | 0xFF000000);
 }
 
 void Terrain_builder::set_point_texture(const Point point,
@@ -116,7 +116,7 @@ void Terrain_builder::save(Game_version version, std::string_view name,
 
    std::string buffer;
    buffer.reserve(header_size + (_heightmap.size() * sizeof(std::int16_t)) +
-                  ((_colourmap.size() * sizeof(std::uint32_t)) * 2) +
+                  ((_lightmap.size() * sizeof(std::uint32_t)) * 2) +
                   ((_texturemap.size() * sizeof(Texture_values))) +
                   ((_grid_size / 2) * (_grid_size / 2)) + // unknown map
                   ((_patch_infomap.size() * sizeof(Patch_info))));
@@ -191,11 +191,11 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    // heightmap
    buffer += view_object_span_as_string(gsl::make_span(_heightmap));
 
-   // colourmap foreground
-   buffer += view_object_span_as_string(gsl::make_span(_colourmap));
+   // colourmap
+   buffer.append(4 * _lightmap.size(), '\xff');
 
-   // colourmap background
-   buffer.append(4 * _colourmap.size(), '\xff');
+   // lightmap
+   buffer += view_object_span_as_string(gsl::make_span(_lightmap));
 
    // texturemap
    buffer += view_object_span_as_string(gsl::make_span(_texturemap));

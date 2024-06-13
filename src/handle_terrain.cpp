@@ -405,7 +405,7 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
       for (std::size_t x = 0; x < info->grid_length; ++x) {
          builder.set_point_height({x, z},
                                   height_map.at((max_z - z) * info->grid_length + x));
-         builder.set_point_colour(
+         builder.set_point_light(
             {x, z}, attribute_maps.light_map.at((max_z - z) * info->grid_length + x));
 
          const std::array texture_weight_map =

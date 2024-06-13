@@ -64,7 +64,7 @@ public:
 
    void set_point_height(const Point point, const std::int16_t height) noexcept;
 
-   void set_point_colour(const Point point, const std::uint32_t colour) noexcept;
+   void set_point_light(const Point point, const std::uint32_t colour) noexcept;
 
    void set_point_texture(const Point point, const std::uint_fast8_t texture,
                           const std::uint8_t value) noexcept;
@@ -117,7 +117,7 @@ private:
    Terrain_flags _terrain_flags = Terrain_flags::munge_all;
 
    std::vector<std::int16_t> _heightmap;
-   std::vector<std::uint32_t> _colourmap;
+   std::vector<std::uint32_t> _lightmap;
    std::vector<Texture_values> _texturemap;
    std::vector<Patch_info> _patch_infomap;
 
