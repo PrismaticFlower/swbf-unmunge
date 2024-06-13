@@ -417,5 +417,16 @@ void handle_terrain(Ucfb_reader terrain, Game_version output_version,
       }
    }
 
+   if (not foliage_map.empty()) {
+      const auto foliage_map_length = info->grid_length / 2;
+      const auto foliage_map_row_size = info->grid_length / 4;
+
+      for (std::size_t z = 0; z < foliage_map_length; ++z) {
+         builder.set_foliage_row(foliage_map_length - 1 - z,
+                                 std::span{foliage_map}.subspan(z * foliage_map_row_size,
+                                                                foliage_map_row_size));
+      }
+   }
+
    builder.save(output_version, name, file_saver);
 }

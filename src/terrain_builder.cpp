@@ -36,6 +36,7 @@ Terrain_builder::Terrain_builder(const float grid_unit_size, const float height_
      _texturemap(grid_size * grid_size, Texture_values{0xff}),
      _patch_infomap((grid_size / 4) * (grid_size / 4), {Render_types::normal, 0})
 {
+   _foliagemap.resize(_foliage_map_length * _foliage_map_row_size);
 }
 
 void Terrain_builder::set_textures(const std::array<std::string, max_textures>& textures)
@@ -124,6 +125,16 @@ void Terrain_builder::set_patch_water(const Point patch, const bool water)
    auto& patch_info = _patch_infomap[index];
 
    patch_info.water_layer = water ? 1 : 0;
+}
+
+void Terrain_builder::set_foliage_row(std::size_t z, std::span<const std::uint8_t> row)
+{
+   if (row.size() < _foliage_map_row_size) return;
+
+   z = z % _foliage_map_length;
+
+   std::copy_n(row.begin(), _foliage_map_row_size,
+               _foliagemap.begin() + (z * _foliage_map_row_size));
 }
 
 void Terrain_builder::set_munge_flags(const Terrain_flags flags) noexcept
@@ -223,6 +234,30 @@ void Terrain_builder::save(Game_version version, std::string_view name,
    write_span(file, std::span{clusters_info.min_heights});
    write_span(file, std::span{clusters_info.max_heights});
    write_span(file, std::span{clusters_info.flags});
+
+   const std::size_t active_foliage_length = _foliage_map_length;
+   const std::size_t active_foliage_offset = (512 - active_foliage_length) / 2;
+
+   for (std::size_t z = 0; z < active_foliage_offset; ++z) {
+      write_value(file, std::array<std::uint8_t, 256>{});
+   }
+
+   for (std::size_t z = 0; z < active_foliage_length; ++z) {
+      for (int x = 0; x < (active_foliage_offset / 2); ++x) {
+         write_value(file, std::uint8_t{});
+      }
+
+      write_span(file, std::span{_foliagemap}.subspan(z * _foliage_map_row_size,
+                                                      _foliage_map_row_size));
+
+      for (std::size_t x = 0; x < (active_foliage_offset / 2); ++x) {
+         write_value(file, std::uint8_t{});
+      }
+   }
+
+   for (std::size_t z = 0; z < active_foliage_offset; ++z) {
+      write_value(file, std::array<std::uint8_t, 256>{});
+   }
 }
 
 std::size_t Terrain_builder::lookup_point_index(Point point) const noexcept

@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -71,6 +72,8 @@ public:
 
    void set_patch_water(const Point patch, const bool water);
 
+   void set_foliage_row(std::size_t z, std::span<const std::uint8_t> row);
+
    void set_munge_flags(const Terrain_flags flags) noexcept;
 
    void save(Game_version version, std::string_view name, File_saver& file_saver) const;
@@ -122,12 +125,15 @@ private:
    const float _grid_unit_size = 8.0f;
    const float _height_granularity = 0.01f;
    const std::uint_fast16_t _grid_size = 128;
+   const std::size_t _foliage_map_length = _grid_size / 2;
+   const std::size_t _foliage_map_row_size = _grid_size / 4;
    Terrain_flags _terrain_flags = Terrain_flags::munge_all;
 
    std::vector<std::int16_t> _heightmap;
    std::vector<std::uint32_t> _lightmap;
    std::vector<Texture_values> _texturemap;
    std::vector<Patch_info> _patch_infomap;
+   std::vector<std::uint8_t> _foliagemap;
 
    std::array<Terrain_texture_name, max_textures> _textures{};
 
