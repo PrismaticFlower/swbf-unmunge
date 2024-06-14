@@ -93,7 +93,7 @@ struct Connection_info {
       buffer += "\tEnd(\""sv;
       buffer += hubs[end].name;
       buffer += "\");\n"sv;
-      buffer += "\tFlags("sv;
+      buffer += "\tFlag("sv;
       buffer += std::to_string(filter_flags);
       buffer += ");\n"sv;
 
